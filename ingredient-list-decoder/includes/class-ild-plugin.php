@@ -49,6 +49,13 @@ class ILD_Plugin {
 	private $csv;
 
 	/**
+	 * The ingredient library admin screens component.
+	 *
+	 * @var ILD_Library
+	 */
+	private $library;
+
+	/**
 	 * Build the plugin's components, ready to be hooked in.
 	 */
 	public function __construct() {
@@ -56,6 +63,7 @@ class ILD_Plugin {
 		$this->meta_fields = new ILD_Meta_Fields();
 		$this->settings    = new ILD_Settings();
 		$this->csv         = new ILD_CSV();
+		$this->library     = new ILD_Library();
 	}
 
 	/**
@@ -75,6 +83,7 @@ class ILD_Plugin {
 		$this->meta_fields->register_hooks();
 		$this->settings->register_hooks();
 		$this->csv->register_hooks();
+		$this->library->register_hooks();
 	}
 
 	/**

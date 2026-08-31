@@ -768,12 +768,26 @@ class ILD_CSV {
 		}
 		check_admin_referer( 'ild_csv_export' );
 
+		// A "sel" token means the library screen asked to export only the rows a
+		// person selected. The chosen IDs were held in a short-lived transient by
+		// the bulk action; read and clear them here. No token means export it all.
+		$ids = array();
+		$sel = isset( $_GET['sel'] ) ? sanitize_text_field( wp_unslash( $_GET['sel'] ) ) : '';
+		if ( '' !== $sel ) {
+			$stored = get_transient( 'ild_export_sel_' . $sel );
+			if ( is_array( $stored ) ) {
+				$ids = array_map( 'absint', $stored );
+			}
+			delete_transient( 'ild_export_sel_' . $sel );
+		}
+
 		$columns = self::get_columns();
 
 		// Send the file headers.
 		nocache_headers();
 		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="ild-ingredients-' . gmdate( 'Y-m-d' ) . '.csv"' );
+		$scope = empty( $ids ) ? 'all' : 'selection';
+		header( 'Content-Disposition: attachment; filename="ild-ingredients-' . $scope . '-' . gmdate( 'Y-m-d' ) . '.csv"' );
 
 		$output = fopen( 'php://output', 'w' );
 
@@ -783,30 +797,46 @@ class ILD_CSV {
 		// The header row: the section-4 field names, in order.
 		fputcsv( $output, array_keys( $columns ) );
 
-		// Every ingredient, whatever its status, in title order.
-		$query = new WP_Query(
-			array(
-				'post_type'      => ILD_Post_Types::POST_TYPE,
-				'post_status'    => 'any',
-				'posts_per_page' => -1,
-				'orderby'        => 'title',
-				'order'          => 'ASC',
-				'no_found_rows'  => true,
-			)
+		// Build the query: every ingredient in title order, or just the chosen IDs.
+		$args = array(
+			'post_type'      => ILD_Post_Types::POST_TYPE,
+			'post_status'    => 'any',
+			'posts_per_page' => -1,
+			'orderby'        => 'title',
+			'order'          => 'ASC',
+			'no_found_rows'  => true,
 		);
+		if ( ! empty( $ids ) ) {
+			$args['post__in'] = $ids;
+		}
+
+		$query = new WP_Query( $args );
 
 		foreach ( $query->posts as $post ) {
-			$line = array();
-
-			foreach ( $columns as $field_key => $column ) {
-				$line[] = $this->export_cell( $post, $column );
-			}
-
-			fputcsv( $output, $line );
+			fputcsv( $output, self::export_row( $post ) );
 		}
 
 		fclose( $output ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closing the output stream.
 		exit;
+	}
+
+	/**
+	 * Build one full CSV line for a single ingredient.
+	 *
+	 * Kept static and public so the library screen's "export selected" can build
+	 * exactly the same row shape as a full export, from the one column definition.
+	 *
+	 * @param WP_Post $post The ingredient.
+	 * @return array The ordered cell values, one per column.
+	 */
+	public static function export_row( $post ) {
+		$line = array();
+
+		foreach ( self::get_columns() as $column ) {
+			$line[] = self::export_cell( $post, $column );
+		}
+
+		return $line;
 	}
 
 	/**
@@ -816,13 +846,13 @@ class ILD_CSV {
 	 * @param array   $column The column definition.
 	 * @return string The cell value.
 	 */
-	private function export_cell( $post, $column ) {
+	private static function export_cell( $post, $column ) {
 		switch ( $column['kind'] ) {
 			case 'title':
 				return $post->post_title;
 
 			case 'status':
-				return $this->status_to_label( $post->post_status );
+				return self::status_to_label( $post->post_status );
 
 			case 'roles':
 				$roles = get_post_meta( $post->ID, $column['meta_key'], true );
@@ -850,7 +880,7 @@ class ILD_CSV {
 	 * @param string $status The WordPress post status.
 	 * @return string 'draft', 'needs review' or 'published'.
 	 */
-	private function status_to_label( $status ) {
+	private static function status_to_label( $status ) {
 		switch ( $status ) {
 			case 'publish':
 				return 'published';
@@ -936,19 +966,9 @@ class ILD_CSV {
 	 * @return int The matching post ID, or 0 if there is none.
 	 */
 	private function find_ingredient_by_inci( $inci ) {
-		global $wpdb;
-
-		// A direct, prepared lookup by title and type. Trashed entries are
-		// ignored so a deleted-but-not-purged entry does not block a re-import.
-		$id = $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT ID FROM {$wpdb->posts} WHERE post_type = %s AND post_status != 'trash' AND post_title = %s ORDER BY ID ASC LIMIT 1",
-				ILD_Post_Types::POST_TYPE,
-				$inci
-			)
-		);
-
-		return $id ? (int) $id : 0;
+		// The lookup itself lives in one shared helper so the importer, the list
+		// screen and the duplicate guard all match the same way.
+		return ild_find_ingredient_by_title( $inci );
 	}
 
 	/**
