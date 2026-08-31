@@ -42,12 +42,20 @@ class ILD_Plugin {
 	private $settings;
 
 	/**
+	 * The CSV import/export component.
+	 *
+	 * @var ILD_CSV
+	 */
+	private $csv;
+
+	/**
 	 * Build the plugin's components, ready to be hooked in.
 	 */
 	public function __construct() {
 		$this->post_types  = new ILD_Post_Types();
 		$this->meta_fields = new ILD_Meta_Fields();
 		$this->settings    = new ILD_Settings();
+		$this->csv         = new ILD_CSV();
 	}
 
 	/**
@@ -66,6 +74,7 @@ class ILD_Plugin {
 		$this->post_types->register_hooks();
 		$this->meta_fields->register_hooks();
 		$this->settings->register_hooks();
+		$this->csv->register_hooks();
 	}
 
 	/**
