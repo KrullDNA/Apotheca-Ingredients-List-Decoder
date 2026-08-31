@@ -84,6 +84,20 @@ class ILD_Plugin {
 	private $read_next;
 
 	/**
+	 * The lead store component.
+	 *
+	 * @var ILD_Leads
+	 */
+	private $leads;
+
+	/**
+	 * The email gate component.
+	 *
+	 * @var ILD_Gate
+	 */
+	private $gate;
+
+	/**
 	 * The Elementor widget integration.
 	 *
 	 * @var ILD_Elementor
@@ -103,6 +117,8 @@ class ILD_Plugin {
 		$this->shortcode     = new ILD_Shortcode();
 		$this->transcription = new ILD_Transcription();
 		$this->read_next     = new ILD_Read_Next();
+		$this->leads         = new ILD_Leads();
+		$this->gate          = new ILD_Gate();
 		$this->elementor     = new ILD_Elementor();
 	}
 
@@ -128,6 +144,8 @@ class ILD_Plugin {
 		$this->shortcode->register_hooks();
 		$this->transcription->register_hooks();
 		$this->read_next->register_hooks();
+		$this->leads->register_hooks();
+		$this->gate->register_hooks();
 		$this->elementor->register_hooks();
 	}
 

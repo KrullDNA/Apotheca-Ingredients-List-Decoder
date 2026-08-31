@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 0.9.0
+Stable tag: 0.10.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -131,6 +131,18 @@ The reserved region beneath the result now fills itself with the articles worth 
 * **Cached, and kept fresh.** The ranked candidates are cached per term-set. A cache generation number, bumped whenever any post or ingredient is saved, retires every cached set at once, so a newly published or re-tagged article shows up straight away.
 * **The full control set from section 11 group I.** Section-heading typography and spacing; card background, border, radius, shadow and content padding; thumbnail size, aspect ratio and radius; title, excerpt and meta typography; a hover state; and columns and gap per breakpoint. The editor's Result preview now includes sample cards so the whole block can be styled without running a real query.
 
+= Stage 10: the email gate =
+
+The summary is shown immediately; the full ingredient breakdown and the read-next block are held behind a short email form.
+
+* **Summary first, then the gate.** On submit, the descriptive summary appears straight away. The breakdown is not in the page at all until the gate is completed — it is delivered only after, so it can't simply be read from the source.
+* **One consent, covering both.** A single checkbox, unticked by default, covers emailing the result and marketing from Apotheca®. The submit button stays disabled until it is ticked, with the reason shown beneath it rather than failing silently.
+* **The terms, up front.** The same exchange wording is shown near the input, before anything is pasted, as well as at the gate.
+* **Skipped next time.** On submission a first-party cookie is set, its duration taken from the plugin's "cookie duration" setting (twelve months by default), so the gate is skipped on that device afterwards.
+* **What's stored.** Each capture records the address, the timestamp, the consent state, the exact consent wording shown at that moment, and the source page — kept as a private lead entry. (The admin view and privacy tools come in a later stage.)
+* **Guarded.** A honeypot field and a nonce on the gate, a valid-email check, and a required consent box, all validated again on the server.
+* **The full control set from section 11 group J.** Container background, border, radius, padding and shadow; heading and body typography; the email field inherited or overridden; the consent checkbox size, colour, checked colour and radius; consent-text typography and colour; the privacy-link colour; and the submit button inherited or overridden, including its disabled state. The exchange and consent wording are both editable Elementor controls (defaulting to the brief's suggested wording); the privacy-policy link and the unsubscribe line are deliberately not editable. The editor gains an Email gate preview state so the whole gate can be styled.
+
 == How to test Stage 1 ==
 
 1. Zip the `ingredient-list-decoder` folder and upload it under Plugins → Add New → Upload Plugin, then activate it. Confirm no error appears.
@@ -235,7 +247,22 @@ The reserved region beneath the result now fills itself with the articles worth 
 6. Publish or re-tag a post so it now shares a term, re-run the same list, and confirm the new post appears (the cache clears on save).
 7. In Elementor, set the widget's Preview state to Result and work through the **I · Read-next block** style group — heading, cards, thumbnail, typography, hover, and columns/gap per breakpoint.
 
+== How to test Stage 10 ==
+
+1. In a fresh browser (or after clearing cookies), view the tool logged out and analyse a real list. Confirm the summary appears immediately, and beneath it an email form — not the ingredient breakdown.
+2. Confirm the exchange wording is also shown near the input, before you paste anything.
+3. Confirm the submit button is disabled, with a line explaining you must tick the box. Tick the consent box and confirm the button enables and the line goes away.
+4. Enter an email and submit. Confirm the breakdown (the full ingredient list and, where relevant, the read-next block) appears in place of the form.
+5. Reload the page and analyse another list. Confirm the gate is skipped and the breakdown shows straight away (the cookie is set).
+6. In **Ingredient Decoder → Settings**, change the cookie duration; clear cookies and confirm the new duration is used.
+7. As an administrator, confirm a lead was stored (they are private `ild_lead` entries; the admin screen arrives in a later stage) with the email, the consent state, the exact consent wording, and the source page.
+8. Try submitting with an invalid email, or with the box unticked via dev tools — confirm the server refuses it and nothing is stored.
+9. In Elementor, edit the widget: change the Exchange text and Consent checkbox text and confirm they appear on the page; confirm the privacy-policy link and unsubscribe line cannot be edited. Set the Preview state to Email gate and work through the **J · Email gate** style group, including the checkbox and the submit button's disabled state.
+
 == Changelog ==
+
+= 0.10.0 =
+* Stage 10: the email gate. The summary shows immediately; the ingredient breakdown and read-next block are held behind an email form (and never sent to the page until it is completed). One consent checkbox, unticked by default, covers the result email and marketing from Apotheca®, with the submit button disabled until it is ticked and the reason shown. The exchange wording also appears up front near the input. On submission a first-party cookie (default twelve months) skips the gate next time, and the address, timestamp, consent state, exact wording shown, and source page are stored as a private lead. Honeypot and nonce throughout. Adds the section-11 group J style controls, editable exchange/consent wording (privacy link and unsubscribe line fixed), and an Email gate preview state.
 
 = 0.9.0 =
 * Stage 9: the read-next block. Beneath the result, it collects the Skin Topic and Ingredient Family terms of the ingredients that generated the findings, weights topic above family, and shows up to three published posts that share those terms — ordered by shared-term count then recency, excluding the current page. Renders nothing when nothing shares a term (never a fallback to recent or popular). Cached per term-set and cleared on any post or ingredient save. Adds the section-11 group I style controls and sample cards in the editor preview.

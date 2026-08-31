@@ -140,6 +140,7 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 		$this->controls_group_g_findings();   // Group G: findings & unmatched.
 		$this->controls_group_h_states();     // Group H: states.
 		$this->controls_group_i_readnext();   // Group I: read-next block.
+		$this->controls_group_j_gate();       // Group J: email gate.
 		$this->controls_group_k_global();     // Group K: global.
 	}
 
@@ -173,6 +174,7 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 					'empty'   => __( 'Empty', 'ingredient-list-decoder' ),
 					'error'   => __( 'Error', 'ingredient-list-decoder' ),
 					'verify'  => __( 'Photo verification', 'ingredient-list-decoder' ),
+					'gate'    => __( 'Email gate', 'ingredient-list-decoder' ),
 				),
 				'description' => __( 'Show a state in the editor so you can style it. This has no effect on the live page.', 'ingredient-list-decoder' ),
 			)
@@ -205,6 +207,39 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 			array(
 				'label' => __( 'Primary button icon', 'ingredient-list-decoder' ),
 				'type'  => Controls_Manager::ICONS,
+			)
+		);
+
+		// The two editable pieces of gate wording. The privacy link and the
+		// unsubscribe line are deliberately not editable.
+		$this->add_control(
+			'ild_gate_wording_heading',
+			array(
+				'label'     => __( 'Email gate wording', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_control(
+			'ild_exchange_text',
+			array(
+				'label'       => __( 'Exchange text', 'ingredient-list-decoder' ),
+				'type'        => Controls_Manager::TEXTAREA,
+				'rows'        => 3,
+				'default'     => ILD_Phrases::exchange_default(),
+				'description' => __( 'Shown near the input and again at the gate, so the terms are visible before pasting.', 'ingredient-list-decoder' ),
+			)
+		);
+
+		$this->add_control(
+			'ild_consent_text',
+			array(
+				'label'       => __( 'Consent checkbox text', 'ingredient-list-decoder' ),
+				'type'        => Controls_Manager::TEXTAREA,
+				'rows'        => 3,
+				'default'     => ILD_Phrases::consent_default(),
+				'description' => __( 'Must cover both emailing the result and marketing from Apotheca®. Stored verbatim as the consent record.', 'ingredient-list-decoder' ),
 			)
 		);
 
@@ -2397,6 +2432,286 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 
 	/*
 	 * -----------------------------------------------------------------------
+	 * Group J — email gate
+	 * -----------------------------------------------------------------------
+	 */
+
+	/**
+	 * Group J controls.
+	 *
+	 * @return void
+	 */
+	private function controls_group_j_gate() {
+		$this->start_controls_section(
+			'section_gate',
+			array(
+				'label' => __( 'J · Email gate', 'ingredient-list-decoder' ),
+				'tab'   => Controls_Manager::TAB_STYLE,
+			)
+		);
+
+		// Container.
+		$this->add_group_control(
+			Group_Control_Background::get_type(),
+			array(
+				'name'     => 'gate_bg',
+				'types'    => array( 'classic', 'gradient' ),
+				'selector' => '{{WRAPPER}} .ild-gate',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Border::get_type(),
+			array(
+				'name'     => 'gate_border',
+				'selector' => '{{WRAPPER}} .ild-gate',
+			)
+		);
+
+		$this->add_responsive_control(
+			'gate_radius',
+			array(
+				'label'      => __( 'Border radius', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', '%', 'em' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-gate' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'gate_padding',
+			array(
+				'label'      => __( 'Padding', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-gate' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Box_Shadow::get_type(),
+			array(
+				'name'     => 'gate_shadow',
+				'selector' => '{{WRAPPER}} .ild-gate',
+			)
+		);
+
+		// Heading and body typography.
+		$this->add_control(
+			'gate_heading_heading',
+			array(
+				'label'     => __( 'Heading', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'gate_heading_typography',
+				'selector' => '{{WRAPPER}} .ild-gate__heading',
+			)
+		);
+
+		$this->add_control(
+			'gate_heading_colour',
+			array(
+				'label'     => __( 'Heading colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-gate__heading' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'gate_body_heading',
+			array(
+				'label'     => __( 'Body', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'gate_body_typography',
+				'selector' => '{{WRAPPER}} .ild-gate__body, {{WRAPPER}} .ild-exchange',
+			)
+		);
+
+		$this->add_control(
+			'gate_body_colour',
+			array(
+				'label'     => __( 'Body colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-gate__body' => 'color: {{VALUE}};',
+					'{{WRAPPER}} .ild-exchange'   => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		// Email field — overrides, or leave blank to inherit.
+		$this->add_control(
+			'gate_field_heading',
+			array(
+				'label'     => __( 'Email field', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'gate_field_typography',
+				'selector' => '{{WRAPPER}} .ild-gate__email',
+			)
+		);
+
+		$this->add_control(
+			'gate_field_colour',
+			array(
+				'label'     => __( 'Text colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-gate__email' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Background::get_type(),
+			array(
+				'name'     => 'gate_field_bg',
+				'types'    => array( 'classic' ),
+				'selector' => '{{WRAPPER}} .ild-gate__email',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Border::get_type(),
+			array(
+				'name'     => 'gate_field_border',
+				'selector' => '{{WRAPPER}} .ild-gate__email',
+			)
+		);
+
+		// Checkbox: size, colour, checked colour, radius.
+		$this->add_control(
+			'gate_checkbox_heading',
+			array(
+				'label'     => __( 'Consent checkbox', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_responsive_control(
+			'gate_checkbox_size',
+			array(
+				'label'      => __( 'Size', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em' ),
+				'range'      => array( 'px' => array( 'min' => 12, 'max' => 40 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-gate__checkbox' => 'width: {{SIZE}}{{UNIT}}; height: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'gate_checkbox_colour',
+			array(
+				'label'     => __( 'Border colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-gate__checkbox' => 'border-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'gate_checkbox_checked',
+			array(
+				'label'     => __( 'Checked colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-gate__checkbox:checked' => 'background-color: {{VALUE}}; border-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'gate_checkbox_radius',
+			array(
+				'label'      => __( 'Border radius', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', '%' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 20 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-gate__checkbox' => 'border-radius: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		// Consent text.
+		$this->add_control(
+			'gate_consent_heading',
+			array(
+				'label'     => __( 'Consent text', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'gate_consent_typography',
+				'selector' => '{{WRAPPER}} .ild-gate__consent-text',
+			)
+		);
+
+		$this->add_control(
+			'gate_consent_colour',
+			array(
+				'label'     => __( 'Colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-gate__consent-text' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		// Privacy link colour.
+		$this->add_control(
+			'gate_privacy_colour',
+			array(
+				'label'     => __( 'Privacy link colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'separator' => 'before',
+				'selectors' => array(
+					'{{WRAPPER}} .ild-gate__privacy a' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		// Submit button — inherits, or override including its disabled state.
+		$this->button_controls( 'gate_submit', __( 'Submit button', 'ingredient-list-decoder' ), '{{WRAPPER}} .ild-gate__submit' );
+
+		$this->end_controls_section();
+	}
+
+	/*
+	 * -----------------------------------------------------------------------
 	 * Group K — global
 	 * -----------------------------------------------------------------------
 	 */
@@ -2578,12 +2893,18 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 		}
 
 		// The tool markup comes from the shared renderer, already escaped.
+		// The editable gate wording, falling back to the defaults.
+		$exchange_text = ! empty( $settings['ild_exchange_text'] ) ? $settings['ild_exchange_text'] : ILD_Phrases::exchange_default();
+		$consent_text  = ! empty( $settings['ild_consent_text'] ) ? $settings['ild_consent_text'] : ILD_Phrases::consent_default();
+
 		echo ILD_Shortcode::render_tool( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-rendered, pre-escaped template markup.
 			array(
-				'class'       => implode( ' ', $classes ),
-				'preview'     => $preview,
-				'submit_icon' => $icon_html,
-				'show_photo'  => $show_photo,
+				'class'         => implode( ' ', $classes ),
+				'preview'       => $preview,
+				'submit_icon'   => $icon_html,
+				'show_photo'    => $show_photo,
+				'exchange_text' => $exchange_text,
+				'consent_text'  => $consent_text,
 			)
 		);
 	}

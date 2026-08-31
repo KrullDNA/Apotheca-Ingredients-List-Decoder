@@ -114,6 +114,127 @@
 }
 
 /* ---------------------------------------------------------------------------
+ * The exchange line and the email gate
+ * ------------------------------------------------------------------------- */
+.ild-exchange {
+	margin: 0.75rem 0;
+	font-size: 0.9em;
+	opacity: 0.85;
+}
+
+.ild-gate {
+	margin-top: 1.5rem;
+	padding: 1.25rem;
+	border: 1px solid #e3e3e3;
+	border-radius: 8px;
+	background: #fafafa;
+}
+
+.ild-gate__heading {
+	margin: 0 0 0.5rem;
+}
+
+.ild-gate__body {
+	margin: 0 0 1rem;
+}
+
+.ild-gate__field {
+	margin-bottom: 0.75rem;
+}
+
+.ild-gate__label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 0.25rem;
+}
+
+.ild-gate__email {
+	display: block;
+	width: 100%;
+	font: inherit;
+	padding: 0.6rem 0.75rem;
+	border: 1px solid #c9c9c9;
+	border-radius: 4px;
+	background: #fff;
+	color: inherit;
+}
+
+.ild-gate__consent {
+	margin: 0.6rem 0;
+}
+
+.ild-gate__consent-label {
+	display: flex;
+	gap: 0.6rem;
+	align-items: flex-start;
+	cursor: pointer;
+}
+
+/* A fully styleable checkbox: size, colour, checked colour and radius all map
+ * to plain properties so the widget's group J controls can drive them. */
+.ild-gate__checkbox {
+	-webkit-appearance: none;
+	appearance: none;
+	flex: none;
+	width: 1.15rem;
+	height: 1.15rem;
+	margin: 0.1rem 0 0;
+	border: 2px solid #c9c9c9;
+	border-radius: 4px;
+	background: #fff;
+	cursor: pointer;
+	position: relative;
+}
+
+.ild-gate__checkbox:checked {
+	background: #1f3d2b;
+	border-color: #1f3d2b;
+}
+
+.ild-gate__checkbox:checked::after {
+	content: '';
+	position: absolute;
+	left: 50%;
+	top: 45%;
+	width: 0.3em;
+	height: 0.6em;
+	border: solid #fff;
+	border-width: 0 2px 2px 0;
+	transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.ild-gate__actions {
+	margin-top: 0.75rem;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem 0.75rem;
+}
+
+.ild-gate__note {
+	margin: 0;
+	font-size: 0.85em;
+	opacity: 0.8;
+}
+
+.ild-gate__error {
+	margin: 0;
+	width: 100%;
+	font-size: 0.9em;
+	color: #b3261e;
+}
+
+.ild-gate__legal {
+	margin: 0.85rem 0 0;
+	font-size: 0.8em;
+	opacity: 0.75;
+}
+
+.ild-gate__legal span {
+	display: block;
+}
+
+/* ---------------------------------------------------------------------------
  * Photo route: dropzone, progress, and the verification step
  * ------------------------------------------------------------------------- */
 .ild-field--photo {

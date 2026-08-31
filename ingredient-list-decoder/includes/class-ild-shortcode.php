@@ -111,6 +111,9 @@ class ILD_Shortcode {
 				'heicUrl'         => (string) apply_filters( 'ild_heic_converter_url', 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js' ),
 				'photoMessages'   => ILD_Phrases::photo_messages(),
 				'photoReading'    => ILD_Phrases::photo_reading(),
+				// The email gate (Stage 10).
+				'gateAction'      => ILD_Gate::ACTION,
+				'gateMessages'    => ILD_Phrases::gate_messages(),
 			)
 		);
 	}
@@ -145,11 +148,14 @@ class ILD_Shortcode {
 	public static function render_tool( $args = array() ) {
 		$args = array_merge(
 			array(
-				'class'       => '',
-				'preview'     => '',
-				'submit_icon' => '',
+				'class'         => '',
+				'preview'       => '',
+				'submit_icon'   => '',
 				// null = decide from settings; the widget may force true/false.
-				'show_photo'  => null,
+				'show_photo'    => null,
+				// The editable gate wording; defaults are the brief's suggestions.
+				'exchange_text' => ILD_Phrases::exchange_default(),
+				'consent_text'  => ILD_Phrases::consent_default(),
 			),
 			$args
 		);
@@ -174,19 +180,21 @@ class ILD_Shortcode {
 		// In the editor, a chosen preview state is rendered in place so it can be
 		// styled without triggering it. Never set on the front end.
 		$preview_html = '';
-		if ( in_array( $args['preview'], array( 'empty', 'error', 'result' ), true ) ) {
+		if ( in_array( $args['preview'], array( 'empty', 'error', 'result', 'gate' ), true ) ) {
 			$preview_html = self::render_state_preview( $args['preview'] );
 		}
 
 		return self::render_template(
 			'tool',
 			array(
-				'uid'          => $uid,
-				'extra_class'  => $args['class'],
-				'preview'      => $args['preview'],
-				'preview_html' => $preview_html,
-				'submit_icon'  => $args['submit_icon'],
-				'show_photo'   => (bool) $args['show_photo'],
+				'uid'           => $uid,
+				'extra_class'   => $args['class'],
+				'preview'       => $args['preview'],
+				'preview_html'  => $preview_html,
+				'submit_icon'   => $args['submit_icon'],
+				'show_photo'    => (bool) $args['show_photo'],
+				'exchange_text' => $args['exchange_text'],
+				'consent_text'  => $args['consent_text'],
 			)
 		);
 	}
@@ -215,9 +223,33 @@ class ILD_Shortcode {
 				);
 			case 'result':
 				return self::render_view( self::sample_result_view() );
+			case 'gate':
+				// Show the summary with the gate in place, so group J styles.
+				return self::render_view(
+					self::sample_result_view(),
+					array(
+						'gated'         => true,
+						'carry'         => array( 'list' => '', 'page_id' => 0 ),
+						'consent_text'  => ILD_Phrases::consent_default(),
+						'exchange_text' => ILD_Phrases::exchange_default(),
+					)
+				);
 			default:
 				return '';
 		}
+	}
+
+	/**
+	 * Render just the gated breakdown (the ingredient list and read-next block).
+	 *
+	 * Used by the gate endpoint once access is granted, and inline when the
+	 * visitor already has access.
+	 *
+	 * @param array $view The result view model.
+	 * @return string
+	 */
+	public static function render_breakdown( $view ) {
+		return self::render_template( 'breakdown', array( 'view' => $view ) );
 	}
 
 	/**
@@ -330,16 +362,34 @@ class ILD_Shortcode {
 		$exclude_id = isset( $_POST['ild_page_id'] ) ? absint( wp_unslash( $_POST['ild_page_id'] ) ) : 0;
 		$context    = array( 'exclude_id' => $exclude_id );
 
+		// The gate wording shown on the page, carried through so the gate can be
+		// rendered with it and the exact consent wording stored.
+		$consent_text  = isset( $_POST['ild_consent_text'] ) ? sanitize_textarea_field( wp_unslash( $_POST['ild_consent_text'] ) ) : ILD_Phrases::consent_default();
+		$exchange_text = isset( $_POST['ild_exchange_text'] ) ? sanitize_textarea_field( wp_unslash( $_POST['ild_exchange_text'] ) ) : ILD_Phrases::exchange_default();
+
 		// Run the pipeline. A parser error (too long) comes back as a WP_Error.
 		$match = ild_match_ingredient_list( $raw );
 		if ( is_wp_error( $match ) ) {
 			$view = ILD_Presenter::present( $match, null, $context );
-		} else {
-			$analysis = ILD_Analysis::analyse( $match );
-			$view     = ILD_Presenter::present( $match, $analysis, $context );
+			wp_send_json_success( array( 'html' => self::render_view( $view ) ) );
 		}
 
-		wp_send_json_success( array( 'html' => self::render_view( $view ) ) );
+		$analysis = ILD_Analysis::analyse( $match );
+		$view     = ILD_Presenter::present( $match, $analysis, $context );
+
+		// Gate the breakdown when this is a real result and the device has no
+		// access cookie yet. The summary always shows; the breakdown does not.
+		$vars = array();
+		if ( 'result' === $view['state'] && ! ILD_Gate::has_access() ) {
+			$vars = array(
+				'gated'         => true,
+				'carry'         => array( 'list' => $raw, 'page_id' => $exclude_id ),
+				'consent_text'  => $consent_text,
+				'exchange_text' => $exchange_text,
+			);
+		}
+
+		wp_send_json_success( array( 'html' => self::render_view( $view, $vars ) ) );
 	}
 
 	/**
@@ -348,10 +398,10 @@ class ILD_Shortcode {
 	 * @param array $view The view model from ILD_Presenter.
 	 * @return string The rendered HTML fragment.
 	 */
-	private static function render_view( $view ) {
+	private static function render_view( $view, $vars = array() ) {
 		switch ( isset( $view['state'] ) ? $view['state'] : 'error' ) {
 			case 'result':
-				return self::render_template( 'result', array( 'view' => $view ) );
+				return self::render_template( 'result', array_merge( array( 'view' => $view, 'gated' => false ), $vars ) );
 			case 'empty':
 				return self::render_template( 'empty', array( 'view' => $view ) );
 			case 'error':

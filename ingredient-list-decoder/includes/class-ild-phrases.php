@@ -73,6 +73,96 @@ class ILD_Phrases {
 
 	/*
 	 * -----------------------------------------------------------------------
+	 * The email gate (Stage 9 of the brief / build Stage 10)
+	 * -----------------------------------------------------------------------
+	 */
+
+	/**
+	 * The default exchange text, shown near the input and again at the gate.
+	 *
+	 * Editable in the widget; this is the brief's suggested default wording. It
+	 * has to cover both sending the result and marketing from Apotheca.
+	 *
+	 * @return string
+	 */
+	public static function exchange_default() {
+		return __( 'Add your email and we\'ll send this reading straight to your inbox, along with the occasional bit of honest skincare thinking from Apotheca®. No noise, and you can unsubscribe any time.', 'ingredient-list-decoder' );
+	}
+
+	/**
+	 * The default consent checkbox label. Editable in the widget.
+	 *
+	 * Covers both the result email and marketing, as one consent.
+	 *
+	 * @return string
+	 */
+	public static function consent_default() {
+		return __( 'Yes — email me my result and send me skincare thinking and news from Apotheca®.', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The heading over the email gate. */
+	public static function gate_heading() {
+		return __( 'See your full breakdown', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The label for the email field. */
+	public static function gate_email_label() {
+		return __( 'Email address', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The placeholder for the email field. */
+	public static function gate_email_placeholder() {
+		return __( 'you@example.com', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The gate submit button label. */
+	public static function gate_submit() {
+		return __( 'Email me my result', 'ingredient-list-decoder' );
+	}
+
+	/**
+	 * The line explaining why the button is disabled until the box is ticked.
+	 *
+	 * @return string
+	 */
+	public static function gate_consent_required() {
+		return __( 'Please tick the box above so we can send your result.', 'ingredient-list-decoder' );
+	}
+
+	/**
+	 * The fixed privacy line. Not editable: the link and its wording are fixed.
+	 *
+	 * @return string The text before the privacy-policy link.
+	 */
+	public static function gate_privacy_prefix() {
+		return __( 'Read how we look after your details in our', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The fixed privacy-policy link text. Not editable. */
+	public static function gate_privacy_link_text() {
+		return __( 'Privacy Policy', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The fixed unsubscribe reassurance line. Not editable. */
+	public static function gate_unsubscribe() {
+		return __( 'You can unsubscribe at any time.', 'ingredient-list-decoder' );
+	}
+
+	/**
+	 * The messages the gate submission may return.
+	 *
+	 * @return array<string,string> Keyed by message id.
+	 */
+	public static function gate_messages() {
+		return array(
+			'invalid_email' => __( 'That doesn\'t look like an email address. Please check it and try again.', 'ingredient-list-decoder' ),
+			'no_consent'    => __( 'Please tick the box so we can send your result.', 'ingredient-list-decoder' ),
+			'network'       => __( 'Something went wrong sending your result. Please try again.', 'ingredient-list-decoder' ),
+		);
+	}
+
+	/*
+	 * -----------------------------------------------------------------------
 	 * Photo upload and the verification step (Stage 8)
 	 * -----------------------------------------------------------------------
 	 */

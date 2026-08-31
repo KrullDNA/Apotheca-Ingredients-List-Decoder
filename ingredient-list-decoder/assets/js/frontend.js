@@ -525,11 +525,112 @@
 		}
 	} );
 
+	/* -------------------------------------------------------------------
+	 * Email gate: enable the button once consent is ticked, submit the
+	 * gate, and reveal the breakdown in place.
+	 * ----------------------------------------------------------------- */
+
+	// Enable the submit button only while the consent box is ticked, and show
+	// the reason it is disabled rather than failing silently.
+	document.addEventListener( 'change', function ( event ) {
+		var box = event.target;
+		if ( ! box || ! box.matches || ! box.matches( '[data-ild-gate-consent]' ) ) {
+			return;
+		}
+		var form = box.closest( '.ild-gate__form' );
+		if ( ! form ) {
+			return;
+		}
+		var button = form.querySelector( '[data-ild-gate-submit]' );
+		var note = form.querySelector( '[data-ild-gate-note]' );
+		if ( button ) {
+			button.disabled = ! box.checked;
+		}
+		if ( note ) {
+			note.hidden = box.checked;
+		}
+	} );
+
+	function showGateError( form, message ) {
+		var el = form.querySelector( '[data-ild-gate-error]' );
+		if ( el ) {
+			el.textContent = message;
+			el.hidden = false;
+		}
+	}
+
+	function submitGate( form ) {
+		var gate = form.closest( '[data-ild-gate]' );
+		var button = form.querySelector( '[data-ild-gate-submit]' );
+		var source = form.querySelector( '[data-ild-gate-source]' );
+		var errorEl = form.querySelector( '[data-ild-gate-error]' );
+
+		if ( source ) {
+			source.value = window.location.href;
+		}
+		if ( errorEl ) {
+			errorEl.hidden = true;
+			errorEl.textContent = '';
+		}
+		if ( button ) {
+			button.disabled = true;
+		}
+
+		var data = new FormData( form );
+		data.append( 'action', settings.gateAction );
+
+		fetch( settings.ajaxUrl, {
+			method: 'POST',
+			credentials: 'same-origin',
+			body: data
+		} )
+			.then( function ( response ) { return response.json(); } )
+			.then( function ( payload ) {
+				if ( payload && payload.success && payload.data && typeof payload.data.html === 'string' && gate && gate.parentNode ) {
+					// Replace the gate with the now-unlocked breakdown, and move
+					// focus to it so it is announced.
+					var holder = document.createElement( 'div' );
+					holder.innerHTML = payload.data.html;
+					var node = holder.firstElementChild;
+					if ( node ) {
+						gate.parentNode.replaceChild( node, gate );
+						node.setAttribute( 'tabindex', '-1' );
+						node.focus();
+					}
+					return;
+				}
+				var messages = settings.gateMessages || {};
+				var message = ( payload && payload.data && payload.data.message ) ? payload.data.message : ( messages.network || '' );
+				showGateError( form, message );
+				if ( button ) {
+					button.disabled = false;
+				}
+			} )
+			.catch( function () {
+				var messages = settings.gateMessages || {};
+				showGateError( form, messages.network || '' );
+				if ( button ) {
+					button.disabled = false;
+				}
+			} );
+	}
+
 	// Submit the form over AJAX. One document-level listener covers every tool,
 	// now or added later.
 	document.addEventListener( 'submit', function ( event ) {
 		var form = event.target;
-		if ( ! form || ! form.classList || ! form.classList.contains( 'ild-form' ) ) {
+		if ( ! form || ! form.classList ) {
+			return;
+		}
+
+		// The email gate has its own submission.
+		if ( form.classList.contains( 'ild-gate__form' ) ) {
+			event.preventDefault();
+			submitGate( form );
+			return;
+		}
+
+		if ( ! form.classList.contains( 'ild-form' ) ) {
 			return;
 		}
 

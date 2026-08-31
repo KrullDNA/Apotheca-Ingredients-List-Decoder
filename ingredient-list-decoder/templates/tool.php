@@ -20,13 +20,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$uid          = isset( $uid ) ? $uid : 'ild';
-$extra_class  = isset( $extra_class ) ? trim( $extra_class ) : '';
-$preview      = isset( $preview ) ? $preview : '';
-$preview_html = isset( $preview_html ) ? $preview_html : '';
-$submit_icon  = isset( $submit_icon ) ? $submit_icon : '';
-$show_photo   = isset( $show_photo ) ? (bool) $show_photo : false;
-$wrap_class   = 'ild-tool' . ( '' !== $extra_class ? ' ' . $extra_class : '' );
+$uid           = isset( $uid ) ? $uid : 'ild';
+$extra_class   = isset( $extra_class ) ? trim( $extra_class ) : '';
+$preview       = isset( $preview ) ? $preview : '';
+$preview_html  = isset( $preview_html ) ? $preview_html : '';
+$submit_icon   = isset( $submit_icon ) ? $submit_icon : '';
+$show_photo    = isset( $show_photo ) ? (bool) $show_photo : false;
+$exchange_text = isset( $exchange_text ) && '' !== $exchange_text ? $exchange_text : ILD_Phrases::exchange_default();
+$consent_text  = isset( $consent_text ) && '' !== $consent_text ? $consent_text : ILD_Phrases::consent_default();
+$wrap_class    = 'ild-tool' . ( '' !== $extra_class ? ' ' . $extra_class : '' );
 ?>
 <div class="<?php echo esc_attr( $wrap_class ); ?>" data-ild-tool>
 
@@ -35,6 +37,10 @@ $wrap_class   = 'ild-tool' . ( '' !== $extra_class ? ' ' . $extra_class : '' );
 		<?php // The page the tool sits on, so its own article is never shown as ?>
 		<?php // "read next". Read back on submit and excluded from the block. ?>
 		<input type="hidden" name="ild_page_id" value="<?php echo esc_attr( (int) get_queried_object_id() ); ?>" />
+		<?php // The gate wording shown on this page, carried so the gate renders ?>
+		<?php // with it and the exact consent wording can be stored. ?>
+		<input type="hidden" name="ild_consent_text" value="<?php echo esc_attr( $consent_text ); ?>" />
+		<input type="hidden" name="ild_exchange_text" value="<?php echo esc_attr( $exchange_text ); ?>" />
 
 		<div class="ild-field ild-field--list">
 			<label class="ild-label" for="<?php echo esc_attr( $uid ); ?>-list">
@@ -134,6 +140,10 @@ $wrap_class   = 'ild-tool' . ( '' !== $extra_class ? ' ' . $extra_class : '' );
 			<label for="<?php echo esc_attr( $uid ); ?>-hp"><?php echo esc_html( ILD_Phrases::honeypot_label() ); ?></label>
 			<input type="text" id="<?php echo esc_attr( $uid ); ?>-hp" name="ild_hp" tabindex="-1" autocomplete="off" value="" />
 		</div>
+
+		<?php // The exchange, shown up front so the terms are visible before she ?>
+		<?php // pastes anything — the same wording appears again at the gate. ?>
+		<p class="ild-exchange" data-ild-exchange><?php echo esc_html( $exchange_text ); ?></p>
 
 		<div class="ild-actions">
 			<button type="submit" class="ild-submit">
