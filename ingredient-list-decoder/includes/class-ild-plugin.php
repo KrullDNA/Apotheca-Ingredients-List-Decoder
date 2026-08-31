@@ -77,6 +77,13 @@ class ILD_Plugin {
 	private $transcription;
 
 	/**
+	 * The read-next block component (its cache-busting hooks).
+	 *
+	 * @var ILD_Read_Next
+	 */
+	private $read_next;
+
+	/**
 	 * The Elementor widget integration.
 	 *
 	 * @var ILD_Elementor
@@ -95,6 +102,7 @@ class ILD_Plugin {
 		$this->matcher     = new ILD_Matcher();
 		$this->shortcode     = new ILD_Shortcode();
 		$this->transcription = new ILD_Transcription();
+		$this->read_next     = new ILD_Read_Next();
 		$this->elementor     = new ILD_Elementor();
 	}
 
@@ -119,6 +127,7 @@ class ILD_Plugin {
 		$this->matcher->register_hooks();
 		$this->shortcode->register_hooks();
 		$this->transcription->register_hooks();
+		$this->read_next->register_hooks();
 		$this->elementor->register_hooks();
 	}
 

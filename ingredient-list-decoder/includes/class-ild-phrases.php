@@ -216,6 +216,11 @@ class ILD_Phrases {
 		return __( 'Every ingredient, in order', 'ingredient-list-decoder' );
 	}
 
+	/** @return string Heading over the read-next block. */
+	public static function heading_readnext() {
+		return __( 'Worth reading next', 'ingredient-list-decoder' );
+	}
+
 	/*
 	 * -----------------------------------------------------------------------
 	 * The summary sentences

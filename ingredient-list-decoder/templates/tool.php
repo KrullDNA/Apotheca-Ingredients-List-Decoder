@@ -32,6 +32,9 @@ $wrap_class   = 'ild-tool' . ( '' !== $extra_class ? ' ' . $extra_class : '' );
 
 	<form class="ild-form" method="post" novalidate>
 		<?php wp_nonce_field( ILD_Shortcode::ACTION, 'ild_nonce' ); ?>
+		<?php // The page the tool sits on, so its own article is never shown as ?>
+		<?php // "read next". Read back on submit and excluded from the block. ?>
+		<input type="hidden" name="ild_page_id" value="<?php echo esc_attr( (int) get_queried_object_id() ); ?>" />
 
 		<div class="ild-field ild-field--list">
 			<label class="ild-label" for="<?php echo esc_attr( $uid ); ?>-list">

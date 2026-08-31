@@ -29,9 +29,10 @@ class ILD_Presenter {
 	 *
 	 * @param array|WP_Error $match_result The Stage 4 match result, or a parser error.
 	 * @param array|null     $analysis     The Stage 5 analysis, or null on error.
+	 * @param array          $context      Optional context, e.g. { exclude_id }.
 	 * @return array The view model: always has a 'state' of result|empty|error.
 	 */
-	public static function present( $match_result, $analysis ) {
+	public static function present( $match_result, $analysis, $context = array() ) {
 		// A parser error (for example, input too long) becomes an error state.
 		if ( is_wp_error( $match_result ) ) {
 			$code    = $match_result->get_error_code();
@@ -55,14 +56,22 @@ class ILD_Presenter {
 			);
 		}
 
+		$items       = isset( $match_result['items'] ) ? $match_result['items'] : array();
 		$summary     = self::build_summary( $analysis );
-		$ingredients = self::build_ingredients( isset( $match_result['items'] ) ? $match_result['items'] : array() );
+		$ingredients = self::build_ingredients( $items );
+
+		// The read-next block: articles that share the terms of the ingredients
+		// behind the findings. Empty when nothing shares a term — never a
+		// fallback to recent or popular posts.
+		$exclude_id = isset( $context['exclude_id'] ) ? (int) $context['exclude_id'] : 0;
+		$readnext   = ILD_Read_Next::build( $analysis, $items, $exclude_id );
 
 		return array(
 			'state'          => 'result',
 			'summary'        => $summary['points'],
 			'summary_caveat' => $summary['caveat'],
 			'ingredients'    => $ingredients,
+			'readnext'       => $readnext,
 			'counts'         => $meta,
 		);
 	}

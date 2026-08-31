@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 0.8.0
+Stable tag: 0.9.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -120,6 +120,17 @@ A second way to give the tool a list: a photo of the back of the pack. It is par
 
 **A note on the transcription library.** HEIC conversion for non-Safari browsers uses `heic2any`, loaded on demand from a CDN. The URL is filterable (`ild_heic_converter_url`) so it can be pointed at a bundled copy on sites that must avoid third-party requests; Safari and iPhone photos never need it.
 
+= Stage 9: the read-next block =
+
+The reserved region beneath the result now fills itself with the articles worth reading after a particular formula — and only when there genuinely are some.
+
+* **Driven by the findings.** It takes the ingredients that actually generated the Stage 5 findings — the sub-one markers, the actives, a high fragrance, and the ingredients across the top third behind the base finding — and gathers their Skin Topic and Ingredient Family terms.
+* **Topic weighted above family.** Published posts that share those terms are found and ranked by how many terms they share, counting a shared topic for more than a shared family, and then by recency. At most three are shown.
+* **Never a filler.** If no post shares at least one term, the block renders nothing at all. It never falls back to recent or popular posts — an irrelevant "read next" is worse than none.
+* **Never itself.** The page the tool sits on is always excluded, so an article never suggests itself.
+* **Cached, and kept fresh.** The ranked candidates are cached per term-set. A cache generation number, bumped whenever any post or ingredient is saved, retires every cached set at once, so a newly published or re-tagged article shows up straight away.
+* **The full control set from section 11 group I.** Section-heading typography and spacing; card background, border, radius, shadow and content padding; thumbnail size, aspect ratio and radius; title, excerpt and meta typography; a hover state; and columns and gap per breakpoint. The editor's Result preview now includes sample cards so the whole block can be styled without running a real query.
+
 == How to test Stage 1 ==
 
 1. Zip the `ingredient-list-decoder` folder and upload it under Plugins → Add New → Upload Plugin, then activate it. Confirm no error appears.
@@ -214,7 +225,20 @@ A second way to give the tool a list: a photo of the back of the pack. It is par
 10. In Elementor, set the widget's **Preview state** to Photo verification and confirm the dropzone and verification area render for styling; work through the **B · Photo upload** and **C · Verification** style groups.
 11. (Privacy) Confirm that after a transcription no image file is left in the uploads folder — the photo is deleted immediately after it is read.
 
+== How to test Stage 9 ==
+
+1. Tag a couple of published posts with a Skin Topic term, and tag an ingredient (for example an active you will paste) with that same Skin Topic.
+2. Put the tool on a page and analyse a list that includes that ingredient. Confirm a "Worth reading next" block appears beneath the result, showing the matching post(s).
+3. Confirm the posts are ordered by how many terms they share (a post sharing two beats one sharing one), and that a shared Skin Topic outranks a shared Ingredient Family.
+4. Confirm no more than three posts appear, and that the page the tool is on never appears in the block.
+5. Analyse a list whose ingredients share no term with any post. Confirm the block renders nothing at all — not recent or popular posts.
+6. Publish or re-tag a post so it now shares a term, re-run the same list, and confirm the new post appears (the cache clears on save).
+7. In Elementor, set the widget's Preview state to Result and work through the **I · Read-next block** style group — heading, cards, thumbnail, typography, hover, and columns/gap per breakpoint.
+
 == Changelog ==
+
+= 0.9.0 =
+* Stage 9: the read-next block. Beneath the result, it collects the Skin Topic and Ingredient Family terms of the ingredients that generated the findings, weights topic above family, and shows up to three published posts that share those terms — ordered by shared-term count then recency, excluding the current page. Renders nothing when nothing shares a term (never a fallback to recent or popular). Cached per term-set and cleared on any post or ingredient save. Adds the section-11 group I style controls and sample cards in the editor preview.
 
 = 0.8.0 =
 * Stage 8: read the list from a photo. An upload-and-camera control beside the textarea accepts a single JPEG, PNG or HEIC, converted and resized in the browser (HEIC handled explicitly) before upload. The image is sent to the Anthropic API for transcription only, then deleted from the server immediately; the returned text goes into a verification step — thumbnail beside an editable field — that must be confirmed before the engine runs. Adds a Photo transcription settings section (API key, model, size) and the section-11 groups B and C style controls, with a Photo verification preview state.

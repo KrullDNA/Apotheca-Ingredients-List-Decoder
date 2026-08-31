@@ -532,9 +532,89 @@
 	display: block;
 }
 
-/* Read-next region stays empty until Stage 9 fills it. */
-.ild-readnext:empty {
-	display: none;
+/* ---------------------------------------------------------------------------
+ * Read-next block
+ * ------------------------------------------------------------------------- */
+.ild-readnext {
+	margin-top: 2rem;
+}
+
+.ild-readnext__heading {
+	margin: 0 0 1rem;
+}
+
+.ild-readnext__grid {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1rem;
+}
+
+.ild-readnext__item {
+	display: flex;
+}
+
+.ild-readnext__card {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	text-decoration: none;
+	color: inherit;
+	border: 1px solid #ececec;
+	border-radius: 8px;
+	overflow: hidden;
+	background: #fff;
+	transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+
+.ild-readnext__card:hover,
+.ild-readnext__card:focus-visible {
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+	transform: translateY(-2px);
+}
+
+.ild-readnext__thumb-wrap {
+	display: block;
+}
+
+.ild-readnext__thumb {
+	display: block;
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	object-fit: cover;
+}
+
+.ild-readnext__body {
+	display: block;
+	padding: 0.85rem 1rem 1rem;
+}
+
+.ild-readnext__title {
+	display: block;
+	font-weight: 600;
+}
+
+.ild-readnext__excerpt {
+	display: block;
+	margin-top: 0.35rem;
+	font-size: 0.9em;
+	opacity: 0.85;
+}
+
+.ild-readnext__meta {
+	display: block;
+	margin-top: 0.5rem;
+	font-size: 0.8em;
+	opacity: 0.7;
+}
+
+/* Stack the read-next cards on narrow screens. */
+@media ( max-width: 600px ) {
+	.ild-readnext__grid {
+		grid-template-columns: 1fr;
+	}
 }
 
 /* ---------------------------------------------------------------------------

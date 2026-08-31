@@ -139,6 +139,7 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 		$this->controls_group_f_rows();       // Group F: ingredient rows.
 		$this->controls_group_g_findings();   // Group G: findings & unmatched.
 		$this->controls_group_h_states();     // Group H: states.
+		$this->controls_group_i_readnext();   // Group I: read-next block.
 		$this->controls_group_k_global();     // Group K: global.
 	}
 
@@ -2058,6 +2059,335 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 				'type'      => Controls_Manager::COLOR,
 				'selectors' => array(
 					'{{WRAPPER}} .ild-error--rate-limit .ild-state__message' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->end_controls_section();
+	}
+
+	/*
+	 * -----------------------------------------------------------------------
+	 * Group I — read-next block
+	 * -----------------------------------------------------------------------
+	 */
+
+	/**
+	 * Group I controls.
+	 *
+	 * @return void
+	 */
+	private function controls_group_i_readnext() {
+		$this->start_controls_section(
+			'section_readnext',
+			array(
+				'label' => __( 'I · Read-next block', 'ingredient-list-decoder' ),
+				'tab'   => Controls_Manager::TAB_STYLE,
+			)
+		);
+
+		// Section heading.
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'readnext_heading_typography',
+				'selector' => '{{WRAPPER}} .ild-readnext__heading',
+			)
+		);
+
+		$this->add_control(
+			'readnext_heading_colour',
+			array(
+				'label'     => __( 'Heading colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-readnext__heading' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'readnext_heading_spacing',
+			array(
+				'label'      => __( 'Heading spacing', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 80 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-readnext__heading' => 'margin-bottom: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'readnext_block_spacing',
+			array(
+				'label'      => __( 'Block top spacing', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 160 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-readnext' => 'margin-top: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		// Layout: columns and gap per breakpoint.
+		$this->add_responsive_control(
+			'readnext_columns',
+			array(
+				'label'       => __( 'Columns', 'ingredient-list-decoder' ),
+				'type'        => Controls_Manager::SLIDER,
+				'range'       => array( 'px' => array( 'min' => 1, 'max' => 4 ) ),
+				'default'     => array( 'size' => 3 ),
+				'tablet_default' => array( 'size' => 2 ),
+				'mobile_default' => array( 'size' => 1 ),
+				'selectors'   => array(
+					'{{WRAPPER}} .ild-readnext__grid' => 'grid-template-columns: repeat({{SIZE}}, minmax(0, 1fr));',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'readnext_gap',
+			array(
+				'label'      => __( 'Gap', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 60 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-readnext__grid' => 'gap: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		// Card.
+		$this->add_control(
+			'readnext_card_heading',
+			array(
+				'label'     => __( 'Card', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Background::get_type(),
+			array(
+				'name'     => 'readnext_card_bg',
+				'types'    => array( 'classic', 'gradient' ),
+				'selector' => '{{WRAPPER}} .ild-readnext__card',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Border::get_type(),
+			array(
+				'name'     => 'readnext_card_border',
+				'selector' => '{{WRAPPER}} .ild-readnext__card',
+			)
+		);
+
+		$this->add_responsive_control(
+			'readnext_card_radius',
+			array(
+				'label'      => __( 'Border radius', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', '%', 'em' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-readnext__card' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Box_Shadow::get_type(),
+			array(
+				'name'     => 'readnext_card_shadow',
+				'selector' => '{{WRAPPER}} .ild-readnext__card',
+			)
+		);
+
+		$this->add_responsive_control(
+			'readnext_card_padding',
+			array(
+				'label'      => __( 'Content padding', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-readnext__body' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		// Hover state.
+		$this->add_control(
+			'readnext_hover_heading',
+			array(
+				'label'     => __( 'Hover', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_control(
+			'readnext_hover_border',
+			array(
+				'label'     => __( 'Border colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-readnext__card:hover' => 'border-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'readnext_hover_title',
+			array(
+				'label'     => __( 'Title colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-readnext__card:hover .ild-readnext__title' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Box_Shadow::get_type(),
+			array(
+				'name'     => 'readnext_hover_shadow',
+				'selector' => '{{WRAPPER}} .ild-readnext__card:hover',
+			)
+		);
+
+		// Thumbnail.
+		$this->add_control(
+			'readnext_thumb_heading',
+			array(
+				'label'     => __( 'Thumbnail', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_responsive_control(
+			'readnext_thumb_ratio',
+			array(
+				'label'       => __( 'Aspect ratio (width ÷ height)', 'ingredient-list-decoder' ),
+				'type'        => Controls_Manager::SLIDER,
+				'range'       => array( 'px' => array( 'min' => 0.5, 'max' => 3, 'step' => 0.05 ) ),
+				'selectors'   => array(
+					'{{WRAPPER}} .ild-readnext__thumb' => 'aspect-ratio: {{SIZE}}; height: auto;',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'readnext_thumb_size',
+			array(
+				'label'       => __( 'Fixed height (overrides ratio)', 'ingredient-list-decoder' ),
+				'type'        => Controls_Manager::SLIDER,
+				'size_units'  => array( 'px', 'rem' ),
+				'range'       => array( 'px' => array( 'min' => 60, 'max' => 400 ) ),
+				'selectors'   => array(
+					'{{WRAPPER}} .ild-readnext__thumb' => 'height: {{SIZE}}{{UNIT}}; aspect-ratio: auto;',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'readnext_thumb_radius',
+			array(
+				'label'      => __( 'Border radius', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', '%' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-readnext__thumb' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		// Title, excerpt, meta typography.
+		$this->add_control(
+			'readnext_title_heading',
+			array(
+				'label'     => __( 'Title', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'readnext_title_typography',
+				'selector' => '{{WRAPPER}} .ild-readnext__title',
+			)
+		);
+
+		$this->add_control(
+			'readnext_title_colour',
+			array(
+				'label'     => __( 'Title colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-readnext__title' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'readnext_excerpt_heading',
+			array(
+				'label'     => __( 'Excerpt', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'readnext_excerpt_typography',
+				'selector' => '{{WRAPPER}} .ild-readnext__excerpt',
+			)
+		);
+
+		$this->add_control(
+			'readnext_excerpt_colour',
+			array(
+				'label'     => __( 'Excerpt colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-readnext__excerpt' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'readnext_meta_heading',
+			array(
+				'label'     => __( 'Meta', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'readnext_meta_typography',
+				'selector' => '{{WRAPPER}} .ild-readnext__meta',
+			)
+		);
+
+		$this->add_control(
+			'readnext_meta_colour',
+			array(
+				'label'     => __( 'Meta colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-readnext__meta' => 'color: {{VALUE}};',
 				),
 			)
 		);

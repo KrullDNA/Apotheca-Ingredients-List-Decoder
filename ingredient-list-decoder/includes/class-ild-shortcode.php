@@ -269,6 +269,24 @@ class ILD_Shortcode {
 					'status_text' => ILD_Phrases::unreadable(),
 				),
 			),
+			'readnext'       => array(
+				array(
+					'id'      => 0,
+					'title'   => __( 'What niacinamide actually does for the skin barrier', 'ingredient-list-decoder' ),
+					'url'     => '#',
+					'excerpt' => __( 'A closer look at one of the most quietly capable actives in modern formulas.', 'ingredient-list-decoder' ),
+					'thumb'   => '',
+					'meta'    => __( 'Reading next', 'ingredient-list-decoder' ),
+				),
+				array(
+					'id'      => 0,
+					'title'   => __( 'How to read the one per cent line', 'ingredient-list-decoder' ),
+					'url'     => '#',
+					'excerpt' => __( 'Why the order of an ingredient list tells you more than any single claim.', 'ingredient-list-decoder' ),
+					'thumb'   => '',
+					'meta'    => __( 'Reading next', 'ingredient-list-decoder' ),
+				),
+			),
 			'counts'         => array( 'total' => 4, 'matched' => 1 ),
 		);
 	}
@@ -308,13 +326,17 @@ class ILD_Shortcode {
 		$product_name = isset( $_POST['ild_product_name'] ) ? sanitize_text_field( wp_unslash( $_POST['ild_product_name'] ) ) : '';
 		unset( $product_name );
 
+		// The page the tool is on, so the read-next block can exclude it.
+		$exclude_id = isset( $_POST['ild_page_id'] ) ? absint( wp_unslash( $_POST['ild_page_id'] ) ) : 0;
+		$context    = array( 'exclude_id' => $exclude_id );
+
 		// Run the pipeline. A parser error (too long) comes back as a WP_Error.
 		$match = ild_match_ingredient_list( $raw );
 		if ( is_wp_error( $match ) ) {
-			$view = ILD_Presenter::present( $match, null );
+			$view = ILD_Presenter::present( $match, null, $context );
 		} else {
 			$analysis = ILD_Analysis::analyse( $match );
-			$view     = ILD_Presenter::present( $match, $analysis );
+			$view     = ILD_Presenter::present( $match, $analysis, $context );
 		}
 
 		wp_send_json_success( array( 'html' => self::render_view( $view ) ) );

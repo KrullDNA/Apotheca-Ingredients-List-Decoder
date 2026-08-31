@@ -25,6 +25,7 @@ $view        = isset( $view ) ? $view : array();
 $summary     = isset( $view['summary'] ) ? $view['summary'] : array();
 $caveat      = isset( $view['summary_caveat'] ) ? $view['summary_caveat'] : '';
 $ingredients = isset( $view['ingredients'] ) ? $view['ingredients'] : array();
+$readnext    = isset( $view['readnext'] ) && is_array( $view['readnext'] ) ? $view['readnext'] : array();
 ?>
 <div class="ild-result">
 
@@ -127,7 +128,34 @@ $ingredients = isset( $view['ingredients'] ) ? $view['ingredients'] : array();
 		</button>
 	</div>
 
-	<?php // Part three: an empty region reserved for the read-next block (Stage 9). ?>
-	<section class="ild-readnext" data-ild-readnext aria-live="polite"><!-- Reserved for the read-next block. --></section>
+	<?php // Part three: the read-next block. Rendered only when posts actually ?>
+	<?php // share a term with the findings — otherwise nothing at all. ?>
+	<?php if ( ! empty( $readnext ) ) : ?>
+		<section class="ild-readnext" data-ild-readnext aria-labelledby="ild-readnext-heading">
+			<h2 class="ild-readnext__heading" id="ild-readnext-heading"><?php echo esc_html( ILD_Phrases::heading_readnext() ); ?></h2>
+			<ul class="ild-readnext__grid">
+				<?php foreach ( $readnext as $card ) : ?>
+					<li class="ild-readnext__item">
+						<a class="ild-readnext__card" href="<?php echo esc_url( $card['url'] ); ?>">
+							<?php if ( ! empty( $card['thumb'] ) ) : ?>
+								<span class="ild-readnext__thumb-wrap">
+									<img class="ild-readnext__thumb" src="<?php echo esc_url( $card['thumb'] ); ?>" alt="" loading="lazy" />
+								</span>
+							<?php endif; ?>
+							<span class="ild-readnext__body">
+								<span class="ild-readnext__title"><?php echo esc_html( $card['title'] ); ?></span>
+								<?php if ( ! empty( $card['excerpt'] ) ) : ?>
+									<span class="ild-readnext__excerpt"><?php echo esc_html( $card['excerpt'] ); ?></span>
+								<?php endif; ?>
+								<?php if ( ! empty( $card['meta'] ) ) : ?>
+									<span class="ild-readnext__meta"><?php echo esc_html( $card['meta'] ); ?></span>
+								<?php endif; ?>
+							</span>
+						</a>
+					</li>
+				<?php endforeach; ?>
+			</ul>
+		</section>
+	<?php endif; ?>
 
 </div>
