@@ -28,6 +28,7 @@ $consent_text  = isset( $consent_text ) && '' !== $consent_text ? $consent_text 
 $exchange_text = isset( $exchange_text ) && '' !== $exchange_text ? $exchange_text : ILD_Phrases::exchange_default();
 $carry_list    = isset( $carry['list'] ) ? $carry['list'] : '';
 $carry_page    = isset( $carry['page_id'] ) ? (int) $carry['page_id'] : 0;
+$carry_product = isset( $carry['product'] ) ? $carry['product'] : '';
 
 $guid         = function_exists( 'wp_unique_id' ) ? wp_unique_id( 'ild-gate-' ) : uniqid( 'ild-gate-' );
 $privacy_url  = function_exists( 'get_privacy_policy_url' ) ? get_privacy_policy_url() : '';
@@ -42,6 +43,7 @@ $privacy_url  = function_exists( 'get_privacy_policy_url' ) ? get_privacy_policy
 		<?php // Carried so the server can re-run the analysis after consent. ?>
 		<input type="hidden" name="ild_list" value="<?php echo esc_attr( $carry_list ); ?>" />
 		<input type="hidden" name="ild_page_id" value="<?php echo esc_attr( $carry_page ); ?>" />
+		<input type="hidden" name="ild_product_name" value="<?php echo esc_attr( $carry_product ); ?>" />
 		<input type="hidden" name="ild_consent_text" value="<?php echo esc_attr( $consent_text ); ?>" />
 		<?php // The exact page, filled in by the script at submit time. ?>
 		<input type="hidden" name="ild_source" value="" data-ild-gate-source />

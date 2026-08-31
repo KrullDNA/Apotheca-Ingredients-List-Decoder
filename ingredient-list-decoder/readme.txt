@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 0.11.0
+Stable tag: 0.12.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -154,6 +154,17 @@ When someone completes the gate, their reading is emailed to them — a branded 
 * **A live preview and a test send.** The settings page shows a live preview that reflects unsaved changes, and sends a test to any address.
 * **Through the site's mail transport.** Mail goes out via wp_mail(), so it uses whatever transactional service the site has configured (SMTP, a sending API, and so on) rather than PHP mail() directly.
 
+= Stage 12: the leads admin screen =
+
+A dedicated **Leads** screen under the Ingredient Decoder menu — a custom table of every captured address.
+
+* **The columns.** Address, date, consent state, the exact consent wording shown at the time, the source page, that address's submission history, and its connector sync status.
+* **Submission history.** Each lead shows the ingredient lists that address has decoded, with the date and product name where one was given, read from the submissions store by lead ID.
+* **Find them.** Filter by date range and by sync status, and search by address. The filtered set exports to CSV, and individual records can be deleted.
+* **The failed-sync view.** A status view lists anything a connector rejected, each row offering a **Retry** — because a connector outage is otherwise silent. (The connectors that set these statuses arrive in later stages; retry queues the address to be sent again.)
+* **Delete is clean.** Deleting a lead deletes that lead's submissions in the same operation, so no orphan rows are left behind.
+* **Privacy built in.** The plugin registers with WordPress's personal-data exporter and eraser, so a privacy request under Tools → Export/Erase Personal Data covers a person's lead record *and* their submission history automatically.
+
 == How to test Stage 1 ==
 
 1. Zip the `ingredient-list-decoder` folder and upload it under Plugins → Add New → Upload Plugin, then activate it. Confirm no error appears.
@@ -281,7 +292,20 @@ When someone completes the gate, their reading is emailed to them — a branded 
 7. If you use an SMTP or transactional-email plugin, confirm the email goes through it (check its log) rather than PHP mail.
 8. Turn off web-font loading in your mail client (or just trust the defaults) and confirm the email still reads well on the fallback fonts.
 
+== How to test Stage 12 ==
+
+1. Complete the gate a few times with different addresses (and some with a product name). Open **Ingredient Decoder → Leads** and confirm each address is listed with its date, consent, the consent wording, the source page, its submission history, and a sync status of "Pending".
+2. Confirm the submission history shows each decoded list with its date and product name where given.
+3. Use the date-range inputs and the sync-status dropdown, click Filter, and confirm the list narrows. Search an address and confirm it is found.
+4. Click **Export filtered to CSV** and confirm the download contains exactly the filtered rows with all the fields.
+5. Delete a lead (row action) and confirm it disappears — and that its submissions are gone too (they no longer show against any lead).
+6. Open the **Failed sync** view. (It fills once a connector is configured in a later stage; a rejected address appears here with a Retry link.)
+7. Go to **Tools → Export Personal Data**, request an export for one of the captured addresses, and confirm the export contains both the lead record and that address's submission history. Repeat with **Erase Personal Data** and confirm both are removed.
+
 == Changelog ==
+
+= 0.12.0 =
+* Stage 12: the leads admin screen. A custom table of every captured address — date, consent state, the consent wording shown, source page, submission history (read from the submissions store by lead ID), and connector sync status — with date-range and sync filters, address search, CSV export of the filtered set, and per-record delete. A failed-sync view lists connector rejections with a retry action. Deleting a lead deletes its submissions in the same operation. Registers WordPress personal-data exporter and eraser hooks so a privacy request covers the lead record and its submission history. Adds a lead-linked submissions store (extended in the next stage).
 
 = 0.11.0 =
 * Stage 11: the branded result email. A table-based HTML email built from the reading, with its CSS inlined and a plain-text alternative generated alongside — logo, editable intro, the summary, the full (flattened) ingredient breakdown, read-next articles with thumbnails, and a footer with the privacy link and a working unsubscribe link on every send. A Result email settings section themes all of it (logo, widths, radius, colours, type, button, font stack, intro/sign-off/footer), with a live admin preview and a test send. Sent through wp_mail() so the site's transactional transport is used. The email is sent automatically when the gate is completed. Web-safe font stack by design.

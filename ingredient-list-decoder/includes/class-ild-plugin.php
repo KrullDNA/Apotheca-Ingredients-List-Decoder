@@ -84,11 +84,25 @@ class ILD_Plugin {
 	private $read_next;
 
 	/**
+	 * The submissions store component.
+	 *
+	 * @var ILD_Submissions
+	 */
+	private $submissions;
+
+	/**
 	 * The lead store component.
 	 *
 	 * @var ILD_Leads
 	 */
 	private $leads;
+
+	/**
+	 * The leads admin screen component.
+	 *
+	 * @var ILD_Leads_Admin
+	 */
+	private $leads_admin;
 
 	/**
 	 * The email gate component.
@@ -124,7 +138,9 @@ class ILD_Plugin {
 		$this->shortcode     = new ILD_Shortcode();
 		$this->transcription = new ILD_Transcription();
 		$this->read_next     = new ILD_Read_Next();
+		$this->submissions   = new ILD_Submissions();
 		$this->leads         = new ILD_Leads();
+		$this->leads_admin   = new ILD_Leads_Admin();
 		$this->gate          = new ILD_Gate();
 		$this->email         = new ILD_Email();
 		$this->elementor     = new ILD_Elementor();
@@ -152,7 +168,9 @@ class ILD_Plugin {
 		$this->shortcode->register_hooks();
 		$this->transcription->register_hooks();
 		$this->read_next->register_hooks();
+		$this->submissions->register_hooks();
 		$this->leads->register_hooks();
+		$this->leads_admin->register_hooks();
 		$this->gate->register_hooks();
 		$this->email->register_hooks();
 		$this->elementor->register_hooks();

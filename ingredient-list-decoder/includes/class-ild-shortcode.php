@@ -353,10 +353,9 @@ class ILD_Shortcode {
 		// The pasted list, kept as multi-line text.
 		$raw = isset( $_POST['ild_list'] ) ? sanitize_textarea_field( wp_unslash( $_POST['ild_list'] ) ) : '';
 
-		// The optional product name is captured for later stages (stored lists),
-		// but it is deliberately never shown in the reading — no product mentions.
+		// The optional product name is carried into the gate so it can be stored
+		// with the submission, but it is deliberately never shown in the reading.
 		$product_name = isset( $_POST['ild_product_name'] ) ? sanitize_text_field( wp_unslash( $_POST['ild_product_name'] ) ) : '';
-		unset( $product_name );
 
 		// The page the tool is on, so the read-next block can exclude it.
 		$exclude_id = isset( $_POST['ild_page_id'] ) ? absint( wp_unslash( $_POST['ild_page_id'] ) ) : 0;
@@ -383,7 +382,7 @@ class ILD_Shortcode {
 		if ( 'result' === $view['state'] && ! ILD_Gate::has_access() ) {
 			$vars = array(
 				'gated'         => true,
-				'carry'         => array( 'list' => $raw, 'page_id' => $exclude_id ),
+				'carry'         => array( 'list' => $raw, 'page_id' => $exclude_id, 'product' => $product_name ),
 				'consent_text'  => $consent_text,
 				'exchange_text' => $exchange_text,
 			);
