@@ -112,6 +112,419 @@
 		}
 	} );
 
+	/* -------------------------------------------------------------------
+	 * Photo route: upload/camera → convert & resize → transcribe → verify.
+	 * The image is prepared in the browser and read on the server; nothing
+	 * is analysed until the visitor confirms the transcription.
+	 * ----------------------------------------------------------------- */
+
+	// Remember each tool's current thumbnail URL so it can be revoked.
+	var thumbUrls = new WeakMap();
+
+	/**
+	 * Look up a photo-handling message by key, with a sensible fallback.
+	 *
+	 * @param {string} key The message id.
+	 * @return {string}
+	 */
+	function photoMsg( key ) {
+		var m = settings.photoMessages || {};
+		return m[ key ] || m.network || '';
+	}
+
+	/**
+	 * Draw an image source onto a canvas, scaled down, and export it as JPEG.
+	 * Works for JPEG/PNG everywhere, and for HEIC on browsers that can decode
+	 * it (Safari, i.e. most iPhones). Resolves null if the source can't decode.
+	 *
+	 * @param {Blob} src     The image blob or file.
+	 * @param {number} maxDim The longest-edge cap in pixels.
+	 * @param {number} quality JPEG quality 0–1.
+	 * @return {Promise<Blob|null>}
+	 */
+	function drawToCanvas( src, maxDim, quality ) {
+		return new Promise( function ( resolve ) {
+			var url = URL.createObjectURL( src );
+			var img = new Image();
+			img.onload = function () {
+				var w = img.naturalWidth;
+				var h = img.naturalHeight;
+				if ( ! w || ! h ) {
+					URL.revokeObjectURL( url );
+					resolve( null );
+					return;
+				}
+				var scale = Math.min( 1, maxDim / Math.max( w, h ) );
+				var canvas = document.createElement( 'canvas' );
+				canvas.width = Math.round( w * scale );
+				canvas.height = Math.round( h * scale );
+				canvas.getContext( '2d' ).drawImage( img, 0, 0, canvas.width, canvas.height );
+				URL.revokeObjectURL( url );
+				canvas.toBlob( function ( blob ) { resolve( blob ); }, 'image/jpeg', quality );
+			};
+			img.onerror = function () {
+				URL.revokeObjectURL( url );
+				resolve( null );
+			};
+			img.src = url;
+		} );
+	}
+
+	// heic2any is loaded on demand, only when a HEIC can't be decoded natively.
+	var heicPromise = null;
+	function loadHeic2any() {
+		if ( window.heic2any ) {
+			return Promise.resolve();
+		}
+		if ( heicPromise ) {
+			return heicPromise;
+		}
+		if ( ! settings.heicUrl ) {
+			return Promise.reject( new Error( 'no-heic-url' ) );
+		}
+		heicPromise = new Promise( function ( resolve, reject ) {
+			var s = document.createElement( 'script' );
+			s.src = settings.heicUrl;
+			s.onload = resolve;
+			s.onerror = reject;
+			document.head.appendChild( s );
+		} );
+		return heicPromise;
+	}
+
+	/**
+	 * Convert a HEIC file to a JPEG blob using heic2any, loaded on demand.
+	 *
+	 * @param {File} file The HEIC file.
+	 * @return {Promise<Blob|null>}
+	 */
+	function convertHeic( file ) {
+		return loadHeic2any()
+			.then( function () {
+				if ( ! window.heic2any ) {
+					return null;
+				}
+				return window.heic2any( { blob: file, toType: 'image/jpeg', quality: 0.9 } );
+			} )
+			.then( function ( out ) {
+				return Array.isArray( out ) ? out[ 0 ] : out;
+			} )
+			.catch( function () {
+				return null;
+			} );
+	}
+
+	/**
+	 * Prepare a chosen file for upload: decode (converting HEIC where the
+	 * browser can't), resize to the configured cap, and compress under the
+	 * size limit. Resolves a JPEG blob, or null if it couldn't be prepared.
+	 *
+	 * @param {File} file The chosen file.
+	 * @return {Promise<Blob|null>}
+	 */
+	function prepareImage( file ) {
+		var dim = settings.maxImageDim || 1800;
+		var maxBytes = settings.maxImageBytes || 0;
+		var isHeic = /heic|heif/i.test( file.type ) || /\.(heic|heif)$/i.test( file.name );
+
+		var decodable = file;
+
+		return drawToCanvas( decodable, dim, 0.85 )
+			.then( function ( blob ) {
+				if ( blob || ! isHeic ) {
+					return blob;
+				}
+				// Native decode failed on a HEIC: convert, then draw again.
+				return convertHeic( file ).then( function ( converted ) {
+					if ( ! converted ) {
+						return null;
+					}
+					decodable = converted;
+					return drawToCanvas( decodable, dim, 0.85 );
+				} );
+			} )
+			.then( function ( blob ) {
+				if ( ! blob ) {
+					return null;
+				}
+				// Shrink further, by quality then dimension, to fit the cap.
+				function fit( current, quality, dimension ) {
+					if ( ! maxBytes || current.size <= maxBytes || quality < 0.4 ) {
+						return Promise.resolve( current );
+					}
+					return drawToCanvas( decodable, dimension, quality ).then( function ( next ) {
+						if ( ! next ) {
+							return current;
+						}
+						return fit( next, quality - 0.15, Math.round( dimension * 0.85 ) );
+					} );
+				}
+				return fit( blob, 0.7, dim );
+			} );
+	}
+
+	/* --- Photo UI state helpers --------------------------------------- */
+	function photoParts( tool ) {
+		return {
+			field:    tool.querySelector( '.ild-field--photo' ),
+			zone:     tool.querySelector( '[data-ild-dropzone]' ),
+			progress: tool.querySelector( '[data-ild-photo-progress]' ),
+			status:   tool.querySelector( '[data-ild-photo-status]' ),
+			error:    tool.querySelector( '[data-ild-photo-error]' ),
+			verify:   tool.querySelector( '[data-ild-verify]' ),
+			text:     tool.querySelector( '[data-ild-verify-text]' ),
+			thumb:    tool.querySelector( '[data-ild-verify-thumb]' )
+		};
+	}
+
+	function setUploading( tool, on ) {
+		var p = photoParts( tool );
+		if ( p.zone ) {
+			p.zone.classList.toggle( 'is-uploading', !! on );
+			if ( on ) {
+				p.zone.classList.remove( 'is-error' );
+			}
+		}
+		if ( p.progress ) {
+			p.progress.hidden = ! on;
+		}
+		if ( p.status ) {
+			p.status.hidden = ! on;
+			p.status.textContent = on ? ( settings.photoReading || '' ) : '';
+		}
+	}
+
+	function showPhotoError( tool, message ) {
+		var p = photoParts( tool );
+		setUploading( tool, false );
+		if ( p.zone ) {
+			p.zone.classList.add( 'is-error' );
+		}
+		if ( p.error ) {
+			p.error.textContent = message;
+			p.error.hidden = false;
+		}
+	}
+
+	function clearPhotoError( tool ) {
+		var p = photoParts( tool );
+		if ( p.zone ) {
+			p.zone.classList.remove( 'is-error' );
+		}
+		if ( p.error ) {
+			p.error.hidden = true;
+			p.error.textContent = '';
+		}
+	}
+
+	function showVerify( tool, text, thumbUrl ) {
+		var p = photoParts( tool );
+		if ( p.text ) {
+			p.text.value = text;
+		}
+		if ( p.thumb && thumbUrl ) {
+			var old = thumbUrls.get( tool );
+			if ( old ) {
+				URL.revokeObjectURL( old );
+			}
+			thumbUrls.set( tool, thumbUrl );
+			p.thumb.src = thumbUrl;
+		}
+		if ( p.field ) {
+			p.field.hidden = true;
+		}
+		if ( p.verify ) {
+			p.verify.hidden = false;
+			if ( p.text ) {
+				p.text.focus();
+			}
+		}
+	}
+
+	function hideVerify( tool, keepField ) {
+		var p = photoParts( tool );
+		if ( p.verify ) {
+			p.verify.hidden = true;
+		}
+		if ( p.field && ! keepField ) {
+			p.field.hidden = false;
+		}
+		var old = thumbUrls.get( tool );
+		if ( old ) {
+			URL.revokeObjectURL( old );
+			thumbUrls.delete( tool );
+		}
+	}
+
+	/**
+	 * Send a prepared image to the transcription endpoint.
+	 *
+	 * @param {Element} tool     The tool wrapper.
+	 * @param {Blob}    blob     The prepared JPEG.
+	 * @param {string}  thumbUrl An object URL for the thumbnail.
+	 */
+	function uploadPhoto( tool, blob, thumbUrl ) {
+		var form = tool.querySelector( '.ild-form' );
+		var nonceField = form ? form.querySelector( 'input[name="ild_transcribe_nonce"]' ) : null;
+
+		var data = new FormData();
+		data.append( 'action', settings.transcribeAction );
+		if ( nonceField ) {
+			data.append( 'ild_transcribe_nonce', nonceField.value );
+		}
+		data.append( 'ild_image', blob, 'ingredients.jpg' );
+
+		fetch( settings.ajaxUrl, {
+			method: 'POST',
+			credentials: 'same-origin',
+			body: data
+		} )
+			.then( function ( response ) { return response.json(); } )
+			.then( function ( payload ) {
+				setUploading( tool, false );
+				if ( payload && payload.success && payload.data && typeof payload.data.text === 'string' ) {
+					showVerify( tool, payload.data.text, thumbUrl );
+				} else {
+					URL.revokeObjectURL( thumbUrl );
+					var msg = ( payload && payload.data && payload.data.message ) ? payload.data.message : photoMsg( 'read_failed' );
+					showPhotoError( tool, msg );
+				}
+			} )
+			.catch( function () {
+				URL.revokeObjectURL( thumbUrl );
+				showPhotoError( tool, photoMsg( 'network' ) );
+			} );
+	}
+
+	/**
+	 * Validate and process a chosen file end to end.
+	 *
+	 * @param {Element} tool The tool wrapper.
+	 * @param {File}    file The chosen file.
+	 */
+	function processFile( tool, file ) {
+		if ( ! file ) {
+			return;
+		}
+		clearPhotoError( tool );
+
+		if ( settings.photoEnabled === false ) {
+			showPhotoError( tool, photoMsg( 'not_ready' ) );
+			return;
+		}
+
+		var okType = /image\/(jpeg|png|heic|heif)/i.test( file.type ) || /\.(jpe?g|png|heic|heif)$/i.test( file.name );
+		if ( ! okType ) {
+			showPhotoError( tool, photoMsg( 'wrong_type' ) );
+			return;
+		}
+		if ( settings.maxImageBytes && file.size > settings.maxImageBytes ) {
+			showPhotoError( tool, photoMsg( 'too_large' ) );
+			return;
+		}
+
+		setUploading( tool, true );
+		prepareImage( file )
+			.then( function ( blob ) {
+				if ( ! blob ) {
+					showPhotoError( tool, photoMsg( 'convert_failed' ) );
+					return;
+				}
+				uploadPhoto( tool, blob, URL.createObjectURL( blob ) );
+			} )
+			.catch( function () {
+				showPhotoError( tool, photoMsg( 'convert_failed' ) );
+			} );
+	}
+
+	// A file chosen through the picker or the camera.
+	document.addEventListener( 'change', function ( event ) {
+		var input = event.target;
+		if ( ! input || ! input.matches || ! input.matches( '[data-ild-photo]' ) ) {
+			return;
+		}
+		var tool = toolOf( input );
+		if ( tool && input.files && input.files.length ) {
+			processFile( tool, input.files[ 0 ] );
+		}
+		// Reset so choosing the same file again still fires a change.
+		input.value = '';
+	} );
+
+	// Drag and drop onto the dropzone.
+	document.addEventListener( 'dragover', function ( event ) {
+		var zone = event.target && event.target.closest ? event.target.closest( '[data-ild-dropzone]' ) : null;
+		if ( zone ) {
+			event.preventDefault();
+			zone.classList.add( 'is-dragover' );
+		}
+	} );
+	document.addEventListener( 'dragleave', function ( event ) {
+		var zone = event.target && event.target.closest ? event.target.closest( '[data-ild-dropzone]' ) : null;
+		if ( zone && ! zone.contains( event.relatedTarget ) ) {
+			zone.classList.remove( 'is-dragover' );
+		}
+	} );
+	document.addEventListener( 'drop', function ( event ) {
+		var zone = event.target && event.target.closest ? event.target.closest( '[data-ild-dropzone]' ) : null;
+		if ( ! zone ) {
+			return;
+		}
+		event.preventDefault();
+		zone.classList.remove( 'is-dragover' );
+		var tool = toolOf( zone );
+		if ( tool && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length ) {
+			processFile( tool, event.dataTransfer.files[ 0 ] );
+		}
+	} );
+
+	// Confirm the transcription, or retake.
+	document.addEventListener( 'click', function ( event ) {
+		var target = event.target;
+		if ( ! target || ! target.closest ) {
+			return;
+		}
+
+		var confirm = target.closest( '[data-ild-verify-confirm]' );
+		if ( confirm ) {
+			event.preventDefault();
+			var tool = toolOf( confirm );
+			if ( ! tool ) {
+				return;
+			}
+			var parts = photoParts( tool );
+			var textarea = tool.querySelector( '.ild-textarea' );
+			if ( textarea && parts.text ) {
+				textarea.value = parts.text.value;
+				updateCount( textarea );
+			}
+			hideVerify( tool, true );
+			var form = tool.querySelector( '.ild-form' );
+			if ( form ) {
+				if ( form.requestSubmit ) {
+					form.requestSubmit();
+				} else {
+					form.dispatchEvent( new Event( 'submit', { cancelable: true, bubbles: true } ) );
+				}
+			}
+			return;
+		}
+
+		var retake = target.closest( '[data-ild-verify-retake]' );
+		if ( retake ) {
+			event.preventDefault();
+			var t = toolOf( retake );
+			if ( t ) {
+				var pp = photoParts( t );
+				if ( pp.text ) {
+					pp.text.value = '';
+				}
+				clearPhotoError( t );
+				hideVerify( t );
+			}
+		}
+	} );
+
 	// Submit the form over AJAX. One document-level listener covers every tool,
 	// now or added later.
 	document.addEventListener( 'submit', function ( event ) {

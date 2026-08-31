@@ -132,6 +132,8 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 		$this->controls_content();
 
 		$this->controls_group_a_input();      // Group A: input & form.
+		$this->controls_group_b_upload();     // Group B: photo upload / dropzone.
+		$this->controls_group_c_verify();     // Group C: verification.
 		$this->controls_group_d_buttons();    // Group D: buttons.
 		$this->controls_group_e_summary();    // Group E: summary block.
 		$this->controls_group_f_rows();       // Group F: ingredient rows.
@@ -169,8 +171,22 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 					'result'  => __( 'Result', 'ingredient-list-decoder' ),
 					'empty'   => __( 'Empty', 'ingredient-list-decoder' ),
 					'error'   => __( 'Error', 'ingredient-list-decoder' ),
+					'verify'  => __( 'Photo verification', 'ingredient-list-decoder' ),
 				),
 				'description' => __( 'Show a state in the editor so you can style it. This has no effect on the live page.', 'ingredient-list-decoder' ),
+			)
+		);
+
+		$this->add_control(
+			'ild_show_photo',
+			array(
+				'label'        => __( 'Enable photo upload', 'ingredient-list-decoder' ),
+				'type'         => Controls_Manager::SWITCHER,
+				'label_on'     => __( 'On', 'ingredient-list-decoder' ),
+				'label_off'    => __( 'Off', 'ingredient-list-decoder' ),
+				'return_value' => 'yes',
+				'default'      => 'yes',
+				'description'  => __( 'Offer reading the list from a photo. The control appears on the live page only once an Anthropic API key is set under Ingredient Decoder → Settings.', 'ingredient-list-decoder' ),
 			)
 		);
 
@@ -504,6 +520,433 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 				'condition' => array( 'product_hide!' => 'yes' ),
 			)
 		);
+
+		$this->end_controls_section();
+	}
+
+	/*
+	 * -----------------------------------------------------------------------
+	 * Group B — photo upload / dropzone
+	 * -----------------------------------------------------------------------
+	 */
+
+	/**
+	 * Group B controls.
+	 *
+	 * @return void
+	 */
+	private function controls_group_b_upload() {
+		$this->start_controls_section(
+			'section_upload',
+			array(
+				'label' => __( 'B · Photo upload', 'ingredient-list-decoder' ),
+				'tab'   => Controls_Manager::TAB_STYLE,
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Background::get_type(),
+			array(
+				'name'     => 'dropzone_bg',
+				'types'    => array( 'classic', 'gradient' ),
+				'selector' => '{{WRAPPER}} .ild-dropzone',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Border::get_type(),
+			array(
+				'name'     => 'dropzone_border',
+				'selector' => '{{WRAPPER}} .ild-dropzone',
+			)
+		);
+
+		$this->add_responsive_control(
+			'dropzone_radius',
+			array(
+				'label'      => __( 'Border radius', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', '%', 'em' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-dropzone' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'dropzone_padding',
+			array(
+				'label'      => __( 'Padding', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-dropzone' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		// Per-state background and border colour.
+		$this->start_controls_tabs( 'dropzone_state_tabs' );
+
+		$states = array(
+			'normal'    => array( __( 'Normal', 'ingredient-list-decoder' ), '{{WRAPPER}} .ild-dropzone' ),
+			'hover'     => array( __( 'Hover', 'ingredient-list-decoder' ), '{{WRAPPER}} .ild-dropzone:hover' ),
+			'dragover'  => array( __( 'Drag-over', 'ingredient-list-decoder' ), '{{WRAPPER}} .ild-dropzone.is-dragover' ),
+			'uploading' => array( __( 'Uploading', 'ingredient-list-decoder' ), '{{WRAPPER}} .ild-dropzone.is-uploading' ),
+			'error'     => array( __( 'Error', 'ingredient-list-decoder' ), '{{WRAPPER}} .ild-dropzone.is-error' ),
+		);
+
+		foreach ( $states as $state => $info ) {
+			list( $state_label, $state_selector ) = $info;
+
+			$this->start_controls_tab( 'dropzone_tab_' . $state, array( 'label' => $state_label ) );
+
+			$this->add_control(
+				'dropzone_' . $state . '_bg',
+				array(
+					'label'     => __( 'Background', 'ingredient-list-decoder' ),
+					'type'      => Controls_Manager::COLOR,
+					'selectors' => array(
+						$state_selector => 'background-color: {{VALUE}};',
+					),
+				)
+			);
+
+			$this->add_control(
+				'dropzone_' . $state . '_border',
+				array(
+					'label'     => __( 'Border colour', 'ingredient-list-decoder' ),
+					'type'      => Controls_Manager::COLOR,
+					'selectors' => array(
+						$state_selector => 'border-color: {{VALUE}};',
+					),
+				)
+			);
+
+			$this->end_controls_tab();
+		}
+
+		$this->end_controls_tabs();
+
+		// Dropzone icon.
+		$this->add_control(
+			'dropzone_icon_heading',
+			array(
+				'label'     => __( 'Icon', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->icon_slot_controls( 'dropzone_icon', '{{WRAPPER}} .ild-dropzone__icon' );
+
+		// Prompt & hint typography.
+		$this->add_control(
+			'dropzone_prompt_heading',
+			array(
+				'label'     => __( 'Prompt', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'dropzone_prompt_typography',
+				'selector' => '{{WRAPPER}} .ild-dropzone__prompt',
+			)
+		);
+
+		$this->add_control(
+			'dropzone_prompt_colour',
+			array(
+				'label'     => __( 'Prompt colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-dropzone__prompt' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'dropzone_hint_heading',
+			array(
+				'label'     => __( 'Hint', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'dropzone_hint_typography',
+				'selector' => '{{WRAPPER}} .ild-dropzone__hint',
+			)
+		);
+
+		$this->add_control(
+			'dropzone_hint_colour',
+			array(
+				'label'     => __( 'Hint colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-dropzone__hint' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		// Progress indicator.
+		$this->add_control(
+			'progress_heading',
+			array(
+				'label'     => __( 'Progress indicator', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_control(
+			'progress_colour',
+			array(
+				'label'     => __( 'Bar colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-photo__progress-bar' => 'background-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'progress_track_colour',
+			array(
+				'label'     => __( 'Track colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-photo__progress' => 'background-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'progress_height',
+			array(
+				'label'      => __( 'Height', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px' ),
+				'range'      => array( 'px' => array( 'min' => 2, 'max' => 24 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-photo__progress' => 'height: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'progress_radius',
+			array(
+				'label'      => __( 'Corner radius', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', '%' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 999 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-photo__progress' => 'border-radius: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		// Thumbnail.
+		$this->add_control(
+			'thumb_heading',
+			array(
+				'label'     => __( 'Thumbnail', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_responsive_control(
+			'thumb_size',
+			array(
+				'label'      => __( 'Size', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'rem' ),
+				'range'      => array( 'px' => array( 'min' => 48, 'max' => 320 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-verify__thumb' => 'width: {{SIZE}}{{UNIT}}; height: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'thumb_radius',
+			array(
+				'label'      => __( 'Border radius', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', '%' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-verify__thumb' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->end_controls_section();
+	}
+
+	/*
+	 * -----------------------------------------------------------------------
+	 * Group C — verification
+	 * -----------------------------------------------------------------------
+	 */
+
+	/**
+	 * Group C controls.
+	 *
+	 * @return void
+	 */
+	private function controls_group_c_verify() {
+		$this->start_controls_section(
+			'section_verify',
+			array(
+				'label' => __( 'C · Verification', 'ingredient-list-decoder' ),
+				'tab'   => Controls_Manager::TAB_STYLE,
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Background::get_type(),
+			array(
+				'name'     => 'verify_bg',
+				'types'    => array( 'classic', 'gradient' ),
+				'selector' => '{{WRAPPER}} .ild-verify',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Border::get_type(),
+			array(
+				'name'     => 'verify_border',
+				'selector' => '{{WRAPPER}} .ild-verify',
+			)
+		);
+
+		$this->add_responsive_control(
+			'verify_radius',
+			array(
+				'label'      => __( 'Border radius', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', '%', 'em' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-verify' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'verify_padding',
+			array(
+				'label'      => __( 'Padding', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-verify' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'verify_heading_heading',
+			array(
+				'label'     => __( 'Heading', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'verify_heading_typography',
+				'selector' => '{{WRAPPER}} .ild-verify__heading',
+			)
+		);
+
+		$this->add_control(
+			'verify_heading_colour',
+			array(
+				'label'     => __( 'Heading colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-verify__heading' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'verify_notice_heading',
+			array(
+				'label'     => __( 'Notice', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'verify_notice_typography',
+				'selector' => '{{WRAPPER}} .ild-verify__notice',
+			)
+		);
+
+		$this->add_control(
+			'verify_notice_colour',
+			array(
+				'label'     => __( 'Notice colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-verify__notice' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'verify_field_heading',
+			array(
+				'label'     => __( 'Transcription field', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'verify_field_typography',
+				'selector' => '{{WRAPPER}} .ild-verify__text',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Background::get_type(),
+			array(
+				'name'     => 'verify_field_bg',
+				'types'    => array( 'classic' ),
+				'selector' => '{{WRAPPER}} .ild-verify__text',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Border::get_type(),
+			array(
+				'name'     => 'verify_field_border',
+				'selector' => '{{WRAPPER}} .ild-verify__text',
+			)
+		);
+
+		// Confirm and retake buttons, styled independently.
+		$this->button_controls( 'verify_confirm', __( 'Confirm button', 'ingredient-list-decoder' ), '{{WRAPPER}} .ild-verify__confirm' );
+		$this->button_controls( 'verify_retake', __( 'Retake button', 'ingredient-list-decoder' ), '{{WRAPPER}} .ild-verify__retake' );
 
 		$this->end_controls_section();
 	}
@@ -1786,6 +2229,16 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 			$preview = $settings['ild_preview_state'];
 		}
 
+		// The photo control: off if the toggle is off; otherwise let the shared
+		// renderer decide from settings, but always show it in the editor so it
+		// (and the verification step) can be styled.
+		$show_photo = null;
+		if ( 'yes' !== ( isset( $settings['ild_show_photo'] ) ? $settings['ild_show_photo'] : 'yes' ) ) {
+			$show_photo = false;
+		} elseif ( $this->is_edit_mode() ) {
+			$show_photo = true;
+		}
+
 		// The primary button icon, rendered here where we have the widget settings.
 		$icon_html = '';
 		if ( ! empty( $settings['ild_primary_icon']['value'] ) && class_exists( '\Elementor\Icons_Manager' ) ) {
@@ -1800,6 +2253,7 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 				'class'       => implode( ' ', $classes ),
 				'preview'     => $preview,
 				'submit_icon' => $icon_html,
+				'show_photo'  => $show_photo,
 			)
 		);
 	}

@@ -70,6 +70,13 @@ class ILD_Plugin {
 	private $shortcode;
 
 	/**
+	 * The photo transcription component.
+	 *
+	 * @var ILD_Transcription
+	 */
+	private $transcription;
+
+	/**
 	 * The Elementor widget integration.
 	 *
 	 * @var ILD_Elementor
@@ -86,8 +93,9 @@ class ILD_Plugin {
 		$this->csv         = new ILD_CSV();
 		$this->library     = new ILD_Library();
 		$this->matcher     = new ILD_Matcher();
-		$this->shortcode   = new ILD_Shortcode();
-		$this->elementor   = new ILD_Elementor();
+		$this->shortcode     = new ILD_Shortcode();
+		$this->transcription = new ILD_Transcription();
+		$this->elementor     = new ILD_Elementor();
 	}
 
 	/**
@@ -110,6 +118,7 @@ class ILD_Plugin {
 		$this->library->register_hooks();
 		$this->matcher->register_hooks();
 		$this->shortcode->register_hooks();
+		$this->transcription->register_hooks();
 		$this->elementor->register_hooks();
 	}
 

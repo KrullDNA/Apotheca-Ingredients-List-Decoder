@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 0.7.0
+Stable tag: 0.8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -106,6 +106,20 @@ A native Elementor widget that wraps the very same tool the shortcode renders, s
 * **Optional icons.** Where an element is rendered by the widget itself (the buttons), a full Elementor icon picker is used. Where an element is delivered by the AJAX result (summary, states, confidence, not-in-library), the icon is an optional slot a designer switches on by giving it a size and a colour or background image — honest, and fully in their hands.
 * **Where the styling lives.** A small base stylesheet (`assets/css/frontend.css`) gives the plain shortcode a usable, accessible baseline — layout, the expandable rows, the spinner and skeleton, reduced-motion and print handling, visible focus. The widget's controls layer the brand look on top and always win.
 
+= Stage 8: photo upload and the verification step =
+
+A second way to give the tool a list: a photo of the back of the pack. It is part of the same widget, beside the textarea, and the shortcode carries it too.
+
+* **Upload or camera.** A dropzone that accepts a single JPEG, PNG or HEIC photo, with a "take a photo" control that opens the camera on a phone. iPhone HEIC photos are handled explicitly.
+* **Prepared in the browser.** The photo is converted and shrunk on the device before anything is uploaded, so a large phone photo becomes a small JPEG. HEIC is decoded natively where the browser can (Safari, i.e. most iPhones) and converted with a small library elsewhere, loaded only when a HEIC actually needs it.
+* **Transcription only.** The image is sent to the Anthropic API with a transcription-only instruction — read the printed ingredient list, add nothing, translate nothing, interpret nothing. The returned text is written into a **verification area, not into the analysis.**
+* **She checks it first.** The transcription appears in an editable field with the photo thumbnail beside it (stacking on mobile) so she can compare the two, correct anything misread, and only then confirm. Nothing is analysed until she does; a "use a different photo" button starts over.
+* **The photo is deleted immediately.** The uploaded image is read once, transcribed, and deleted from the server the instant the text comes back — on every path, including errors. No copy is ever stored, and nothing about the image beyond its printed text is used.
+* **Settings.** A new Photo transcription section holds the Anthropic API key, the model (a fast vision model by default) and the maximum photo size. With no key set, the photo control simply doesn't appear and the tool works by typing as before.
+* **The full control set from section 11 groups B and C.** Group B (upload): dropzone background, border, radius and padding with separate normal, hover, drag-over, uploading and error states; icon colour and size; prompt and hint typography; progress-bar colour, height and radius; thumbnail size and radius. Group C (verification): container background, border, radius and padding; heading typography; notice typography and colour; transcription-field typography, background and border; and independently styled confirm and retake buttons. Every dimensional control is responsive, and the editor's preview-state control gains a Photo verification option so the whole step can be styled without uploading anything.
+
+**A note on the transcription library.** HEIC conversion for non-Safari browsers uses `heic2any`, loaded on demand from a CDN. The URL is filterable (`ild_heic_converter_url`) so it can be pointed at a bundled copy on sites that must avoid third-party requests; Safari and iPhone photos never need it.
+
 == How to test Stage 1 ==
 
 1. Zip the `ingredient-list-decoder` folder and upload it under Plugins → Add New → Upload Plugin, then activate it. Confirm no error appears.
@@ -186,7 +200,24 @@ A native Elementor widget that wraps the very same tool the shortcode renders, s
 9. Keyboard only: tab to the textarea, type, tab to submit and press Enter; when the result loads, confirm focus lands on it and a screen reader announces it. Tab to an ingredient's detail toggle and press Enter/Space to expand and collapse it.
 10. Confirm the tool's assets load only on the page holding the widget or shortcode, not site-wide.
 
+== How to test Stage 8 ==
+
+1. Open **Ingredient Decoder → Settings** and, in the **Photo transcription** section, paste an Anthropic API key and save. (Leave the model and size at their defaults.)
+2. View the tool logged out. Confirm a photo dropzone now appears beside the textarea, with "Choose a photo" and "Take a photo".
+3. Choose a clear JPEG or PNG photo of an ingredient list. Confirm a brief progress indicator, then a verification area showing the photo thumbnail beside an editable transcription — and that the list has NOT been analysed yet.
+4. On a phone, use "Take a photo" and confirm the camera opens; try an iPhone (HEIC) photo and confirm it is read.
+5. Correct a word in the transcription, then press **Confirm and read the formula**. Confirm the engine now runs on the corrected text and the normal three-part result appears.
+6. Repeat, and this time press **Use a different photo**; confirm the verification clears and the dropzone returns.
+7. Try a photo larger than the size limit and a non-image file; confirm each is refused with a clear message and nothing is uploaded.
+8. Confirm no product or brand name from the photo appears in the reading, and that the transcription step never states a percentage.
+9. Clear the API key in Settings and save; confirm the photo control disappears and the tool still works by typing.
+10. In Elementor, set the widget's **Preview state** to Photo verification and confirm the dropzone and verification area render for styling; work through the **B · Photo upload** and **C · Verification** style groups.
+11. (Privacy) Confirm that after a transcription no image file is left in the uploads folder — the photo is deleted immediately after it is read.
+
 == Changelog ==
+
+= 0.8.0 =
+* Stage 8: read the list from a photo. An upload-and-camera control beside the textarea accepts a single JPEG, PNG or HEIC, converted and resized in the browser (HEIC handled explicitly) before upload. The image is sent to the Anthropic API for transcription only, then deleted from the server immediately; the returned text goes into a verification step — thumbnail beside an editable field — that must be confirmed before the engine runs. Adds a Photo transcription settings section (API key, model, size) and the section-11 groups B and C style controls, with a Photo verification preview state.
 
 = 0.7.0 =
 * Stage 7: a native Elementor widget in a KDNA Tools category that wraps the same tool the shortcode renders (the shortcode stays as a fallback). The full section-11 control set — groups A, D, E, F, G, H and K — with responsive typography and spacing throughout, an editor-only preview-state control, spinner-or-skeleton loading, reduce-motion and print toggles, and full keyboard operation with visible focus and result announcements. Adds a base stylesheet, a live character count, evidence-note and founder-take in the expanded rows, and confidence markers on the summary points.

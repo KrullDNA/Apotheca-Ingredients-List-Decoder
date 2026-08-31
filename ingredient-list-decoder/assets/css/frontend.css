@@ -114,6 +114,201 @@
 }
 
 /* ---------------------------------------------------------------------------
+ * Photo route: dropzone, progress, and the verification step
+ * ------------------------------------------------------------------------- */
+.ild-field--photo {
+	margin-bottom: 1.25rem;
+}
+
+.ild-photo__heading {
+	margin-bottom: 0.5rem;
+}
+
+.ild-dropzone {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.6rem;
+	text-align: center;
+	padding: 1.5rem 1rem;
+	border: 2px dashed #c9c9c9;
+	border-radius: 8px;
+	background: #fafafa;
+	transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.ild-dropzone.is-dragover {
+	border-color: #1f3d2b;
+	background: #f0f4f1;
+}
+
+.ild-dropzone.is-error {
+	border-color: #b3261e;
+}
+
+.ild-dropzone__icon {
+	display: inline-block;
+	width: 0;
+	height: 0;
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: contain;
+}
+
+.ild-dropzone__prompt {
+	margin: 0;
+	font-weight: 600;
+}
+
+.ild-dropzone__hint {
+	margin: 0;
+	font-size: 0.85em;
+	opacity: 0.75;
+}
+
+.ild-dropzone__actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.5rem;
+	margin-top: 0.25rem;
+}
+
+.ild-dropzone__button {
+	cursor: pointer;
+}
+
+/*
+ * The file inputs are hidden from view but kept in the tab order (using the
+ * `hidden` attribute would drop them out of it), so keyboard users can still
+ * reach the picker via the label, which shows a focus ring when they do.
+ */
+.ild-visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.ild-dropzone__button:focus-within {
+	outline: 2px solid var( --ild-focus-colour, #1f3d2b );
+	outline-offset: 2px;
+}
+
+/* The progress bar: an indeterminate sweep while the photo is read. */
+.ild-photo__progress {
+	width: 100%;
+	max-width: 18rem;
+	height: 0.4rem;
+	border-radius: 999px;
+	background: #e3e3e3;
+	overflow: hidden;
+}
+
+.ild-photo__progress-bar {
+	display: block;
+	width: 40%;
+	height: 100%;
+	border-radius: inherit;
+	background: #1f3d2b;
+	animation: ild-progress 1.1s ease-in-out infinite;
+}
+
+@keyframes ild-progress {
+	0% { transform: translateX(-120%); }
+	100% { transform: translateX(320%); }
+}
+
+.ild-photo__status {
+	margin: 0;
+	font-size: 0.9em;
+}
+
+.ild-photo__error {
+	margin: 0.25rem 0 0;
+	font-size: 0.9em;
+	color: #b3261e;
+}
+
+/* The verification step: thumbnail beside the editable text, stacking small. */
+.ild-verify {
+	margin-bottom: 1.25rem;
+	padding: 1rem;
+	border: 1px solid #e3e3e3;
+	border-radius: 8px;
+	background: #fff;
+}
+
+.ild-verify__inner {
+	display: flex;
+	gap: 1rem;
+	align-items: flex-start;
+}
+
+.ild-verify__media {
+	flex: none;
+}
+
+.ild-verify__thumb {
+	display: block;
+	width: 8rem;
+	height: 8rem;
+	object-fit: cover;
+	border-radius: 6px;
+	background: #f1f1f1;
+}
+
+.ild-verify__body {
+	flex: 1;
+	min-width: 0;
+}
+
+.ild-verify__heading {
+	margin: 0 0 0.35rem;
+}
+
+.ild-verify__notice {
+	margin: 0 0 0.6rem;
+	font-size: 0.9em;
+}
+
+.ild-verify__text {
+	display: block;
+	width: 100%;
+	font: inherit;
+	min-height: 7rem;
+	padding: 0.6rem 0.75rem;
+	border: 1px solid #c9c9c9;
+	border-radius: 4px;
+	resize: vertical;
+}
+
+.ild-verify__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-top: 0.75rem;
+}
+
+/* Stack the thumbnail above the text on narrow screens. */
+@media ( max-width: 480px ) {
+	.ild-verify__inner {
+		flex-direction: column;
+	}
+
+	.ild-verify__thumb {
+		width: 100%;
+		height: auto;
+		max-height: 14rem;
+	}
+}
+
+/* ---------------------------------------------------------------------------
  * The honeypot: kept well away from real people.
  * ------------------------------------------------------------------------- */
 .ild-hp {

@@ -71,6 +71,97 @@ class ILD_Phrases {
 		return __( 'Leave this field empty', 'ingredient-list-decoder' );
 	}
 
+	/*
+	 * -----------------------------------------------------------------------
+	 * Photo upload and the verification step (Stage 8)
+	 * -----------------------------------------------------------------------
+	 */
+
+	/** @return string The small heading above the photo dropzone. */
+	public static function photo_heading() {
+		return __( 'Or read it from a photo', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The main prompt inside the dropzone. */
+	public static function dropzone_prompt() {
+		return __( 'Drag a photo of the ingredient list here, or choose one below.', 'ingredient-list-decoder' );
+	}
+
+	/**
+	 * The hint under the prompt, naming the accepted formats and size limit.
+	 *
+	 * @param int $max_mb The maximum file size in megabytes.
+	 * @return string
+	 */
+	public static function dropzone_hint( $max_mb ) {
+		/* translators: %d: the maximum file size in megabytes. */
+		return sprintf( __( 'A single JPEG, PNG or HEIC photo, up to %d MB. iPhone HEIC photos are fine.', 'ingredient-list-decoder' ), (int) $max_mb );
+	}
+
+	/** @return string The button that opens the file picker. */
+	public static function dropzone_choose() {
+		return __( 'Choose a photo', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The button that opens the camera. */
+	public static function dropzone_camera() {
+		return __( 'Take a photo', 'ingredient-list-decoder' );
+	}
+
+	/** @return string Announced/shown while the photo is being read. */
+	public static function photo_reading() {
+		return __( 'Reading the text from your photo…', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The heading over the verification area. */
+	public static function verify_heading() {
+		return __( 'Check the transcription', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The notice explaining the verification step. */
+	public static function verify_notice() {
+		return __( 'This is the text we read from your photo — we haven\'t analysed anything yet. Compare it with the image, fix anything we misread, then confirm to read the formula.', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The label on the editable transcription field. */
+	public static function verify_label() {
+		return __( 'Transcribed ingredients', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The alt text on the photo thumbnail. */
+	public static function verify_thumb_alt() {
+		return __( 'The photo you uploaded', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The button that accepts the transcription and runs the engine. */
+	public static function verify_confirm() {
+		return __( 'Confirm and read the formula', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The button that discards the photo and starts over. */
+	public static function verify_retake() {
+		return __( 'Use a different photo', 'ingredient-list-decoder' );
+	}
+
+	/**
+	 * The small set of photo-handling messages the script may need to show.
+	 *
+	 * The wording still lives here; the script only displays whichever applies.
+	 *
+	 * @return array<string,string> Keyed by message id.
+	 */
+	public static function photo_messages() {
+		return array(
+			'too_large'      => __( 'That photo is larger than the limit. Please choose a smaller one.', 'ingredient-list-decoder' ),
+			'wrong_type'     => __( 'That doesn\'t look like a JPEG, PNG or HEIC photo. Please choose one of those.', 'ingredient-list-decoder' ),
+			'convert_failed' => __( 'We couldn\'t prepare that photo. Please try another, or type the list instead.', 'ingredient-list-decoder' ),
+			'read_failed'    => __( 'We couldn\'t read the text from that photo. Try a clearer, straight-on shot, or type the list instead.', 'ingredient-list-decoder' ),
+			'no_text'        => __( 'We couldn\'t find an ingredient list in that photo. Try a clearer photo of the back of the pack, or type the list instead.', 'ingredient-list-decoder' ),
+			'network'        => __( 'Something interrupted reading your photo. Please try again.', 'ingredient-list-decoder' ),
+			'not_ready'      => __( 'Reading photos isn\'t switched on yet. Please type the list instead.', 'ingredient-list-decoder' ),
+		);
+	}
+
 	/**
 	 * The live character-count template shown under the textarea.
 	 *

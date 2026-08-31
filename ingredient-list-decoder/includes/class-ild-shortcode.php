@@ -101,8 +101,16 @@ class ILD_Shortcode {
 			self::SCRIPT,
 			'ILD_Frontend',
 			array(
-				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
-				'charCount' => ILD_Phrases::char_count_template(),
+				'ajaxUrl'         => admin_url( 'admin-ajax.php' ),
+				'charCount'       => ILD_Phrases::char_count_template(),
+				// Photo transcription (Stage 8).
+				'transcribeAction' => ILD_Transcription::ACTION,
+				'photoEnabled'    => ILD_Transcription::is_enabled(),
+				'maxImageBytes'   => ILD_Transcription::max_bytes(),
+				'maxImageDim'     => (int) apply_filters( 'ild_image_max_dimension', 1800 ),
+				'heicUrl'         => (string) apply_filters( 'ild_heic_converter_url', 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js' ),
+				'photoMessages'   => ILD_Phrases::photo_messages(),
+				'photoReading'    => ILD_Phrases::photo_reading(),
 			)
 		);
 	}
@@ -140,9 +148,21 @@ class ILD_Shortcode {
 				'class'       => '',
 				'preview'     => '',
 				'submit_icon' => '',
+				// null = decide from settings; the widget may force true/false.
+				'show_photo'  => null,
 			),
 			$args
 		);
+
+		// Show the photo control when transcription is configured, unless the
+		// caller (the widget) has made an explicit choice. The editor preview
+		// always shows it so it can be styled.
+		if ( null === $args['show_photo'] ) {
+			$args['show_photo'] = ILD_Transcription::is_enabled();
+		}
+		if ( in_array( $args['preview'], array( 'verify' ), true ) ) {
+			$args['show_photo'] = true;
+		}
 
 		// Load the assets now that we know the tool is on this page.
 		wp_enqueue_style( self::STYLE );
@@ -166,6 +186,7 @@ class ILD_Shortcode {
 				'preview'      => $args['preview'],
 				'preview_html' => $preview_html,
 				'submit_icon'  => $args['submit_icon'],
+				'show_photo'   => (bool) $args['show_photo'],
 			)
 		);
 	}
