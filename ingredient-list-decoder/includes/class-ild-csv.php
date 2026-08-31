@@ -101,6 +101,12 @@ class ILD_CSV {
 				'kind'     => 'bool',
 				'meta_key' => '_ild_sub_one_marker',
 			),
+			'marker_confidence' => array(
+				'label'    => __( 'Marker confidence', 'ingredient-list-decoder' ),
+				'kind'     => 'select',
+				'meta_key' => '_ild_marker_confidence',
+				'options'  => ILD_Meta_Fields::marker_confidence_options(),
+			),
 			'ingredient_family' => array(
 				'label'    => __( 'Ingredient family', 'ingredient-list-decoder' ),
 				'kind'     => 'tax',
@@ -125,6 +131,12 @@ class ILD_CSV {
 				'label'    => __( 'Founder take', 'ingredient-list-decoder' ),
 				'kind'     => 'meta',
 				'meta_key' => '_ild_founder_take',
+			),
+			'category'          => array(
+				'label'    => __( 'Category', 'ingredient-list-decoder' ),
+				'kind'     => 'select',
+				'meta_key' => '_ild_category',
+				'options'  => ILD_Meta_Fields::category_options(),
 			),
 			'status'            => array(
 				'label' => __( 'Status', 'ingredient-list-decoder' ),
@@ -525,7 +537,27 @@ class ILD_CSV {
 		$created = array();
 		$updated = array();
 		$skipped = array();
-		$seen    = array(); // INCI names already handled this run, to catch dupes.
+
+		// First pass: for every non-blank row that names an ingredient, record the
+		// LAST row number that carries each normalised key. When one file holds the
+		// same key twice, the last occurrence is the one that wins; the earlier
+		// ones are reported as skipped, with their row numbers, in the main pass.
+		$last_for_key = array();
+		$pre_number   = 1;
+		foreach ( $rows as $pre_row ) {
+			$pre_number++;
+			if ( 0 === count( array_filter( $pre_row, array( $this, 'cell_has_value' ) ) ) ) {
+				continue;
+			}
+			$pre_inci = isset( $pre_row[ $map['inci_name'] ] ) ? sanitize_text_field( trim( (string) $pre_row[ $map['inci_name'] ] ) ) : '';
+			if ( '' === $pre_inci ) {
+				continue;
+			}
+			$pre_key = ILD_Ingredient_Keys::key( $pre_inci );
+			if ( '' !== $pre_key ) {
+				$last_for_key[ $pre_key ] = $pre_number;
+			}
+		}
 
 		// Row 1 is the header, so data rows are numbered from 2.
 		$row_number = 1;
@@ -548,19 +580,24 @@ class ILD_CSV {
 				continue;
 			}
 
-			// Refuse a second row with the same INCI name in this same file.
-			$key = strtolower( $inci );
-			if ( isset( $seen[ $key ] ) ) {
+			// When this same file holds the key more than once, only the last
+			// occurrence is imported. An earlier one is skipped, naming the later
+			// row that supersedes it.
+			$key = ILD_Ingredient_Keys::key( $inci );
+			if ( '' !== $key && isset( $last_for_key[ $key ] ) && $last_for_key[ $key ] !== $row_number ) {
 				$skipped[] = array(
 					'row'    => $row_number,
-					/* translators: %s: the repeated INCI name. */
-					'reason' => sprintf( __( 'Duplicate INCI name within this file: %s.', 'ingredient-list-decoder' ), $inci ),
+					'reason' => sprintf(
+						/* translators: 1: the repeated INCI name, 2: the later row number that is imported instead. */
+						__( 'Duplicate of a later row within this file: %1$s (row %2$d is imported instead).', 'ingredient-list-decoder' ),
+						$inci,
+						$last_for_key[ $key ]
+					),
 				);
 				continue;
 			}
-			$seen[ $key ] = true;
 
-			// Create when the name is new, update when it already exists.
+			// Create when the key is new, update when it already exists.
 			$existing_id = $this->find_ingredient_by_inci( $inci );
 
 			$postarr = array(
@@ -648,6 +685,14 @@ class ILD_CSV {
 					$this->store_meta( $post_id, $column['meta_key'], $clean );
 					break;
 
+				case 'select':
+					// Accept either the stored value or the human label, so a round
+					// trip and a hand-typed file both work. Anything unrecognised
+					// clears the field.
+					$clean = $this->parse_select( $raw, isset( $column['options'] ) ? $column['options'] : array() );
+					$this->store_meta( $post_id, $column['meta_key'], $clean );
+					break;
+
 				case 'roles':
 					$clean = $this->parse_roles( $raw );
 					if ( empty( $clean ) ) {
@@ -665,6 +710,42 @@ class ILD_CSV {
 					break;
 			}
 		}
+
+		// Marker confidence only applies where the below-1% marker is set. The
+		// importer writes meta directly (bypassing the edit-screen save), so the
+		// same invariant is enforced here.
+		if ( 'yes' !== get_post_meta( $post_id, '_ild_sub_one_marker', true ) ) {
+			delete_post_meta( $post_id, '_ild_marker_confidence' );
+		}
+	}
+
+	/**
+	 * Map a raw CSV cell to one of a select field's allowed values.
+	 *
+	 * The cell may hold either the stored value ("strong") or the human label
+	 * ("Strong"); both are matched case-insensitively. Anything unrecognised — or
+	 * an empty cell — returns an empty string, which clears the field.
+	 *
+	 * @param string $raw     The raw cell value.
+	 * @param array  $options The value => label map of allowed choices.
+	 * @return string The matched stored value, or ''.
+	 */
+	private function parse_select( $raw, $options ) {
+		$raw = strtolower( trim( (string) $raw ) );
+		if ( '' === $raw ) {
+			return '';
+		}
+
+		foreach ( (array) $options as $value => $label ) {
+			if ( '' === $value ) {
+				continue; // The "not set" option is what an empty cell already means.
+			}
+			if ( $raw === strtolower( (string) $value ) || $raw === strtolower( (string) $label ) ) {
+				return (string) $value;
+			}
+		}
+
+		return '';
 	}
 
 	/**
@@ -866,6 +947,9 @@ class ILD_CSV {
 				$names = wp_get_object_terms( $post->ID, $column['taxonomy'], array( 'fields' => 'names' ) );
 				return is_array( $names ) ? implode( '|', $names ) : '';
 
+			case 'select':
+				// Export the stored value (e.g. "strong", "skincare"); the importer
+				// accepts it back verbatim, so the round trip holds.
 			case 'percent':
 			case 'meta':
 			default:
@@ -956,18 +1040,18 @@ class ILD_CSV {
 	}
 
 	/**
-	 * Find an existing ingredient by its exact INCI name.
+	 * Find an existing ingredient by the normalised key of its INCI name.
 	 *
-	 * Matches on the post title. MySQL's default collation is case-insensitive,
-	 * so "Glycerin" and "glycerin" are treated as the same entry, which is what
-	 * keeps the importer from creating a near-duplicate.
+	 * Matching is on the same normalised key the duplicate-prevention work uses —
+	 * case, spacing, edge punctuation and dash style all fold together — so the
+	 * importer updates the right entry instead of creating a near-duplicate.
 	 *
 	 * @param string $inci The INCI name to look for.
 	 * @return int The matching post ID, or 0 if there is none.
 	 */
 	private function find_ingredient_by_inci( $inci ) {
 		// The lookup itself lives in one shared helper so the importer, the list
-		// screen and the duplicate guard all match the same way.
+		// screen and the duplicate guard all match the same way — on the key.
 		return ild_find_ingredient_by_title( $inci );
 	}
 

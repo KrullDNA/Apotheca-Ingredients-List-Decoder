@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.3.0
+Stable tag: 1.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,9 +34,9 @@ Everything later stages build on:
 
 An **Import / Export** screen under the Ingredient Decoder menu.
 
-* **Import** a UTF-8 CSV whose header row uses the field names above. Nothing is written on upload: a **column mapping screen** is shown first, with each column auto-matched to a field by name and editable before you commit. On import, a new INCI name creates a new ingredient and an existing one is updated in place — never a duplicate (matching is on the normalised INCI key, so case, spacing, edge punctuation and dash style do not create a second entry). Everything imports as **needs review**, never published. The result is a summary of created / updated / skipped counts, with the row number and reason for every skipped row.
+* **Import** a UTF-8 CSV whose header row uses the field names above. Nothing is written on upload: a **column mapping screen** is shown first, with each column auto-matched to a field by name and editable before you commit. On import, create versus update is decided on the **normalised INCI key** from the duplicate-prevention work, so case, spacing, edge punctuation and dash style all update the right entry rather than creating a second one. Where one file holds the same key more than once, the **last occurrence wins** and each earlier one is skipped, named with the row number that superseded it. Everything imports as **needs review**, never published. The result is a summary of created / updated / skipped counts, with the row number and reason for every skipped row.
 * **Export** the whole library to a CSV using the same column names, so a file can be exported, edited and imported straight back — a lossless round trip.
-* Roles accept either the label ("pH adjuster") or the slug ("ph-adjuster"). Families and topics may hold several values separated by a pipe. The below-1% marker accepts yes / y / 1 / true.
+* The columns include **marker_confidence** (strong / moderate) and **category** (Skincare / Colour / Both) alongside the rest. Roles accept either the label ("pH adjuster") or the slug ("ph-adjuster"), and so do marker_confidence and category. Families and topics may hold several values separated by a pipe. The below-1% marker accepts yes / y / 1 / true. Marker confidence is only kept where the below-1% marker is set, matching the edit screen.
 * Guards throughout: a manage_options capability check, a nonce on every step, every field sanitised, and a 2 MB file-size cap. The upload is held in a transient between the mapping and import steps, so no CSV is left on the server.
 
 **A note on the imported "status" column.** The importer accepts a status column so the header matches the field list and a round trip works, but it never uses it to publish: per the brief, every imported and updated row is set to "needs review" regardless of what the file says.
@@ -372,6 +372,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.3.1 =
+* CSV importer/exporter now carries the marker_confidence and category columns, accepting either the stored value or the human label (marker confidence is kept only where the below-1% marker is set). Create-versus-update is decided on the normalised INCI key, and when one file holds the same key more than once the last occurrence wins while each earlier one is skipped with the row number that superseded it.
 
 = 1.3.0 =
 * Duplicate prevention rebuilt to cover every route that creates or renames an ingredient, matching on a normalised INCI key rather than the raw name. The key (lower-case, whitespace collapsed, edge punctuation stripped, hyphen/en-dash folded) is stored in a new table with a UNIQUE index, so the database refuses a duplicate even when two saves race past the PHP check. The editor now checks as you type: an exact key match blocks the save and links to the existing entry; an alias match warns without blocking; and a fuzzy near-match warns but always allows the save (Ceramide NP vs Ceramide AP). Adds the ild_ingredient_keys table (schema version 2; existing entries are backfilled on upgrade).
