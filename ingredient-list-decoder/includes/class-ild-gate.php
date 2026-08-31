@@ -106,7 +106,6 @@ class ILD_Gate {
 		$source       = isset( $_POST['ild_source'] ) ? esc_url_raw( wp_unslash( $_POST['ild_source'] ) ) : '';
 		$raw          = isset( $_POST['ild_list'] ) ? sanitize_textarea_field( wp_unslash( $_POST['ild_list'] ) ) : '';
 		$exclude_id   = isset( $_POST['ild_page_id'] ) ? absint( wp_unslash( $_POST['ild_page_id'] ) ) : 0;
-		$product      = isset( $_POST['ild_product_name'] ) ? sanitize_text_field( wp_unslash( $_POST['ild_product_name'] ) ) : '';
 
 		// Store the lead: address, time, consent state, exact wording, source.
 		$lead_id = ILD_Leads::store(
@@ -119,16 +118,12 @@ class ILD_Gate {
 		);
 		$lead_id = is_wp_error( $lead_id ) ? 0 : (int) $lead_id;
 
-		// Record the submission (the decoded list) against this lead, so the
-		// lead's history can be read back by lead ID.
-		ILD_Submissions::store(
-			array(
-				'lead_id' => $lead_id,
-				'list'    => $raw,
-				'product' => $product,
-				'source'  => $source,
-			)
-		);
+		// Attach this session's pre-gate submissions to the new lead, so a list
+		// decoded before the address was given ends up on their record.
+		if ( $lead_id > 0 && ! empty( $_COOKIE[ ILD_Submissions::SESSION_COOKIE ] ) ) {
+			$session = sanitize_text_field( wp_unslash( $_COOKIE[ ILD_Submissions::SESSION_COOKIE ] ) );
+			ILD_Submissions::attach_session_to_lead( $session, $lead_id );
+		}
 
 		// Set the first-party cookie so the gate is skipped on this device.
 		$this->set_cookie();

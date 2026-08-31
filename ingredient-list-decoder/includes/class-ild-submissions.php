@@ -2,15 +2,15 @@
 /**
  * The submissions store: the ingredient lists people have decoded.
  *
- * Each submission records the pasted list, an optional product name, the source
- * page, when it happened, and — when it came through the gate — the lead it
- * belongs to. This is the store the leads screen reads a person's history from,
- * by lead ID.
+ * A custom table (not a post type), because these are rows of data, not
+ * content: it holds the normalised ingredient list, a findings summary, the
+ * time, the optional product name, and the ID of the lead who submitted it.
+ * It is indexed on lead ID and on date.
  *
- * A later stage builds out the rest of this store (the unknown-ingredient queue
- * and the AI drafting over anonymous submissions); this stage provides the
- * storage, the per-lead lookup, and the per-lead delete that keeps the two in
- * step. A submission created without a lead (lead_id 0) is simply anonymous.
+ * A submission made before an address is given is stored with a null lead ID
+ * and a session token; the moment the gate is completed in the same session,
+ * those rows are attached to the new lead, so nothing is left orphaned. When a
+ * lead is deleted, its submissions go with it in the same operation.
  *
  * @package IngredientListDecoder
  */
@@ -21,97 +21,135 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Registers and writes the submissions store, and reads it by lead.
+ * Reads and writes the submissions table.
  */
 class ILD_Submissions {
 
 	/**
-	 * The submission post type.
+	 * The unqualified table name (without the WordPress prefix).
 	 *
 	 * @var string
 	 */
-	const POST_TYPE = 'ild_submission';
-
-	// Meta keys.
-	const META_LEAD     = '_ild_lead_id';
-	const META_PRODUCT  = '_ild_product';
-	const META_LIST     = '_ild_list';
-	const META_SOURCE   = '_ild_source';
-	const META_CAPTURED = '_ild_captured_gmt';
+	const TABLE = 'ild_submissions';
 
 	/**
-	 * Hook the post-type registration.
+	 * The session cookie used to attach pre-gate submissions to a lead.
+	 *
+	 * @var string
+	 */
+	const SESSION_COOKIE = 'ild_session';
+
+	/**
+	 * Nothing to hook: the table is created on activation and on upgrade.
 	 *
 	 * @return void
 	 */
-	public function register_hooks() {
-		add_action( 'init', array( $this, 'register_post_type' ) );
+	public function register_hooks() {}
+
+	/**
+	 * The full, prefixed table name.
+	 *
+	 * @return string
+	 */
+	public static function table() {
+		global $wpdb;
+		return $wpdb->prefix . self::TABLE;
 	}
 
 	/**
-	 * Register the private submission post type.
+	 * Create or update the table. Safe to run repeatedly.
 	 *
 	 * @return void
 	 */
-	public function register_post_type() {
-		register_post_type(
-			self::POST_TYPE,
-			array(
-				'labels'              => array(
-					'name'          => __( 'Submissions', 'ingredient-list-decoder' ),
-					'singular_name' => __( 'Submission', 'ingredient-list-decoder' ),
-				),
-				'public'              => false,
-				'publicly_queryable'  => false,
-				'exclude_from_search' => true,
-				'show_ui'             => false,
-				'show_in_menu'        => false,
-				'show_in_rest'        => false,
-				'has_archive'         => false,
-				'rewrite'             => false,
-				'query_var'           => false,
-				'supports'            => array( 'title' ),
-				'capability_type'     => 'post',
-				'map_meta_cap'        => true,
-			)
-		);
+	public static function install() {
+		global $wpdb;
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+		$table           = self::table();
+		$charset_collate = $wpdb->get_charset_collate();
+
+		$sql = "CREATE TABLE $table (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			lead_id bigint(20) unsigned DEFAULT NULL,
+			session_token varchar(64) DEFAULT NULL,
+			product_name varchar(200) DEFAULT NULL,
+			normalised_list longtext,
+			findings_summary longtext,
+			source_url varchar(255) DEFAULT NULL,
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY lead_id (lead_id),
+			KEY created_at (created_at),
+			KEY session_token (session_token)
+		) $charset_collate;";
+
+		dbDelta( $sql );
 	}
 
 	/**
 	 * Store one submission.
 	 *
 	 * @param array $data {
-	 *     @type int    $lead_id The lead it belongs to, or 0 for anonymous.
-	 *     @type string $list    The pasted ingredient list.
-	 *     @type string $product An optional product name.
-	 *     @type string $source  The source page URL.
+	 *     @type int|null $lead_id          The lead, or null when made pre-gate.
+	 *     @type string   $session_token    The session token, for later attaching.
+	 *     @type string   $normalised_list  The normalised ingredient list.
+	 *     @type string   $findings_summary A findings summary (already a string).
+	 *     @type string   $product          An optional product name.
+	 *     @type string   $source           The source page URL.
 	 * }
-	 * @return int|WP_Error The submission ID, or an error.
+	 * @return int The new submission ID, or 0 on failure.
 	 */
 	public static function store( $data ) {
-		$product = isset( $data['product'] ) ? sanitize_text_field( $data['product'] ) : '';
-		$title   = '' !== $product ? $product : __( 'Submission', 'ingredient-list-decoder' );
+		global $wpdb;
 
-		$post_id = wp_insert_post(
+		$lead_id = isset( $data['lead_id'] ) && $data['lead_id'] ? (int) $data['lead_id'] : null;
+
+		$ok = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			self::table(),
 			array(
-				'post_type'   => self::POST_TYPE,
-				'post_status' => 'publish',
-				'post_title'  => $title,
+				'lead_id'          => $lead_id,
+				'session_token'    => isset( $data['session_token'] ) ? substr( (string) $data['session_token'], 0, 64 ) : null,
+				'product_name'     => isset( $data['product'] ) ? substr( sanitize_text_field( $data['product'] ), 0, 200 ) : null,
+				'normalised_list'  => isset( $data['normalised_list'] ) ? (string) $data['normalised_list'] : '',
+				'findings_summary' => isset( $data['findings_summary'] ) ? (string) $data['findings_summary'] : '',
+				'source_url'       => isset( $data['source'] ) ? esc_url_raw( $data['source'] ) : '',
+				'created_at'       => current_time( 'mysql', true ),
 			),
-			true
+			array( '%d', '%s', '%s', '%s', '%s', '%s', '%s' )
 		);
 
-		if ( is_wp_error( $post_id ) ) {
-			return $post_id;
+		return $ok ? (int) $wpdb->insert_id : 0;
+	}
+
+	/**
+	 * Attach every pending pre-gate submission for a session to a lead.
+	 *
+	 * Called the moment the gate is completed, so a list decoded before the
+	 * address was given still ends up on that person's record.
+	 *
+	 * @param string $session_token The session token from the cookie.
+	 * @param int    $lead_id       The lead to attach them to.
+	 * @return int The number attached.
+	 */
+	public static function attach_session_to_lead( $session_token, $lead_id ) {
+		global $wpdb;
+
+		$session_token = substr( (string) $session_token, 0, 64 );
+		$lead_id       = (int) $lead_id;
+		if ( '' === $session_token || $lead_id <= 0 ) {
+			return 0;
 		}
 
-		update_post_meta( $post_id, self::META_LEAD, isset( $data['lead_id'] ) ? (int) $data['lead_id'] : 0 );
-		update_post_meta( $post_id, self::META_PRODUCT, $product );
-		update_post_meta( $post_id, self::META_LIST, isset( $data['list'] ) ? sanitize_textarea_field( $data['list'] ) : '' );
-		update_post_meta( $post_id, self::META_SOURCE, isset( $data['source'] ) ? esc_url_raw( $data['source'] ) : '' );
-		update_post_meta( $post_id, self::META_CAPTURED, current_time( 'mysql', true ) );
+		$table = self::table();
 
-		return $post_id;
+		return (int) $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->prepare(
+				"UPDATE $table SET lead_id = %d WHERE session_token = %s AND lead_id IS NULL",
+				$lead_id,
+				$session_token
+			)
+		);
 	}
 
 	/**
@@ -121,32 +159,27 @@ class ILD_Submissions {
 	 * @return array<int,array> Each: { id, captured, product, list, source }.
 	 */
 	public static function get_by_lead( $lead_id ) {
+		global $wpdb;
+
 		$lead_id = (int) $lead_id;
 		if ( $lead_id <= 0 ) {
 			return array();
 		}
 
-		$ids = get_posts(
-			array(
-				'post_type'      => self::POST_TYPE,
-				'post_status'    => 'publish',
-				'posts_per_page' => -1,
-				'orderby'        => 'date',
-				'order'          => 'DESC',
-				'fields'         => 'ids',
-				'meta_key'       => self::META_LEAD, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
-				'meta_value'     => $lead_id, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
-			)
+		$table = self::table();
+		$rows  = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->prepare( "SELECT * FROM $table WHERE lead_id = %d ORDER BY created_at DESC, id DESC", $lead_id ),
+			ARRAY_A
 		);
 
 		$out = array();
-		foreach ( $ids as $id ) {
+		foreach ( (array) $rows as $row ) {
 			$out[] = array(
-				'id'       => (int) $id,
-				'captured' => (string) get_post_meta( $id, self::META_CAPTURED, true ),
-				'product'  => (string) get_post_meta( $id, self::META_PRODUCT, true ),
-				'list'     => (string) get_post_meta( $id, self::META_LIST, true ),
-				'source'   => (string) get_post_meta( $id, self::META_SOURCE, true ),
+				'id'       => (int) $row['id'],
+				'captured' => (string) $row['created_at'],
+				'product'  => (string) $row['product_name'],
+				'list'     => (string) $row['normalised_list'],
+				'source'   => (string) $row['source_url'],
 			);
 		}
 
@@ -156,23 +189,48 @@ class ILD_Submissions {
 	/**
 	 * Delete every submission belonging to a lead.
 	 *
-	 * Called when a lead is deleted, so no orphan submissions are left behind.
-	 *
 	 * @param int $lead_id The lead.
 	 * @return int The number deleted.
 	 */
 	public static function delete_by_lead( $lead_id ) {
+		global $wpdb;
+
 		$lead_id = (int) $lead_id;
 		if ( $lead_id <= 0 ) {
 			return 0;
 		}
 
-		$deleted = 0;
-		foreach ( self::get_by_lead( $lead_id ) as $submission ) {
-			if ( wp_delete_post( $submission['id'], true ) ) {
-				$deleted++;
-			}
+		return (int) $wpdb->delete( self::table(), array( 'lead_id' => $lead_id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+	}
+
+	/**
+	 * Read (and, if needed, set) the session token for attaching submissions.
+	 *
+	 * @return string
+	 */
+	public static function session_token() {
+		if ( ! empty( $_COOKIE[ self::SESSION_COOKIE ] ) ) {
+			return substr( sanitize_text_field( wp_unslash( $_COOKIE[ self::SESSION_COOKIE ] ) ), 0, 64 );
 		}
-		return $deleted;
+
+		$token = wp_generate_password( 32, false );
+
+		if ( ! headers_sent() ) {
+			setcookie(
+				self::SESSION_COOKIE,
+				$token,
+				array(
+					'expires'  => 0, // Session cookie.
+					'path'     => defined( 'COOKIEPATH' ) && COOKIEPATH ? COOKIEPATH : '/',
+					'domain'   => defined( 'COOKIE_DOMAIN' ) && COOKIE_DOMAIN ? COOKIE_DOMAIN : '',
+					'secure'   => is_ssl(),
+					'httponly' => true,
+					'samesite' => 'Lax',
+				)
+			);
+		}
+		$_COOKIE[ self::SESSION_COOKIE ] = $token;
+
+		return $token;
 	}
 }

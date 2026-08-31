@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 0.12.0
+Stable tag: 0.13.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -165,6 +165,20 @@ A dedicated **Leads** screen under the Ingredient Decoder menu — a custom tabl
 * **Delete is clean.** Deleting a lead deletes that lead's submissions in the same operation, so no orphan rows are left behind.
 * **Privacy built in.** The plugin registers with WordPress's personal-data exporter and eraser, so a privacy request under Tools → Export/Erase Personal Data covers a person's lead record *and* their submission history automatically.
 
+= Stage 13: submission storage and the unknown-ingredient queue =
+
+Two custom tables and an admin screen for growing the library from real demand.
+
+* **The submissions table.** Every decoded list is stored in its own table (not a post type) with the normalised ingredient list, a findings summary, the time, the optional product name, and the ID of the lead who submitted it. It is indexed on lead ID and on date. A list decoded before an address is given is stored with a null lead ID and a session token, and attached to the lead the moment the gate is completed in the same session — so nothing is orphaned. Deleting a lead deletes its submissions in the same operation.
+* **The unknown-token table.** A second table records every unmatched token with a count of how often it has appeared and the date first seen. It holds no lead reference at all — it is a working queue, not a record of anyone.
+* **The Unknown ingredients screen.** Tokens listed most-submitted first, with a **Dismiss** action for typos and rubbish and a **Draft entry** button. Drafting calls the Anthropic API and creates an `ild_ingredient` in **needs-review** status, populated against the section-4 field list (aliases, roles, use range, sub-one marker, description, evidence note, founder take, family and topics). **Nothing is ever published automatically** — a drafted entry always lands in needs-review for a human.
+* **The API key is a wp-config constant.** Drafting reads its key from `ILD_ANTHROPIC_API_KEY` in wp-config.php, never from the options table. Without it, the draft button is simply hidden.
+* **Demand orders the review queue.** The token's appearance count is carried onto the drafted entry, and the Stage 3 review queue is now ordered by that count — the most-requested drafts rise to the top, hand-added entries below.
+
+**Defining the drafting key.** Add this to wp-config.php:
+
+`define( 'ILD_ANTHROPIC_API_KEY', 'sk-ant-...' );`
+
 == How to test Stage 1 ==
 
 1. Zip the `ingredient-list-decoder` folder and upload it under Plugins → Add New → Upload Plugin, then activate it. Confirm no error appears.
@@ -302,7 +316,22 @@ A dedicated **Leads** screen under the Ingredient Decoder menu — a custom tabl
 6. Open the **Failed sync** view. (It fills once a connector is configured in a later stage; a rejected address appears here with a Retry link.)
 7. Go to **Tools → Export Personal Data**, request an export for one of the captured addresses, and confirm the export contains both the lead record and that address's submission history. Repeat with **Erase Personal Data** and confirm both are removed.
 
+== How to test Stage 13 ==
+
+1. Decode a list on the front end (before giving an email) that includes a couple of ingredients not in the library. Confirm on the Leads screen — after completing the gate in the same session — that the submission is attached to your new lead (its history shows the list).
+2. Confirm a submission made before the gate is attached to the lead once the gate is completed (nothing orphaned).
+3. Open **Ingredient Decoder → Unknown ingredients**. Confirm the unmatched tokens are listed, most-submitted first, with the appearance count and first-seen date.
+4. Decode the same unknown token again and confirm its count goes up (not a duplicate row).
+5. Dismiss a rubbish token and confirm it leaves the queue.
+6. Add `define( 'ILD_ANTHROPIC_API_KEY', '...' );` to wp-config.php. Confirm the **Draft entry** button appears. Draft a real token and confirm a new ingredient is created in **needs-review** (not published), with the fields populated, and that the review queue link opens it.
+7. Without the constant defined, confirm the draft button is hidden and a note explains why.
+8. Open **Ingredient Decoder → Review Queue** and confirm entries drafted from the most-requested tokens appear at the top (ordered by demand, then alphabetically).
+9. Delete a lead and confirm its submissions are removed from the submissions table (no orphan rows).
+
 == Changelog ==
+
+= 0.13.0 =
+* Stage 13: submission storage and the unknown-ingredient queue. A custom submissions table (normalised list, findings summary, time, product name, lead ID; indexed on lead ID and date) with pre-gate rows attached to the lead on gate completion in the same session, and deleted with the lead. A second custom table queues unmatched tokens by appearance count with no lead reference. An Unknown ingredients screen lists tokens by frequency with a dismiss action and an AI draft-entry button that creates a needs-review ingredient against the section-4 fields — never published automatically. The drafting key is read from the ILD_ANTHROPIC_API_KEY wp-config constant, not the options table. The token frequency now orders the Stage 3 review queue.
 
 = 0.12.0 =
 * Stage 12: the leads admin screen. A custom table of every captured address — date, consent state, the consent wording shown, source page, submission history (read from the submissions store by lead ID), and connector sync status — with date-range and sync filters, address search, CSV export of the filtered set, and per-record delete. A failed-sync view lists connector rejections with a retry action. Deleting a lead deletes its submissions in the same operation. Registers WordPress personal-data exporter and eraser hooks so a privacy request covers the lead record and its submission history. Adds a lead-linked submissions store (extended in the next stage).

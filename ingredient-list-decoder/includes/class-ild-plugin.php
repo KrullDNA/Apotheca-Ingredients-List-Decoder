@@ -105,6 +105,13 @@ class ILD_Plugin {
 	private $leads_admin;
 
 	/**
+	 * The unknown-ingredients admin screen component.
+	 *
+	 * @var ILD_Unknown_Admin
+	 */
+	private $unknown_admin;
+
+	/**
 	 * The email gate component.
 	 *
 	 * @var ILD_Gate
@@ -141,6 +148,7 @@ class ILD_Plugin {
 		$this->submissions   = new ILD_Submissions();
 		$this->leads         = new ILD_Leads();
 		$this->leads_admin   = new ILD_Leads_Admin();
+		$this->unknown_admin = new ILD_Unknown_Admin();
 		$this->gate          = new ILD_Gate();
 		$this->email         = new ILD_Email();
 		$this->elementor     = new ILD_Elementor();
@@ -171,8 +179,12 @@ class ILD_Plugin {
 		$this->submissions->register_hooks();
 		$this->leads->register_hooks();
 		$this->leads_admin->register_hooks();
+		$this->unknown_admin->register_hooks();
 		$this->gate->register_hooks();
 		$this->email->register_hooks();
+
+		// Keep the custom tables in step with the schema version.
+		add_action( 'admin_init', array( $this, 'maybe_upgrade_db' ) );
 		$this->elementor->register_hooks();
 	}
 
@@ -190,5 +202,22 @@ class ILD_Plugin {
 			false,
 			dirname( ILD_PLUGIN_BASENAME ) . '/languages'
 		);
+	}
+
+	/**
+	 * Build or update the custom tables when the schema version changes.
+	 *
+	 * Runs on admin_init so a site that had the plugin before these tables
+	 * existed gets them without needing to reactivate.
+	 *
+	 * @return void
+	 */
+	public function maybe_upgrade_db() {
+		if ( get_option( 'ild_db_version' ) === ILD_DB_VERSION ) {
+			return;
+		}
+		ILD_Submissions::install();
+		ILD_Unknown_Tokens::install();
+		update_option( 'ild_db_version', ILD_DB_VERSION );
 	}
 }

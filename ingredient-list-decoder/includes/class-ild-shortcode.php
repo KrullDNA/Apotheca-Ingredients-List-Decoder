@@ -376,6 +376,12 @@ class ILD_Shortcode {
 		$analysis = ILD_Analysis::analyse( $match );
 		$view     = ILD_Presenter::present( $match, $analysis, $context );
 
+		// Record the decoded list and any unmatched tokens. Done once here, at
+		// analysis time; the gate re-runs the engine to render but does not record.
+		if ( 'result' === $view['state'] ) {
+			$this->record_submission( $match, $view, $product_name );
+		}
+
 		// Gate the breakdown when this is a real result and the device has no
 		// access cookie yet. The summary always shows; the breakdown does not.
 		$vars = array();
@@ -392,9 +398,62 @@ class ILD_Shortcode {
 	}
 
 	/**
+	 * Record a decoded list as a submission, and its unmatched tokens in the
+	 * unknown-ingredient queue.
+	 *
+	 * The submission is stored against this browser session (with no lead yet);
+	 * the gate attaches it to a lead if an address is given. Unmatched tokens are
+	 * counted so the queue can be worked by frequency.
+	 *
+	 * @param array  $match        The Stage 4 match result.
+	 * @param array  $view         The result view model.
+	 * @param string $product_name The optional product name.
+	 * @return void
+	 */
+	private function record_submission( $match, $view, $product_name ) {
+		$items = isset( $match['items'] ) ? $match['items'] : array();
+
+		// The normalised list, and the unmatched tokens for the queue.
+		$normalised = array();
+		foreach ( $items as $item ) {
+			if ( ! empty( $item['normalised'] ) ) {
+				$normalised[] = $item['normalised'];
+			}
+			if ( isset( $item['status'] ) && 'unmatched' === $item['status'] ) {
+				$token = ! empty( $item['normalised'] ) ? $item['normalised'] : ( isset( $item['original'] ) ? $item['original'] : '' );
+				ILD_Unknown_Tokens::record( $token );
+			}
+		}
+
+		// A compact findings summary to store beside the list.
+		$summary_texts = array();
+		foreach ( isset( $view['summary'] ) ? $view['summary'] : array() as $point ) {
+			$summary_texts[] = is_array( $point ) ? ( isset( $point['text'] ) ? $point['text'] : '' ) : $point;
+		}
+		$findings_summary = wp_json_encode(
+			array(
+				'summary' => $summary_texts,
+				'counts'  => isset( $view['counts'] ) ? $view['counts'] : array(),
+			)
+		);
+
+		ILD_Submissions::store(
+			array(
+				'lead_id'          => null,
+				'session_token'    => ILD_Submissions::session_token(),
+				'normalised_list'  => implode( ', ', $normalised ),
+				'findings_summary' => $findings_summary,
+				'product'          => $product_name,
+				'source'           => wp_get_referer() ? wp_get_referer() : '',
+			)
+		);
+	}
+
+	/**
 	 * Render the right template for a view model's state.
 	 *
 	 * @param array $view The view model from ILD_Presenter.
+	 * @param array $vars Extra template variables (gating, carry).
 	 * @return string The rendered HTML fragment.
 	 */
 	private static function render_view( $view, $vars = array() ) {

@@ -39,6 +39,11 @@ class ILD_Activator {
 		// Seed the starting terms for both taxonomies.
 		self::seed_terms();
 
+		// Create the custom tables (submissions and the unknown-token queue).
+		ILD_Submissions::install();
+		ILD_Unknown_Tokens::install();
+		update_option( 'ild_db_version', ILD_DB_VERSION );
+
 		// Remember which version first set things up (useful for upgrades later).
 		if ( false === get_option( 'ild_version' ) ) {
 			add_option( 'ild_version', ILD_VERSION );
