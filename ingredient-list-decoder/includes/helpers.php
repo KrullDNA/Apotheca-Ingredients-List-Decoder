@@ -104,3 +104,36 @@ function ild_parse_ingredient_list( $raw ) {
 function ild_match_ingredient_list( $raw ) {
 	return ILD_Matcher::match( $raw );
 }
+
+/**
+ * Analyse a matched, ordered ingredient list into structured findings.
+ *
+ * Takes the result from ild_match_ingredient_list() (or its ordered items) and
+ * returns findings only — data with confidence flags, no phrasing. A thin public
+ * wrapper around ILD_Analysis::analyse().
+ *
+ * @param array $match_result The Stage 4 match result, or its ordered items.
+ * @return array The findings and supporting meta.
+ */
+function ild_analyse_ingredients( $match_result ) {
+	return ILD_Analysis::analyse( $match_result );
+}
+
+/**
+ * Parse, match and analyse a raw pasted ingredient list in one call.
+ *
+ * A convenience for callers that start from raw text: it runs the whole
+ * pipeline and returns the analysis findings, or a WP_Error if the input could
+ * not even be parsed (for example, it was too long).
+ *
+ * @param string $raw The pasted ingredient list.
+ * @return array|WP_Error The findings and supporting meta, or a parser error.
+ */
+function ild_analyse_ingredient_list( $raw ) {
+	$match = ILD_Matcher::match( $raw );
+	if ( is_wp_error( $match ) ) {
+		return $match;
+	}
+
+	return ILD_Analysis::analyse( $match );
+}

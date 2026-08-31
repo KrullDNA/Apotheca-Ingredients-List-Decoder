@@ -343,9 +343,33 @@ class ILD_Matcher {
 
 		if ( is_array( $result ) ) {
 			$this->render_result( $result );
+			// Show the raw analysis findings too, as a developer diagnostic. This
+			// is the Stage 5 engine's structured output, with no phrasing applied.
+			$this->render_findings( ILD_Analysis::analyse( $result ) );
 		}
 
 		echo '</div>';
+	}
+
+	/**
+	 * Dump the analysis engine's findings, for diagnosis only.
+	 *
+	 * Deliberately raw: this is the structured findings array from Stage 5, shown
+	 * so the rules can be checked. It applies no phrasing — that is a later stage.
+	 *
+	 * @param array $analysis The result of ILD_Analysis::analyse().
+	 * @return void
+	 */
+	private function render_findings( $analysis ) {
+		echo '<h2>' . esc_html__( 'Analysis findings (developer view)', 'ingredient-list-decoder' ) . '</h2>';
+		printf(
+			'<p class="description">%s</p>',
+			esc_html__( 'The raw output of the analysis engine: data and confidence flags only, with no wording applied. A later stage turns these into readable findings.', 'ingredient-list-decoder' )
+		);
+		printf(
+			'<pre style="background:#fff;border:1px solid #dcdcde;padding:12px;overflow:auto;max-height:32em;">%s</pre>',
+			esc_html( print_r( $analysis, true ) ) // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r -- Intentional diagnostic output on an admin-only screen.
+		);
 	}
 
 	/**

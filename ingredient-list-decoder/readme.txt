@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 0.4.0
+Stable tag: 0.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -63,6 +63,20 @@ The engine that turns a pasted ingredient list into a structured, ordered read o
 * **Safety.** The input length is capped; anything implausibly long (a whole page pasted by mistake) is rejected rather than processed.
 * **Test screen.** *Ingredient Decoder → Test Parser* — paste a list and see, in original order, how every token was split, cleaned and matched. Nothing is saved.
 
+= Stage 5: the analysis engine =
+
+The logic that reads a matched, ordered list as a formula. It is not AI: it is the section-6 rules applied to the ingredient metadata, so it is instant and returns the same answer every time. It produces **findings only** — no HTML and no wording. Every finding carries a **confidence flag** and the **underlying data**, so a later stage can phrase it as an inference rather than a fact.
+
+* `ild_analyse_ingredients( $match_result )` takes the Stage 4 output and returns `{ findings, meta }`. `ild_analyse_ingredient_list( $raw )` runs the whole pipeline from raw text.
+* **The one per cent line.** Finds the first ingredient flagged as a sub-one marker and confirms it with a second marker further down; everything from the line onward is treated as likely below one per cent. With a second marker the confidence is high; with only one it is low; **with no marker at all the line is returned as undetermined, never guessed.**
+* **The actives.** Each active's position is recorded, along with which side of the line it sits on (above, below, or undetermined when there is no line).
+* **The base.** Roles are counted across the top third of the list to say what the product is built on before anything else is added.
+* **The shape.** Zero or more observations: an unusually short or long list, fragrance sitting in the top half, or a heavily loaded top third (several actives crowded near the top).
+* Confidence reflects the evidence: list length is factual (high), while inferences about the line, the base and the actives are tempered by how much of the list could actually be matched. The thresholds are filterable via `ild_analysis_config`.
+* The engine returns findings and stops. It does not decide what to say about them.
+
+The *Test Parser* screen now also shows the raw findings array beneath the match table, as a developer diagnostic (no phrasing applied).
+
 == How to test Stage 1 ==
 
 1. Zip the `ingredient-list-decoder` folder and upload it under Plugins → Add New → Upload Plugin, then activate it. Confirm no error appears.
@@ -107,7 +121,22 @@ The engine that turns a pasted ingredient list into a structured, ordered read o
 6. Add a nonsense token, e.g. `Zzzzqqx`, and confirm it comes back as **unmatched**.
 7. Paste something enormous (tens of thousands of characters) and confirm it is rejected with a clear message rather than processed.
 
+== How to test Stage 5 ==
+
+1. Make sure a few ingredients carry the right metadata: mark a couple as sub-one (for example Phenoxyethanol, Sodium Hyaluronate), give one or two the "active" role, and give a fragrance entry the "fragrance" role.
+2. Open **Ingredient Decoder → Test Parser** and paste a realistic list.
+3. Below the match table, read the **Analysis findings** dump. Confirm:
+   * the `one_percent_line` finding locates the line at the first sub-one marker, and is only `confirmed` (high confidence) when a second marker appears further down;
+   * each active is listed with a `side` of above or below that line;
+   * the `base` finding counts roles across the top third;
+   * shape findings appear where relevant (short or long list, fragrance in the top half, a loaded top third).
+4. Paste a list with no sub-one ingredients at all and confirm the line comes back as `undetermined`, not guessed.
+5. Confirm every finding carries a `confidence` flag and the numbers behind it, and that the order of the list is preserved throughout.
+
 == Changelog ==
+
+= 0.5.0 =
+* Stage 5: the analysis engine — locates the probable one per cent line from sub-one markers (undetermined when none), places each active against it, describes the base from the top third, and notes shape observations. Findings only, each with a confidence flag and its underlying data; no phrasing. Exposed as ild_analyse_ingredients() and ild_analyse_ingredient_list(), with a raw findings view on the Test Parser screen.
 
 = 0.4.0 =
 * Stage 4: the parser and matcher — cleans a pasted list into ordered tokens, matches on INCI name then aliases, offers a single fuzzy suggestion within a length-scaled threshold, caps the input length, and adds a Test Parser diagnostic screen. Exposed as ild_parse_ingredient_list() and ild_match_ingredient_list().
