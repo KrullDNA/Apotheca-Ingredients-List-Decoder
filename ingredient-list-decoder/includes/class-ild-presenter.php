@@ -86,7 +86,7 @@ class ILD_Presenter {
 		// If almost nothing matched, say so plainly and stop.
 		if ( empty( $meta['matched'] ) ) {
 			return array(
-				'points' => array( ILD_Phrases::summary_insufficient() ),
+				'points' => array( self::point( ILD_Phrases::summary_insufficient(), null ) ),
 				'caveat' => '',
 			);
 		}
@@ -102,7 +102,7 @@ class ILD_Presenter {
 		if ( $base ) {
 			$point = self::base_sentence( $base['data'] );
 			if ( '' !== $point ) {
-				$points[] = $point;
+				$points[] = self::point( $point, $base );
 			}
 		}
 
@@ -110,19 +110,19 @@ class ILD_Presenter {
 		if ( $line ) {
 			$status = $line['data']['status'];
 			if ( 'located' === $status && ! empty( $line['data']['confirmed'] ) ) {
-				$points[] = ILD_Phrases::summary_line_confirmed();
+				$points[] = self::point( ILD_Phrases::summary_line_confirmed(), $line );
 				$caveat   = ILD_Phrases::summary_line_caveat();
 			} elseif ( 'located' === $status ) {
-				$points[] = ILD_Phrases::summary_line_single();
+				$points[] = self::point( ILD_Phrases::summary_line_single(), $line );
 				$caveat   = ILD_Phrases::summary_line_caveat();
 			} else {
-				$points[] = ILD_Phrases::summary_line_undetermined();
+				$points[] = self::point( ILD_Phrases::summary_line_undetermined(), $line );
 			}
 		}
 
 		// Where the actives fall against that line.
 		if ( $active && $active['data']['count'] > 0 ) {
-			$points[] = self::actives_sentence( $active['data'] );
+			$points[] = self::point( self::actives_sentence( $active['data'] ), $active );
 		}
 
 		// Shape observations, in the order the engine reported them.
@@ -132,13 +132,37 @@ class ILD_Presenter {
 			}
 			$sentence = self::shape_sentence( $finding['data']['observation'] );
 			if ( '' !== $sentence ) {
-				$points[] = $sentence;
+				$points[] = self::point( $sentence, $finding );
 			}
 		}
 
 		return array(
 			'points' => $points,
 			'caveat' => $caveat,
+		);
+	}
+
+	/**
+	 * Wrap a summary sentence with the confidence of the finding behind it.
+	 *
+	 * The front end never states the confidence in words — it stays a hedged
+	 * sentence — but carrying the level lets the templates (and Stage 7's style
+	 * controls) mark high, medium and low findings differently if a designer
+	 * chooses to. A finding with no recognised confidence carries an empty level.
+	 *
+	 * @param string     $text    The assembled sentence.
+	 * @param array|null $finding The finding the sentence came from.
+	 * @return array { 'text' => string, 'level' => string }.
+	 */
+	private static function point( $text, $finding = null ) {
+		$level = is_array( $finding ) && isset( $finding['confidence'] ) ? $finding['confidence'] : '';
+		if ( ! in_array( $level, array( 'high', 'medium', 'low' ), true ) ) {
+			$level = '';
+		}
+
+		return array(
+			'text'  => $text,
+			'level' => $level,
 		);
 	}
 
@@ -342,6 +366,14 @@ class ILD_Presenter {
 		$description = get_post_meta( $id, '_ild_description', true );
 		$description = is_string( $description ) ? $description : '';
 
+		// The optional evidence note and founder take. These are shown inside the
+		// expanded panel beneath the description, only when they hold something.
+		$evidence = get_post_meta( $id, '_ild_evidence_note', true );
+		$evidence = is_string( $evidence ) ? $evidence : '';
+
+		$founder = get_post_meta( $id, '_ild_founder_take', true );
+		$founder = is_string( $founder ) ? $founder : '';
+
 		$label = ( isset( $item['inci_name'] ) && '' !== $item['inci_name'] ) ? $item['inci_name'] : ( isset( $item['original'] ) ? $item['original'] : '' );
 
 		return array(
@@ -351,6 +383,8 @@ class ILD_Presenter {
 			'roles_text'  => ! empty( $role_labels ) ? implode( ', ', $role_labels ) : ILD_Phrases::row_none(),
 			'family_text' => ! empty( $families ) ? implode( ', ', $families ) : ILD_Phrases::row_none(),
 			'description' => $description,
+			'evidence'    => $evidence,
+			'founder'     => $founder,
 			'status_text' => '',
 		);
 	}

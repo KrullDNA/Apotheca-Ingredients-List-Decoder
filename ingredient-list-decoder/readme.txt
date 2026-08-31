@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 0.6.0
+Stable tag: 0.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -89,6 +89,23 @@ The public tool, as a shortcode — `[ingredient_decoder]` — with all the word
 * **Safety.** Every field is sanitised, all output is escaped, the request is nonced, and the honeypot is checked.
 * **Where the wording lives.** All copy is in `ILD_Phrases` (one file), turned into a view model by `ILD_Presenter`, and rendered by the templates in `/templates`. Editing the voice never means touching logic or markup.
 
+= Stage 7: the Elementor widget =
+
+A native Elementor widget that wraps the very same tool the shortcode renders, so the wording and markup never drift. The **shortcode keeps working** as a fallback — the widget wraps the rendering, it does not replace it. It sits in a **KDNA Tools** category, loads its assets only on pages where it is placed, and is built for Elementor's optimized markup (a single wrapper div, no reliance on Elementor's container divs).
+
+* **The full control set from section 11.** Groups A, D, E, F, G, H and K, with responsive values on every typography and spacing control. Because the controls emit CSS scoped to the widget, and the AJAX result lands inside that widget, a designer's styling reaches the summary, the ingredient rows and every state as well as the form.
+  * **A — Input & form:** input-container background, border, radius, shadow and padding; label typography; textarea typography, colour, placeholder colour, background, border, radius, minimum height and focus state; helper and character-count typography; the product-name field shown or hidden with its own styling.
+  * **D — Buttons:** primary, secondary and text-link, each with typography, padding, radius, border, icon size and spacing, transition, a per-breakpoint full-width toggle, and normal / hover / focus / active / disabled states.
+  * **E — Summary:** block background, border, radius, padding and shadow; heading and body typography; accent colour; an optional icon.
+  * **F — Ingredient rows:** row and alternating-row background, padding, divider colour and width; position-number and INCI-name typography; role and family badges (typography, background, radius, padding) with a badge gap; expand-icon colour, size and open rotation; expanded-panel background, padding and border; separate typography for description, evidence note and founder take, with an accent border on the founder take.
+  * **G — Findings & unmatched:** typography, colour and an optional icon per confidence level (high, medium, low) plus a findings block background and border; suggestion typography and link colour; a not-in-library notice with background, border, typography and icon.
+  * **H — States:** loading indicator colour and size with a spinner-or-skeleton choice; empty-state typography and icon; error-state background, border and typography; a rate-limit message style (ready for Stage 14).
+  * **K — Global:** maximum width, section spacing, a reduce-motion toggle, and a print-stylesheet toggle.
+* **A preview-state control**, editor-only: pick Form, Loading, Result, Empty or Error and the widget renders that state in the editor so it can be styled without triggering it. It has no effect on the live page.
+* **Accessibility.** Every field is labelled, the whole tool is keyboard-operable (the expandable rows are native `<details>`), focus is always visible, the tool marks itself busy while a request is in flight, and focus moves to the result when it loads so screen readers announce it.
+* **Optional icons.** Where an element is rendered by the widget itself (the buttons), a full Elementor icon picker is used. Where an element is delivered by the AJAX result (summary, states, confidence, not-in-library), the icon is an optional slot a designer switches on by giving it a size and a colour or background image — honest, and fully in their hands.
+* **Where the styling lives.** A small base stylesheet (`assets/css/frontend.css`) gives the plain shortcode a usable, accessible baseline — layout, the expandable rows, the spinner and skeleton, reduced-motion and print handling, visible focus. The widget's controls layer the brand look on top and always win.
+
 == How to test Stage 1 ==
 
 1. Zip the `ingredient-list-decoder` folder and upload it under Plugins → Add New → Upload Plugin, then activate it. Confirm no error appears.
@@ -156,7 +173,23 @@ The public tool, as a shortcode — `[ingredient_decoder]` — with all the word
 7. Submit an empty box (or nonsense) and confirm the empty state appears. Paste something enormous and confirm the error state appears. Both should look like proper messages, not raw errors.
 8. Enter the product name and confirm it never shows up in the reading.
 
+== How to test Stage 7 ==
+
+1. With Elementor active, edit a page and open the widget panel. Confirm a **KDNA Tools** category holds an **Ingredient List Decoder** widget. Drag it in.
+2. Confirm the tool appears and works exactly as the shortcode does: paste a list, submit, and see the three-part result without a page reload. (Confirm the `[ingredient_decoder]` shortcode still works too, on a separate page.)
+3. In the widget's **Content** tab, change **Preview state** to Result, then Empty, then Error, then Loading. Confirm each state renders in the editor so you can style it. Confirm the live page is unaffected by this control.
+4. Work through the **Style** tab groups (A input & form, D buttons, E summary, F rows, G findings & unmatched, H states, K global). Change a colour, a typography and a spacing control in each and confirm the tool updates — including the parts that only appear in a result (summary, rows, badges, expanded panel).
+5. Confirm every spacing and typography control offers the responsive (desktop / tablet / mobile) device switcher.
+6. In group D, set a primary-button icon (Content tab) and confirm it appears in the button; toggle a button to full width on mobile only and confirm it is full width on mobile and auto on desktop.
+7. In group K, turn **Reduce motion** on and confirm the spinner and expand animation stop. Turn **Print styles** on and use the browser's print preview to confirm the form is hidden and every ingredient's detail is expanded.
+8. In group H, switch the loading indicator from Spinner to Skeleton and submit a list; confirm the skeleton bars show instead of the spinner.
+9. Keyboard only: tab to the textarea, type, tab to submit and press Enter; when the result loads, confirm focus lands on it and a screen reader announces it. Tab to an ingredient's detail toggle and press Enter/Space to expand and collapse it.
+10. Confirm the tool's assets load only on the page holding the widget or shortcode, not site-wide.
+
 == Changelog ==
+
+= 0.7.0 =
+* Stage 7: a native Elementor widget in a KDNA Tools category that wraps the same tool the shortcode renders (the shortcode stays as a fallback). The full section-11 control set — groups A, D, E, F, G, H and K — with responsive typography and spacing throughout, an editor-only preview-state control, spinner-or-skeleton loading, reduce-motion and print toggles, and full keyboard operation with visible focus and result announcements. Adds a base stylesheet, a live character count, evidence-note and founder-take in the expanded rows, and confidence markers on the summary points.
 
 = 0.6.0 =
 * Stage 6: the front-end tool as the [ingredient_decoder] shortcode — AJAX with no reload, a three-part result (summary, ordered ingredient list with detail on tap, reserved read-next region), and real loading/empty/error templates. All wording in one phrases file (Apotheca voice, hedged inferences, no brand names or verdicts), all markup in templates for Stage 7 to style. Three unmatched states handled distinctly; nonce, honeypot, sanitised input and escaped output throughout.

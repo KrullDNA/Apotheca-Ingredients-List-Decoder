@@ -39,6 +39,17 @@ class ILD_Shortcode {
 	const SCRIPT = 'ild-frontend';
 
 	/**
+	 * The style handle for the front-end CSS.
+	 *
+	 * Shared with the Elementor widget, which lists it as a style dependency so
+	 * the same base styles load whether the tool is placed as a shortcode or a
+	 * widget.
+	 *
+	 * @var string
+	 */
+	const STYLE = 'ild-frontend';
+
+	/**
 	 * Hook the shortcode, its assets and the AJAX endpoints onto WordPress.
 	 *
 	 * @return void
@@ -71,6 +82,13 @@ class ILD_Shortcode {
 	 * @return void
 	 */
 	public function register_assets() {
+		wp_register_style(
+			self::STYLE,
+			ILD_PLUGIN_URL . 'assets/css/frontend.css',
+			array(),
+			ILD_VERSION
+		);
+
 		wp_register_script(
 			self::SCRIPT,
 			ILD_PLUGIN_URL . 'assets/js/frontend.js',
@@ -83,7 +101,8 @@ class ILD_Shortcode {
 			self::SCRIPT,
 			'ILD_Frontend',
 			array(
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
+				'charCount' => ILD_Phrases::char_count_template(),
 			)
 		);
 	}
@@ -95,13 +114,142 @@ class ILD_Shortcode {
 	 * @return string The tool's HTML.
 	 */
 	public function render_shortcode( $atts = array() ) {
-		// Load the script now that we know the tool is on this page.
+		return self::render_tool();
+	}
+
+	/**
+	 * Render the tool shell, enqueuing its assets first.
+	 *
+	 * Shared by the shortcode and the Elementor widget so there is one source of
+	 * the markup. The widget passes its own wrapper classes (max width, motion,
+	 * print, loading style) and, in the editor only, a preview state to show.
+	 *
+	 * @param array $args {
+	 *     Optional. Rendering options.
+	 *
+	 *     @type string $class   Extra classes to add to the .ild-tool wrapper.
+	 *     @type string $preview A state to show in place (editor preview only):
+	 *                           one of 'form', 'loading', 'empty', 'error',
+	 *                           'result'. Empty for the normal, interactive tool.
+	 * }
+	 * @return string The tool's HTML.
+	 */
+	public static function render_tool( $args = array() ) {
+		$args = array_merge(
+			array(
+				'class'       => '',
+				'preview'     => '',
+				'submit_icon' => '',
+			),
+			$args
+		);
+
+		// Load the assets now that we know the tool is on this page.
+		wp_enqueue_style( self::STYLE );
 		wp_enqueue_script( self::SCRIPT );
 
 		// A unique id so several tools on one page never collide.
 		$uid = function_exists( 'wp_unique_id' ) ? wp_unique_id( 'ild-' ) : uniqid( 'ild-' );
 
-		return self::render_template( 'tool', array( 'uid' => $uid ) );
+		// In the editor, a chosen preview state is rendered in place so it can be
+		// styled without triggering it. Never set on the front end.
+		$preview_html = '';
+		if ( in_array( $args['preview'], array( 'empty', 'error', 'result' ), true ) ) {
+			$preview_html = self::render_state_preview( $args['preview'] );
+		}
+
+		return self::render_template(
+			'tool',
+			array(
+				'uid'          => $uid,
+				'extra_class'  => $args['class'],
+				'preview'      => $args['preview'],
+				'preview_html' => $preview_html,
+				'submit_icon'  => $args['submit_icon'],
+			)
+		);
+	}
+
+	/**
+	 * Build a rendered fragment for one state, for the editor preview only.
+	 *
+	 * @param string $state 'empty', 'error' or 'result'.
+	 * @return string The rendered fragment, or ''.
+	 */
+	public static function render_state_preview( $state ) {
+		switch ( $state ) {
+			case 'empty':
+				return self::render_view(
+					array(
+						'state'   => 'empty',
+						'message' => ILD_Phrases::empty_no_tokens(),
+					)
+				);
+			case 'error':
+				return self::render_view(
+					array(
+						'state'   => 'error',
+						'message' => ILD_Phrases::error_generic(),
+					)
+				);
+			case 'result':
+				return self::render_view( self::sample_result_view() );
+			default:
+				return '';
+		}
+	}
+
+	/**
+	 * A hand-built, representative result view for the editor preview.
+	 *
+	 * It never touches the database, so it is safe to render in the editor. It
+	 * shows every row kind and a confidence-tagged summary, so a designer can
+	 * style the whole result without pasting a real list.
+	 *
+	 * @return array A result view model.
+	 */
+	private static function sample_result_view() {
+		return array(
+			'state'          => 'result',
+			'summary'        => array(
+				array( 'text' => ILD_Phrases::summary_built_on( 'humectants', 'emollients' ), 'level' => 'high' ),
+				array( 'text' => ILD_Phrases::summary_line_confirmed(), 'level' => 'medium' ),
+				array( 'text' => ILD_Phrases::summary_shape_short(), 'level' => 'low' ),
+			),
+			'summary_caveat' => ILD_Phrases::summary_line_caveat(),
+			'ingredients'    => array(
+				array(
+					'kind'        => 'matched',
+					'position'    => 1,
+					'label'       => 'Glycerin',
+					'roles_text'  => 'Humectant',
+					'family_text' => 'Humectants',
+					'description' => __( 'A humectant that draws water into the upper layers of the skin.', 'ingredient-list-decoder' ),
+					'evidence'    => __( 'Well supported at typical use levels.', 'ingredient-list-decoder' ),
+					'founder'     => __( 'A quiet workhorse we reach for often.', 'ingredient-list-decoder' ),
+					'status_text' => '',
+				),
+				array(
+					'kind'        => 'suggestion',
+					'position'    => 2,
+					'label'       => 'Niacinimide',
+					'status_text' => ILD_Phrases::did_you_mean( 'Niacinamide' ),
+				),
+				array(
+					'kind'        => 'unknown',
+					'position'    => 3,
+					'label'       => 'Bakuchiol',
+					'status_text' => ILD_Phrases::not_in_library(),
+				),
+				array(
+					'kind'        => 'unreadable',
+					'position'    => 4,
+					'label'       => 'xqzzt',
+					'status_text' => ILD_Phrases::unreadable(),
+				),
+			),
+			'counts'         => array( 'total' => 4, 'matched' => 1 ),
+		);
 	}
 
 	/**

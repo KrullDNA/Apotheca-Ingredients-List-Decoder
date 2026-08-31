@@ -1,0 +1,1817 @@
+<?php
+/**
+ * The Ingredient List Decoder Elementor widget.
+ *
+ * A native Elementor widget that wraps the very same rendering the shortcode
+ * uses (ILD_Shortcode::render_tool), so wording and markup never drift. On top
+ * of that it exposes the full set of style controls from section 11 of the brief
+ * — groups A, D, E, F, G, H and K — with responsive values on every typography
+ * and spacing control.
+ *
+ * The controls emit CSS scoped to the widget instance ({{WRAPPER}}), and the
+ * AJAX result fragment lands inside that wrapper, so a designer's styling reaches
+ * the summary, the ingredient rows and every state as well as the form itself.
+ *
+ * Built for optimized markup: a single wrapper div, no reliance on Elementor's
+ * container divs in the selectors, and registered into the KDNA Tools category.
+ *
+ * @package IngredientListDecoder
+ */
+
+// Stop anyone loading this file directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+use Elementor\Controls_Manager;
+use Elementor\Group_Control_Typography;
+use Elementor\Group_Control_Border;
+use Elementor\Group_Control_Box_Shadow;
+use Elementor\Group_Control_Background;
+
+/**
+ * The widget.
+ */
+class ILD_Elementor_Widget extends \Elementor\Widget_Base {
+
+	/**
+	 * The widget's machine name.
+	 *
+	 * @return string
+	 */
+	public function get_name() {
+		return 'ild_decoder';
+	}
+
+	/**
+	 * The widget's display title in the editor.
+	 *
+	 * @return string
+	 */
+	public function get_title() {
+		return __( 'Ingredient List Decoder', 'ingredient-list-decoder' );
+	}
+
+	/**
+	 * The widget's editor icon.
+	 *
+	 * @return string
+	 */
+	public function get_icon() {
+		return 'eicon-search';
+	}
+
+	/**
+	 * The categories this widget belongs to.
+	 *
+	 * @return string[]
+	 */
+	public function get_categories() {
+		return array( ILD_Elementor::CATEGORY );
+	}
+
+	/**
+	 * Search keywords for the editor's widget panel.
+	 *
+	 * @return string[]
+	 */
+	public function get_keywords() {
+		return array( 'ingredient', 'skincare', 'inci', 'decoder', 'formula', 'apotheca' );
+	}
+
+	/**
+	 * The style handles this widget depends on.
+	 *
+	 * Returning the shared handle means Elementor enqueues the base stylesheet
+	 * only on pages where this widget is present.
+	 *
+	 * @return string[]
+	 */
+	public function get_style_depends() {
+		return array( ILD_Shortcode::STYLE );
+	}
+
+	/**
+	 * The script handles this widget depends on.
+	 *
+	 * @return string[]
+	 */
+	public function get_script_depends() {
+		return array( ILD_Shortcode::SCRIPT );
+	}
+
+	/**
+	 * Drop Elementor's extra inner wrapper when optimized markup is on.
+	 *
+	 * @return bool
+	 */
+	public function has_widget_inner_wrapper(): bool {
+		if (
+			class_exists( '\Elementor\Plugin' )
+			&& isset( \Elementor\Plugin::$instance->experiments )
+			&& method_exists( \Elementor\Plugin::$instance->experiments, 'is_feature_active' )
+		) {
+			return ! \Elementor\Plugin::$instance->experiments->is_feature_active( 'e_optimized_markup' );
+		}
+
+		return true;
+	}
+
+	/*
+	 * -----------------------------------------------------------------------
+	 * Controls
+	 * -----------------------------------------------------------------------
+	 */
+
+	/**
+	 * Register every control, content then style, group by group.
+	 *
+	 * @return void
+	 */
+	protected function register_controls() {
+		$this->controls_content();
+
+		$this->controls_group_a_input();      // Group A: input & form.
+		$this->controls_group_d_buttons();    // Group D: buttons.
+		$this->controls_group_e_summary();    // Group E: summary block.
+		$this->controls_group_f_rows();       // Group F: ingredient rows.
+		$this->controls_group_g_findings();   // Group G: findings & unmatched.
+		$this->controls_group_h_states();     // Group H: states.
+		$this->controls_group_k_global();     // Group K: global.
+	}
+
+	/**
+	 * Content tab: the editor preview, and settings that are not pure styling.
+	 *
+	 * The tool's wording is managed centrally in one PHP file (so it can be
+	 * edited in one place), which is why there are no text-content controls here.
+	 *
+	 * @return void
+	 */
+	private function controls_content() {
+		$this->start_controls_section(
+			'section_content',
+			array(
+				'label' => __( 'Tool', 'ingredient-list-decoder' ),
+				'tab'   => Controls_Manager::TAB_CONTENT,
+			)
+		);
+
+		$this->add_control(
+			'ild_preview_state',
+			array(
+				'label'       => __( 'Preview state (editor only)', 'ingredient-list-decoder' ),
+				'type'        => Controls_Manager::SELECT,
+				'default'     => 'form',
+				'options'     => array(
+					'form'    => __( 'Form', 'ingredient-list-decoder' ),
+					'loading' => __( 'Loading', 'ingredient-list-decoder' ),
+					'result'  => __( 'Result', 'ingredient-list-decoder' ),
+					'empty'   => __( 'Empty', 'ingredient-list-decoder' ),
+					'error'   => __( 'Error', 'ingredient-list-decoder' ),
+				),
+				'description' => __( 'Show a state in the editor so you can style it. This has no effect on the live page.', 'ingredient-list-decoder' ),
+			)
+		);
+
+		$this->add_control(
+			'ild_wording_note',
+			array(
+				'type'            => Controls_Manager::RAW_HTML,
+				'raw'             => __( 'All wording is edited in one place (the plugin\'s phrases file), so the whole voice stays consistent. This panel is for styling.', 'ingredient-list-decoder' ),
+				'content_classes' => 'elementor-descriptor',
+			)
+		);
+
+		$this->add_control(
+			'ild_primary_icon',
+			array(
+				'label' => __( 'Primary button icon', 'ingredient-list-decoder' ),
+				'type'  => Controls_Manager::ICONS,
+			)
+		);
+
+		$this->end_controls_section();
+	}
+
+	/*
+	 * -----------------------------------------------------------------------
+	 * Group A — input container, labels, textarea, helpers, product field
+	 * -----------------------------------------------------------------------
+	 */
+
+	/**
+	 * Group A controls.
+	 *
+	 * @return void
+	 */
+	private function controls_group_a_input() {
+		$this->start_controls_section(
+			'section_input',
+			array(
+				'label' => __( 'A · Input & form', 'ingredient-list-decoder' ),
+				'tab'   => Controls_Manager::TAB_STYLE,
+			)
+		);
+
+		// Input container.
+		$this->add_control(
+			'input_container_heading',
+			array(
+				'label' => __( 'Input container', 'ingredient-list-decoder' ),
+				'type'  => Controls_Manager::HEADING,
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Background::get_type(),
+			array(
+				'name'     => 'input_container_bg',
+				'types'    => array( 'classic', 'gradient' ),
+				'selector' => '{{WRAPPER}} .ild-form',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Border::get_type(),
+			array(
+				'name'     => 'input_container_border',
+				'selector' => '{{WRAPPER}} .ild-form',
+			)
+		);
+
+		$this->add_responsive_control(
+			'input_container_radius',
+			array(
+				'label'      => __( 'Border radius', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', '%', 'em' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-form' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Box_Shadow::get_type(),
+			array(
+				'name'     => 'input_container_shadow',
+				'selector' => '{{WRAPPER}} .ild-form',
+			)
+		);
+
+		$this->add_responsive_control(
+			'input_container_padding',
+			array(
+				'label'      => __( 'Padding', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-form' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		// Label.
+		$this->add_control(
+			'label_heading',
+			array(
+				'label'     => __( 'Field label', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'label_typography',
+				'selector' => '{{WRAPPER}} .ild-label',
+			)
+		);
+
+		$this->add_control(
+			'label_colour',
+			array(
+				'label'     => __( 'Label colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-label' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		// Textarea.
+		$this->add_control(
+			'textarea_heading',
+			array(
+				'label'     => __( 'Textarea', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'textarea_typography',
+				'selector' => '{{WRAPPER}} .ild-textarea',
+			)
+		);
+
+		$this->add_control(
+			'textarea_colour',
+			array(
+				'label'     => __( 'Text colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-textarea' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'textarea_placeholder_colour',
+			array(
+				'label'     => __( 'Placeholder colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-textarea::placeholder' => 'color: {{VALUE}}; opacity: 1;',
+				),
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Background::get_type(),
+			array(
+				'name'     => 'textarea_bg',
+				'types'    => array( 'classic', 'gradient' ),
+				'selector' => '{{WRAPPER}} .ild-textarea',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Border::get_type(),
+			array(
+				'name'     => 'textarea_border',
+				'selector' => '{{WRAPPER}} .ild-textarea',
+			)
+		);
+
+		$this->add_responsive_control(
+			'textarea_radius',
+			array(
+				'label'      => __( 'Border radius', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', '%', 'em' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-textarea' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'textarea_min_height',
+			array(
+				'label'      => __( 'Minimum height', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'vh', 'em' ),
+				'range'      => array( 'px' => array( 'min' => 40, 'max' => 500 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-textarea' => 'min-height: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'textarea_focus_heading',
+			array(
+				'label' => __( 'Focus state', 'ingredient-list-decoder' ),
+				'type'  => Controls_Manager::HEADING,
+			)
+		);
+
+		$this->add_control(
+			'textarea_focus_border_colour',
+			array(
+				'label'     => __( 'Focus border colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-textarea:focus' => 'border-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Box_Shadow::get_type(),
+			array(
+				'name'     => 'textarea_focus_shadow',
+				'selector' => '{{WRAPPER}} .ild-textarea:focus',
+			)
+		);
+
+		// Helper & character count.
+		$this->add_control(
+			'helper_heading',
+			array(
+				'label'     => __( 'Helper & character count', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'helper_typography',
+				'selector' => '{{WRAPPER}} .ild-help, {{WRAPPER}} .ild-charcount',
+			)
+		);
+
+		$this->add_control(
+			'helper_colour',
+			array(
+				'label'     => __( 'Helper colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-help' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'charcount_colour',
+			array(
+				'label'     => __( 'Character count colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-charcount' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		// Product field.
+		$this->add_control(
+			'product_heading',
+			array(
+				'label'     => __( 'Product-name field', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_control(
+			'product_hide',
+			array(
+				'label'        => __( 'Hide product-name field', 'ingredient-list-decoder' ),
+				'type'         => Controls_Manager::SWITCHER,
+				'label_on'     => __( 'Hidden', 'ingredient-list-decoder' ),
+				'label_off'    => __( 'Shown', 'ingredient-list-decoder' ),
+				'return_value' => 'yes',
+				'default'      => '',
+				'selectors'    => array(
+					'{{WRAPPER}} .ild-field--product' => 'display: none;',
+				),
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'      => 'product_typography',
+				'selector'  => '{{WRAPPER}} .ild-product',
+				'condition' => array( 'product_hide!' => 'yes' ),
+			)
+		);
+
+		$this->add_control(
+			'product_colour',
+			array(
+				'label'     => __( 'Text colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-product' => 'color: {{VALUE}};',
+				),
+				'condition' => array( 'product_hide!' => 'yes' ),
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Border::get_type(),
+			array(
+				'name'      => 'product_border',
+				'selector'  => '{{WRAPPER}} .ild-product',
+				'condition' => array( 'product_hide!' => 'yes' ),
+			)
+		);
+
+		$this->end_controls_section();
+	}
+
+	/*
+	 * -----------------------------------------------------------------------
+	 * Group D — buttons (primary, secondary, text link)
+	 * -----------------------------------------------------------------------
+	 */
+
+	/**
+	 * Group D controls.
+	 *
+	 * @return void
+	 */
+	private function controls_group_d_buttons() {
+		$this->start_controls_section(
+			'section_buttons',
+			array(
+				'label' => __( 'D · Buttons', 'ingredient-list-decoder' ),
+				'tab'   => Controls_Manager::TAB_STYLE,
+			)
+		);
+
+		$this->button_controls( 'primary', __( 'Primary button', 'ingredient-list-decoder' ), '{{WRAPPER}} .ild-submit' );
+		$this->button_controls( 'secondary', __( 'Secondary button', 'ingredient-list-decoder' ), '{{WRAPPER}} .ild-button--secondary' );
+		$this->button_controls( 'link', __( 'Text-link button', 'ingredient-list-decoder' ), '{{WRAPPER}} .ild-button--link' );
+
+		$this->end_controls_section();
+	}
+
+	/**
+	 * The full control set for one button style.
+	 *
+	 * Typography, padding, radius, border, icon size and gap, plus normal, hover,
+	 * focus, active and disabled states, plus a per-breakpoint full-width toggle.
+	 *
+	 * @param string $key      A short key, unique per button (primary/secondary/link).
+	 * @param string $label    The heading shown for this button.
+	 * @param string $selector The CSS selector for this button.
+	 * @return void
+	 */
+	private function button_controls( $key, $label, $selector ) {
+		$this->add_control(
+			$key . '_button_heading',
+			array(
+				'label'     => $label,
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => $key . '_button_typography',
+				'selector' => $selector,
+			)
+		);
+
+		$this->add_responsive_control(
+			$key . '_button_padding',
+			array(
+				'label'      => __( 'Padding', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					$selector => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			$key . '_button_radius',
+			array(
+				'label'      => __( 'Border radius', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', '%', 'em' ),
+				'selectors'  => array(
+					$selector => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			$key . '_button_icon_size',
+			array(
+				'label'      => __( 'Icon size', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em' ),
+				'range'      => array( 'px' => array( 'min' => 6, 'max' => 60 ) ),
+				'selectors'  => array(
+					$selector . ' .ild-submit__icon' => 'font-size: {{SIZE}}{{UNIT}};',
+					$selector . ' .ild-submit__icon svg' => 'width: {{SIZE}}{{UNIT}}; height: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			$key . '_button_icon_gap',
+			array(
+				'label'      => __( 'Icon spacing', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 40 ) ),
+				'selectors'  => array(
+					$selector => 'gap: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			$key . '_button_full_width',
+			array(
+				'label'                => __( 'Full width', 'ingredient-list-decoder' ),
+				'type'                 => Controls_Manager::SELECT,
+				'default'              => '',
+				'options'              => array(
+					''      => __( 'Auto', 'ingredient-list-decoder' ),
+					'block' => __( 'Full width', 'ingredient-list-decoder' ),
+				),
+				'selectors_dictionary' => array(
+					'block' => 'width: 100%; justify-content: center;',
+				),
+				'selectors'            => array(
+					$selector => '{{VALUE}}',
+				),
+			)
+		);
+
+		// State tabs: normal / hover / focus / active / disabled.
+		$this->start_controls_tabs( $key . '_button_tabs' );
+
+		$states = array(
+			'normal'   => array( __( 'Normal', 'ingredient-list-decoder' ), $selector ),
+			'hover'    => array( __( 'Hover', 'ingredient-list-decoder' ), $selector . ':hover' ),
+			'focus'    => array( __( 'Focus', 'ingredient-list-decoder' ), $selector . ':focus-visible' ),
+			'active'   => array( __( 'Active', 'ingredient-list-decoder' ), $selector . ':active' ),
+			'disabled' => array( __( 'Disabled', 'ingredient-list-decoder' ), $selector . ':disabled' ),
+		);
+
+		foreach ( $states as $state => $info ) {
+			list( $state_label, $state_selector ) = $info;
+
+			$this->start_controls_tab(
+				$key . '_button_tab_' . $state,
+				array( 'label' => $state_label )
+			);
+
+			$this->add_control(
+				$key . '_button_' . $state . '_colour',
+				array(
+					'label'     => __( 'Text colour', 'ingredient-list-decoder' ),
+					'type'      => Controls_Manager::COLOR,
+					'selectors' => array(
+						$state_selector => 'color: {{VALUE}};',
+					),
+				)
+			);
+
+			$this->add_group_control(
+				Group_Control_Background::get_type(),
+				array(
+					'name'     => $key . '_button_' . $state . '_bg',
+					'types'    => array( 'classic', 'gradient' ),
+					'selector' => $state_selector,
+				)
+			);
+
+			$this->add_control(
+				$key . '_button_' . $state . '_border_colour',
+				array(
+					'label'     => __( 'Border colour', 'ingredient-list-decoder' ),
+					'type'      => Controls_Manager::COLOR,
+					'selectors' => array(
+						$state_selector => 'border-color: {{VALUE}};',
+					),
+				)
+			);
+
+			$this->add_group_control(
+				Group_Control_Box_Shadow::get_type(),
+				array(
+					'name'     => $key . '_button_' . $state . '_shadow',
+					'selector' => $state_selector,
+				)
+			);
+
+			$this->end_controls_tab();
+		}
+
+		$this->end_controls_tabs();
+
+		$this->add_control(
+			$key . '_button_transition',
+			array(
+				'label'      => __( 'Transition duration (ms)', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 1000 ) ),
+				'selectors'  => array(
+					$selector => 'transition-duration: {{SIZE}}ms;',
+				),
+			)
+		);
+	}
+
+	/*
+	 * -----------------------------------------------------------------------
+	 * Group E — summary block
+	 * -----------------------------------------------------------------------
+	 */
+
+	/**
+	 * Group E controls.
+	 *
+	 * @return void
+	 */
+	private function controls_group_e_summary() {
+		$this->start_controls_section(
+			'section_summary',
+			array(
+				'label' => __( 'E · Summary block', 'ingredient-list-decoder' ),
+				'tab'   => Controls_Manager::TAB_STYLE,
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Background::get_type(),
+			array(
+				'name'     => 'summary_bg',
+				'types'    => array( 'classic', 'gradient' ),
+				'selector' => '{{WRAPPER}} .ild-summary',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Border::get_type(),
+			array(
+				'name'     => 'summary_border',
+				'selector' => '{{WRAPPER}} .ild-summary',
+			)
+		);
+
+		$this->add_responsive_control(
+			'summary_radius',
+			array(
+				'label'      => __( 'Border radius', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', '%', 'em' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-summary' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'summary_padding',
+			array(
+				'label'      => __( 'Padding', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-summary' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Box_Shadow::get_type(),
+			array(
+				'name'     => 'summary_shadow',
+				'selector' => '{{WRAPPER}} .ild-summary',
+			)
+		);
+
+		$this->add_control(
+			'summary_heading_heading',
+			array(
+				'label'     => __( 'Heading', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'summary_heading_typography',
+				'selector' => '{{WRAPPER}} .ild-summary__heading',
+			)
+		);
+
+		$this->add_control(
+			'summary_heading_colour',
+			array(
+				'label'     => __( 'Heading colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-summary__heading' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'summary_body_heading',
+			array(
+				'label'     => __( 'Body', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'summary_body_typography',
+				'selector' => '{{WRAPPER}} .ild-summary__point-text, {{WRAPPER}} .ild-summary__caveat',
+			)
+		);
+
+		$this->add_control(
+			'summary_body_colour',
+			array(
+				'label'     => __( 'Body colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-summary__point-text' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'summary_accent_colour',
+			array(
+				'label'     => __( 'Accent colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-summary' => '--ild-summary-accent: {{VALUE}};',
+					'{{WRAPPER}} .ild-summary__caveat' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'summary_icon_heading',
+			array(
+				'label'     => __( 'Optional icon', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->icon_slot_controls( 'summary_icon', '{{WRAPPER}} .ild-summary__icon' );
+
+		$this->end_controls_section();
+	}
+
+	/*
+	 * -----------------------------------------------------------------------
+	 * Group F — ingredient rows
+	 * -----------------------------------------------------------------------
+	 */
+
+	/**
+	 * Group F controls.
+	 *
+	 * @return void
+	 */
+	private function controls_group_f_rows() {
+		$this->start_controls_section(
+			'section_rows',
+			array(
+				'label' => __( 'F · Ingredient rows', 'ingredient-list-decoder' ),
+				'tab'   => Controls_Manager::TAB_STYLE,
+			)
+		);
+
+		$this->add_control(
+			'row_bg',
+			array(
+				'label'     => __( 'Row background', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-ingredient' => 'background-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'row_alt_bg',
+			array(
+				'label'     => __( 'Alternating row background', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-ingredient:nth-child(even)' => 'background-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'row_padding',
+			array(
+				'label'      => __( 'Row padding', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-ingredient' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'row_divider_colour',
+			array(
+				'label'     => __( 'Divider colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-ingredient' => 'border-bottom-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'row_divider_width',
+			array(
+				'label'      => __( 'Divider width', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 10 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-ingredient' => 'border-bottom-width: {{SIZE}}{{UNIT}}; border-bottom-style: solid;',
+				),
+			)
+		);
+
+		// Position number.
+		$this->add_control(
+			'row_pos_heading',
+			array(
+				'label'     => __( 'Position number', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'row_pos_typography',
+				'selector' => '{{WRAPPER}} .ild-ingredient__pos',
+			)
+		);
+
+		$this->add_control(
+			'row_pos_colour',
+			array(
+				'label'     => __( 'Colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-ingredient__pos' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		// INCI name.
+		$this->add_control(
+			'row_name_heading',
+			array(
+				'label'     => __( 'INCI name', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'row_name_typography',
+				'selector' => '{{WRAPPER}} .ild-ingredient__name',
+			)
+		);
+
+		$this->add_control(
+			'row_name_colour',
+			array(
+				'label'     => __( 'Colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-ingredient__name' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		// Badges.
+		$this->badge_controls( 'role', __( 'Role badge', 'ingredient-list-decoder' ), '{{WRAPPER}} .ild-ingredient__role' );
+		$this->badge_controls( 'family', __( 'Family badge', 'ingredient-list-decoder' ), '{{WRAPPER}} .ild-ingredient__family' );
+
+		$this->add_responsive_control(
+			'badge_gap',
+			array(
+				'label'      => __( 'Badge gap', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 40 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-ingredient__meta' => 'gap: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		// Expand icon.
+		$this->add_control(
+			'expand_icon_heading',
+			array(
+				'label'     => __( 'Expand icon', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_control(
+			'expand_icon_colour',
+			array(
+				'label'     => __( 'Colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-ingredient__expand-icon' => 'border-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'expand_icon_size',
+			array(
+				'label'      => __( 'Size', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em' ),
+				'range'      => array( 'px' => array( 'min' => 4, 'max' => 30 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-ingredient__expand-icon' => 'width: {{SIZE}}{{UNIT}}; height: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'expand_icon_rotation',
+			array(
+				'label'      => __( 'Open rotation (deg)', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'range'      => array( 'px' => array( 'min' => -360, 'max' => 360 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-ingredient__detail[open] .ild-ingredient__expand-icon' => 'transform: rotate({{SIZE}}deg);',
+				),
+			)
+		);
+
+		// Expanded panel.
+		$this->add_control(
+			'panel_heading',
+			array(
+				'label'     => __( 'Expanded panel', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Background::get_type(),
+			array(
+				'name'     => 'panel_bg',
+				'types'    => array( 'classic', 'gradient' ),
+				'selector' => '{{WRAPPER}} .ild-ingredient__detail-panel',
+			)
+		);
+
+		$this->add_responsive_control(
+			'panel_padding',
+			array(
+				'label'      => __( 'Padding', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-ingredient__detail-panel' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Border::get_type(),
+			array(
+				'name'     => 'panel_border',
+				'selector' => '{{WRAPPER}} .ild-ingredient__detail-panel',
+			)
+		);
+
+		// Description, evidence note, founder take.
+		$this->add_control(
+			'description_heading',
+			array(
+				'label'     => __( 'Description', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'description_typography',
+				'selector' => '{{WRAPPER}} .ild-ingredient__description',
+			)
+		);
+
+		$this->add_control(
+			'description_colour',
+			array(
+				'label'     => __( 'Colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-ingredient__description' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'evidence_heading',
+			array(
+				'label'     => __( 'Evidence note', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'evidence_typography',
+				'selector' => '{{WRAPPER}} .ild-ingredient__evidence-body',
+			)
+		);
+
+		$this->add_control(
+			'evidence_colour',
+			array(
+				'label'     => __( 'Colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-ingredient__evidence-body' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'founder_heading',
+			array(
+				'label'     => __( 'Founder take', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'founder_typography',
+				'selector' => '{{WRAPPER}} .ild-ingredient__founder-body',
+			)
+		);
+
+		$this->add_control(
+			'founder_colour',
+			array(
+				'label'     => __( 'Colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-ingredient__founder-body' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'founder_accent_colour',
+			array(
+				'label'     => __( 'Accent border colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-ingredient__founder' => 'border-left-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'founder_accent_width',
+			array(
+				'label'      => __( 'Accent border width', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 12 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-ingredient__founder' => 'border-left-width: {{SIZE}}{{UNIT}}; border-left-style: solid;',
+				),
+			)
+		);
+
+		$this->end_controls_section();
+	}
+
+	/**
+	 * The control set for one badge (role or family).
+	 *
+	 * @param string $key      A short key, unique per badge.
+	 * @param string $label    The heading shown.
+	 * @param string $selector The CSS selector for the badge.
+	 * @return void
+	 */
+	private function badge_controls( $key, $label, $selector ) {
+		$this->add_control(
+			$key . '_badge_heading',
+			array(
+				'label'     => $label,
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => $key . '_badge_typography',
+				'selector' => $selector,
+			)
+		);
+
+		$this->add_control(
+			$key . '_badge_colour',
+			array(
+				'label'     => __( 'Text colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					$selector => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			$key . '_badge_bg',
+			array(
+				'label'     => __( 'Background', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					$selector => 'background-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			$key . '_badge_radius',
+			array(
+				'label'      => __( 'Border radius', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', '%', 'em' ),
+				'selectors'  => array(
+					$selector => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			$key . '_badge_padding',
+			array(
+				'label'      => __( 'Padding', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em' ),
+				'selectors'  => array(
+					$selector => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+	}
+
+	/*
+	 * -----------------------------------------------------------------------
+	 * Group G — findings by confidence, and the unmatched states
+	 * -----------------------------------------------------------------------
+	 */
+
+	/**
+	 * Group G controls.
+	 *
+	 * @return void
+	 */
+	private function controls_group_g_findings() {
+		$this->start_controls_section(
+			'section_findings',
+			array(
+				'label' => __( 'G · Findings & unmatched', 'ingredient-list-decoder' ),
+				'tab'   => Controls_Manager::TAB_STYLE,
+			)
+		);
+
+		// A findings block treatment (applied to the summary that carries them).
+		$this->add_group_control(
+			Group_Control_Background::get_type(),
+			array(
+				'name'     => 'findings_block_bg',
+				'types'    => array( 'classic' ),
+				'selector' => '{{WRAPPER}} .ild-summary__point',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Border::get_type(),
+			array(
+				'name'     => 'findings_block_border',
+				'selector' => '{{WRAPPER}} .ild-summary__point',
+			)
+		);
+
+		// Per confidence level: typography, colour, optional icon.
+		$levels = array(
+			'high'   => __( 'High confidence', 'ingredient-list-decoder' ),
+			'medium' => __( 'Medium confidence', 'ingredient-list-decoder' ),
+			'low'    => __( 'Low confidence', 'ingredient-list-decoder' ),
+		);
+
+		foreach ( $levels as $level => $level_label ) {
+			$point    = '{{WRAPPER}} .ild-summary__point--' . $level;
+			$point_tx = $point . ' .ild-summary__point-text';
+			$point_ic = $point . ' .ild-summary__point-icon';
+
+			$this->add_control(
+				'finding_' . $level . '_heading',
+				array(
+					'label'     => $level_label,
+					'type'      => Controls_Manager::HEADING,
+					'separator' => 'before',
+				)
+			);
+
+			$this->add_group_control(
+				Group_Control_Typography::get_type(),
+				array(
+					'name'     => 'finding_' . $level . '_typography',
+					'selector' => $point_tx,
+				)
+			);
+
+			$this->add_control(
+				'finding_' . $level . '_colour',
+				array(
+					'label'     => __( 'Colour', 'ingredient-list-decoder' ),
+					'type'      => Controls_Manager::COLOR,
+					'selectors' => array(
+						$point_tx => 'color: {{VALUE}};',
+					),
+				)
+			);
+
+			$this->icon_slot_controls( 'finding_' . $level . '_icon', $point_ic );
+		}
+
+		// Unmatched: suggestion.
+		$this->add_control(
+			'suggestion_heading',
+			array(
+				'label'     => __( 'Did-you-mean suggestion', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'suggestion_typography',
+				'selector' => '{{WRAPPER}} .ild-ingredient--suggestion .ild-ingredient__status-text',
+			)
+		);
+
+		$this->add_control(
+			'suggestion_colour',
+			array(
+				'label'     => __( 'Link colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-ingredient--suggestion .ild-ingredient__status-text' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		// Unmatched: not in library.
+		$this->add_control(
+			'notinlibrary_heading',
+			array(
+				'label'     => __( 'Not-in-library notice', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Background::get_type(),
+			array(
+				'name'     => 'notinlibrary_bg',
+				'types'    => array( 'classic' ),
+				'selector' => '{{WRAPPER}} .ild-ingredient--unknown .ild-ingredient__status',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Border::get_type(),
+			array(
+				'name'     => 'notinlibrary_border',
+				'selector' => '{{WRAPPER}} .ild-ingredient--unknown .ild-ingredient__status',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'notinlibrary_typography',
+				'selector' => '{{WRAPPER}} .ild-ingredient--unknown .ild-ingredient__status-text',
+			)
+		);
+
+		$this->add_control(
+			'notinlibrary_colour',
+			array(
+				'label'     => __( 'Text colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-ingredient--unknown .ild-ingredient__status-text' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->icon_slot_controls( 'notinlibrary_icon', '{{WRAPPER}} .ild-ingredient--unknown .ild-ingredient__status-icon' );
+
+		$this->end_controls_section();
+	}
+
+	/*
+	 * -----------------------------------------------------------------------
+	 * Group H — states: loading, empty, error, rate limit
+	 * -----------------------------------------------------------------------
+	 */
+
+	/**
+	 * Group H controls.
+	 *
+	 * @return void
+	 */
+	private function controls_group_h_states() {
+		$this->start_controls_section(
+			'section_states',
+			array(
+				'label' => __( 'H · States', 'ingredient-list-decoder' ),
+				'tab'   => Controls_Manager::TAB_STYLE,
+			)
+		);
+
+		// Loading.
+		$this->add_control(
+			'loading_heading',
+			array(
+				'label' => __( 'Loading', 'ingredient-list-decoder' ),
+				'type'  => Controls_Manager::HEADING,
+			)
+		);
+
+		$this->add_control(
+			'loading_style',
+			array(
+				'label'   => __( 'Indicator', 'ingredient-list-decoder' ),
+				'type'    => Controls_Manager::SELECT,
+				'default' => 'spinner',
+				'options' => array(
+					'spinner'  => __( 'Spinner', 'ingredient-list-decoder' ),
+					'skeleton' => __( 'Skeleton', 'ingredient-list-decoder' ),
+				),
+			)
+		);
+
+		$this->add_control(
+			'loading_colour',
+			array(
+				'label'     => __( 'Colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-loading__spinner' => 'border-color: {{VALUE}}; border-top-color: transparent;',
+					'{{WRAPPER}} .ild-loading__label'   => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'loading_size',
+			array(
+				'label'      => __( 'Spinner size', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em' ),
+				'range'      => array( 'px' => array( 'min' => 8, 'max' => 80 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-loading__spinner' => 'width: {{SIZE}}{{UNIT}}; height: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		// Empty.
+		$this->add_control(
+			'empty_heading',
+			array(
+				'label'     => __( 'Empty', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'empty_typography',
+				'selector' => '{{WRAPPER}} .ild-empty .ild-state__message',
+			)
+		);
+
+		$this->add_control(
+			'empty_colour',
+			array(
+				'label'     => __( 'Colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-empty .ild-state__message' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->icon_slot_controls( 'empty_icon', '{{WRAPPER}} .ild-empty__icon' );
+
+		// Error.
+		$this->add_control(
+			'error_heading',
+			array(
+				'label'     => __( 'Error', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Background::get_type(),
+			array(
+				'name'     => 'error_bg',
+				'types'    => array( 'classic' ),
+				'selector' => '{{WRAPPER}} .ild-error',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Border::get_type(),
+			array(
+				'name'     => 'error_border',
+				'selector' => '{{WRAPPER}} .ild-error',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'error_typography',
+				'selector' => '{{WRAPPER}} .ild-error .ild-state__message',
+			)
+		);
+
+		$this->add_control(
+			'error_colour',
+			array(
+				'label'     => __( 'Text colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-error .ild-state__message' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		// Rate limit (Stage 14 sets .ild-error--rate-limit; style it now).
+		$this->add_control(
+			'ratelimit_heading',
+			array(
+				'label'     => __( 'Rate-limit message', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Background::get_type(),
+			array(
+				'name'     => 'ratelimit_bg',
+				'types'    => array( 'classic' ),
+				'selector' => '{{WRAPPER}} .ild-error--rate-limit',
+			)
+		);
+
+		$this->add_control(
+			'ratelimit_colour',
+			array(
+				'label'     => __( 'Text colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-error--rate-limit .ild-state__message' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->end_controls_section();
+	}
+
+	/*
+	 * -----------------------------------------------------------------------
+	 * Group K — global
+	 * -----------------------------------------------------------------------
+	 */
+
+	/**
+	 * Group K controls.
+	 *
+	 * @return void
+	 */
+	private function controls_group_k_global() {
+		$this->start_controls_section(
+			'section_global',
+			array(
+				'label' => __( 'K · Global', 'ingredient-list-decoder' ),
+				'tab'   => Controls_Manager::TAB_STYLE,
+			)
+		);
+
+		$this->add_responsive_control(
+			'global_max_width',
+			array(
+				'label'      => __( 'Maximum width', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', '%', 'rem', 'vw' ),
+				'range'      => array(
+					'px' => array( 'min' => 280, 'max' => 1200 ),
+					'%'  => array( 'min' => 10, 'max' => 100 ),
+				),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-tool' => 'max-width: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'global_section_spacing',
+			array(
+				'label'      => __( 'Section spacing', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 120 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-summary'      => 'margin-top: {{SIZE}}{{UNIT}};',
+					'{{WRAPPER}} .ild-ingredients'  => 'margin-top: {{SIZE}}{{UNIT}};',
+					'{{WRAPPER}} .ild-result__actions' => 'margin-top: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'global_disable_motion',
+			array(
+				'label'        => __( 'Reduce motion', 'ingredient-list-decoder' ),
+				'type'         => Controls_Manager::SWITCHER,
+				'label_on'     => __( 'On', 'ingredient-list-decoder' ),
+				'label_off'    => __( 'Off', 'ingredient-list-decoder' ),
+				'return_value' => 'yes',
+				'default'      => '',
+				'description'  => __( 'Turn off the spinner and expand animations for everyone. The visitor\'s own reduce-motion setting is always honoured regardless.', 'ingredient-list-decoder' ),
+			)
+		);
+
+		$this->add_control(
+			'global_disable_print',
+			array(
+				'label'        => __( 'Print styles', 'ingredient-list-decoder' ),
+				'type'         => Controls_Manager::SWITCHER,
+				'label_on'     => __( 'On', 'ingredient-list-decoder' ),
+				'label_off'    => __( 'Off', 'ingredient-list-decoder' ),
+				'return_value' => '',
+				'default'      => 'yes',
+				'description'  => __( 'A tidy, ink-light layout when the page is printed. Turn off to print the tool exactly as shown.', 'ingredient-list-decoder' ),
+			)
+		);
+
+		$this->end_controls_section();
+	}
+
+	/**
+	 * A small, reusable set of controls for one optional icon slot.
+	 *
+	 * The result fragment is rendered by AJAX, decoupled from this widget's
+	 * settings, so glyphs cannot be piped into it. Instead each icon slot is a
+	 * real, empty, hidden-by-default box that a designer switches on by giving it
+	 * a size and a colour or background image — honest, and fully in their hands.
+	 *
+	 * @param string $key      A unique key for this icon.
+	 * @param string $selector The CSS selector for the icon slot.
+	 * @return void
+	 */
+	private function icon_slot_controls( $key, $selector ) {
+		$this->add_responsive_control(
+			$key . '_size',
+			array(
+				'label'      => __( 'Icon size', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 60 ) ),
+				'selectors'  => array(
+					$selector => 'width: {{SIZE}}{{UNIT}}; height: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			$key . '_colour',
+			array(
+				'label'     => __( 'Icon colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					$selector => 'background-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			$key . '_image',
+			array(
+				'label'     => __( 'Icon image (optional)', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::MEDIA,
+				'selectors' => array(
+					$selector => 'background-color: transparent; background-image: url({{URL}});',
+				),
+			)
+		);
+	}
+
+	/*
+	 * -----------------------------------------------------------------------
+	 * Render
+	 * -----------------------------------------------------------------------
+	 */
+
+	/**
+	 * Render the widget: the same tool the shortcode renders, plus wrapper
+	 * classes and (in the editor) the chosen preview state.
+	 *
+	 * @return void
+	 */
+	protected function render() {
+		$settings = $this->get_settings_for_display();
+
+		// Wrapper classes driven by the global and loading controls.
+		$classes = array();
+		if ( isset( $settings['loading_style'] ) && 'skeleton' === $settings['loading_style'] ) {
+			$classes[] = 'ild-tool--loading-skeleton';
+		}
+		if ( isset( $settings['global_disable_motion'] ) && 'yes' === $settings['global_disable_motion'] ) {
+			$classes[] = 'ild-tool--no-motion';
+		}
+		// The print switcher stores '' when on and 'yes'... inverted: return_value
+		// is '' for on, so a truthy value here means "off".
+		if ( ! empty( $settings['global_disable_print'] ) ) {
+			$classes[] = 'ild-tool--print-off';
+		}
+
+		// Editor-only preview state.
+		$preview = '';
+		if ( $this->is_edit_mode() && ! empty( $settings['ild_preview_state'] ) && 'form' !== $settings['ild_preview_state'] ) {
+			$preview = $settings['ild_preview_state'];
+		}
+
+		// The primary button icon, rendered here where we have the widget settings.
+		$icon_html = '';
+		if ( ! empty( $settings['ild_primary_icon']['value'] ) && class_exists( '\Elementor\Icons_Manager' ) ) {
+			ob_start();
+			\Elementor\Icons_Manager::render_icon( $settings['ild_primary_icon'], array( 'aria-hidden' => 'true' ) );
+			$icon_html = ob_get_clean();
+		}
+
+		// The tool markup comes from the shared renderer, already escaped.
+		echo ILD_Shortcode::render_tool( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-rendered, pre-escaped template markup.
+			array(
+				'class'       => implode( ' ', $classes ),
+				'preview'     => $preview,
+				'submit_icon' => $icon_html,
+			)
+		);
+	}
+
+	/**
+	 * Whether Elementor is currently in edit mode.
+	 *
+	 * @return bool
+	 */
+	private function is_edit_mode() {
+		return class_exists( '\Elementor\Plugin' )
+			&& isset( \Elementor\Plugin::$instance->editor )
+			&& \Elementor\Plugin::$instance->editor->is_edit_mode();
+	}
+}

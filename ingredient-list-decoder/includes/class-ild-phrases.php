@@ -61,9 +61,26 @@ class ILD_Phrases {
 		return __( 'Read this formula', 'ingredient-list-decoder' );
 	}
 
+	/** @return string The button that clears the form to start over. */
+	public static function restart() {
+		return __( 'Start again', 'ingredient-list-decoder' );
+	}
+
 	/** @return string The label on the hidden anti-spam field. */
 	public static function honeypot_label() {
 		return __( 'Leave this field empty', 'ingredient-list-decoder' );
+	}
+
+	/**
+	 * The live character-count template shown under the textarea.
+	 *
+	 * The running numbers are filled in by the script; the wording still lives
+	 * here. The two tokens are replaced with the characters used and the limit.
+	 *
+	 * @return string A template containing the %used% and %max% tokens.
+	 */
+	public static function char_count_template() {
+		return __( '%used% / %max% characters', 'ingredient-list-decoder' );
 	}
 
 	/*
@@ -262,6 +279,16 @@ class ILD_Phrases {
 	/** @return string The toggle that expands an ingredient's description. */
 	public static function detail_toggle() {
 		return __( 'Detail', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The label above the evidence note in an expanded row. */
+	public static function label_evidence() {
+		return __( 'The evidence', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The label above the founder take in an expanded row. */
+	public static function label_founder() {
+		return __( 'Founder\'s take', 'ingredient-list-decoder' );
 	}
 
 	/**

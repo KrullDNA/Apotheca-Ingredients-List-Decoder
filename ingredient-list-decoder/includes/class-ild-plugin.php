@@ -70,6 +70,13 @@ class ILD_Plugin {
 	private $shortcode;
 
 	/**
+	 * The Elementor widget integration.
+	 *
+	 * @var ILD_Elementor
+	 */
+	private $elementor;
+
+	/**
 	 * Build the plugin's components, ready to be hooked in.
 	 */
 	public function __construct() {
@@ -80,6 +87,7 @@ class ILD_Plugin {
 		$this->library     = new ILD_Library();
 		$this->matcher     = new ILD_Matcher();
 		$this->shortcode   = new ILD_Shortcode();
+		$this->elementor   = new ILD_Elementor();
 	}
 
 	/**
@@ -102,6 +110,7 @@ class ILD_Plugin {
 		$this->library->register_hooks();
 		$this->matcher->register_hooks();
 		$this->shortcode->register_hooks();
+		$this->elementor->register_hooks();
 	}
 
 	/**
