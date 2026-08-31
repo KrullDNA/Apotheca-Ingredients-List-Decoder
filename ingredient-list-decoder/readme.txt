@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 0.15.0
+Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -367,6 +367,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.0.0 =
+* First stable release. All sixteen build stages of the brief are complete: the ingredient library and taxonomies, CSV import/export, the review queue, the decoding engine and findings, the read-next block, the shortcode and the native Elementor widget, photo transcription, the email gate and branded result email, the leads and submissions admin, the unknown-ingredient queue with AI drafting, rate limiting, caching and the dashboard, and the provider-agnostic email-connector interface. The version numbering during the build tracked the stage (0.1.0–0.15.0); this release marks the finished plugin. No functional change from 0.15.0.
 
 = 0.15.0 =
 * Stage 15: the email-connector interface. The core now defines a single provider-agnostic PHP interface (ILD_Email_Connector) and owns the sync queue — deciding when to push a captured lead, honouring consent, retrying with a growing backoff, and recording each outcome against the lead so a rejection shows in the Leads → Failed sync view. Leads are captured locally whether or not any connector is active. The Campaign Monitor connector ships as a separate add-on plugin built against this interface.
