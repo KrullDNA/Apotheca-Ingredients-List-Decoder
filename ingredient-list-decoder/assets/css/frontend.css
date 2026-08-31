@@ -1,0 +1,789 @@
+/**
+ * Base styles for the Ingredient List Decoder.
+ *
+ * This file is deliberately restrained. It gives the tool a sensible, accessible
+ * baseline — layout, behaviour of the expandable rows, the loading spinner and
+ * skeleton, reduced-motion and print handling, visible focus, and the hidden
+ * honeypot — so the plain shortcode is usable on its own.
+ *
+ * The brand look (colour, type, spacing, borders, shadows) comes from the
+ * Elementor widget's style controls, which are scoped to the widget instance and
+ * therefore win over everything here. Keep this file structural, not decorative,
+ * so a designer's controls are never fighting it.
+ *
+ * @package IngredientListDecoder
+ */
+
+/* ---------------------------------------------------------------------------
+ * Layout shell
+ * ------------------------------------------------------------------------- */
+.ild-tool {
+	max-width: var( --ild-max-width, 44rem );
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.ild-tool * {
+	box-sizing: border-box;
+}
+
+.ild-field {
+	margin-bottom: 1.25rem;
+}
+
+.ild-label {
+	display: block;
+	font-weight: 600;
+}
+
+.ild-help {
+	margin: 0.25rem 0 0.5rem;
+	font-size: 0.9em;
+}
+
+.ild-textarea,
+.ild-product {
+	display: block;
+	width: 100%;
+	font: inherit;
+	padding: 0.6rem 0.75rem;
+	border: 1px solid #c9c9c9;
+	border-radius: 4px;
+	background: #fff;
+	color: inherit;
+}
+
+.ild-textarea {
+	min-height: 8rem;
+	resize: vertical;
+}
+
+.ild-charcount {
+	margin: 0.25rem 0 0;
+	font-size: 0.8em;
+	text-align: right;
+	opacity: 0.75;
+}
+
+.ild-actions,
+.ild-result__actions {
+	margin-top: 1rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * Buttons
+ * ------------------------------------------------------------------------- */
+.ild-submit,
+.ild-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	font: inherit;
+	cursor: pointer;
+	padding: 0.6rem 1.1rem;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	background: #1f3d2b;
+	color: #fff;
+	transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.ild-submit:hover,
+.ild-button:hover {
+	background: #16301f;
+}
+
+.ild-button--secondary {
+	background: transparent;
+	color: inherit;
+	border-color: currentColor;
+}
+
+.ild-button--link {
+	background: none;
+	border: 0;
+	padding: 0;
+	color: inherit;
+	text-decoration: underline;
+}
+
+.ild-submit:disabled,
+.ild-button:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------------------
+ * The exchange line and the email gate
+ * ------------------------------------------------------------------------- */
+.ild-exchange {
+	margin: 0.75rem 0;
+	font-size: 0.9em;
+	opacity: 0.85;
+}
+
+.ild-gate {
+	margin-top: 1.5rem;
+	padding: 1.25rem;
+	border: 1px solid #e3e3e3;
+	border-radius: 8px;
+	background: #fafafa;
+}
+
+.ild-gate__heading {
+	margin: 0 0 0.5rem;
+}
+
+.ild-gate__body {
+	margin: 0 0 1rem;
+}
+
+.ild-gate__field {
+	margin-bottom: 0.75rem;
+}
+
+.ild-gate__label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 0.25rem;
+}
+
+.ild-gate__email {
+	display: block;
+	width: 100%;
+	font: inherit;
+	padding: 0.6rem 0.75rem;
+	border: 1px solid #c9c9c9;
+	border-radius: 4px;
+	background: #fff;
+	color: inherit;
+}
+
+.ild-gate__consent {
+	margin: 0.6rem 0;
+}
+
+.ild-gate__consent-label {
+	display: flex;
+	gap: 0.6rem;
+	align-items: flex-start;
+	cursor: pointer;
+}
+
+/* A fully styleable checkbox: size, colour, checked colour and radius all map
+ * to plain properties so the widget's group J controls can drive them. */
+.ild-gate__checkbox {
+	-webkit-appearance: none;
+	appearance: none;
+	flex: none;
+	width: 1.15rem;
+	height: 1.15rem;
+	margin: 0.1rem 0 0;
+	border: 2px solid #c9c9c9;
+	border-radius: 4px;
+	background: #fff;
+	cursor: pointer;
+	position: relative;
+}
+
+.ild-gate__checkbox:checked {
+	background: #1f3d2b;
+	border-color: #1f3d2b;
+}
+
+.ild-gate__checkbox:checked::after {
+	content: '';
+	position: absolute;
+	left: 50%;
+	top: 45%;
+	width: 0.3em;
+	height: 0.6em;
+	border: solid #fff;
+	border-width: 0 2px 2px 0;
+	transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.ild-gate__actions {
+	margin-top: 0.75rem;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem 0.75rem;
+}
+
+.ild-gate__note {
+	margin: 0;
+	font-size: 0.85em;
+	opacity: 0.8;
+}
+
+.ild-gate__error {
+	margin: 0;
+	width: 100%;
+	font-size: 0.9em;
+	color: #b3261e;
+}
+
+.ild-gate__legal {
+	margin: 0.85rem 0 0;
+	font-size: 0.8em;
+	opacity: 0.75;
+}
+
+.ild-gate__legal span {
+	display: block;
+}
+
+/* ---------------------------------------------------------------------------
+ * Photo route: dropzone, progress, and the verification step
+ * ------------------------------------------------------------------------- */
+.ild-field--photo {
+	margin-bottom: 1.25rem;
+}
+
+.ild-photo__heading {
+	margin-bottom: 0.5rem;
+}
+
+.ild-dropzone {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.6rem;
+	text-align: center;
+	padding: 1.5rem 1rem;
+	border: 2px dashed #c9c9c9;
+	border-radius: 8px;
+	background: #fafafa;
+	transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.ild-dropzone.is-dragover {
+	border-color: #1f3d2b;
+	background: #f0f4f1;
+}
+
+.ild-dropzone.is-error {
+	border-color: #b3261e;
+}
+
+.ild-dropzone__icon {
+	display: inline-block;
+	width: 0;
+	height: 0;
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: contain;
+}
+
+.ild-dropzone__prompt {
+	margin: 0;
+	font-weight: 600;
+}
+
+.ild-dropzone__hint {
+	margin: 0;
+	font-size: 0.85em;
+	opacity: 0.75;
+}
+
+.ild-dropzone__actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.5rem;
+	margin-top: 0.25rem;
+}
+
+.ild-dropzone__button {
+	cursor: pointer;
+}
+
+/*
+ * The file inputs are hidden from view but kept in the tab order (using the
+ * `hidden` attribute would drop them out of it), so keyboard users can still
+ * reach the picker via the label, which shows a focus ring when they do.
+ */
+.ild-visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.ild-dropzone__button:focus-within {
+	outline: 2px solid var( --ild-focus-colour, #1f3d2b );
+	outline-offset: 2px;
+}
+
+/* The progress bar: an indeterminate sweep while the photo is read. */
+.ild-photo__progress {
+	width: 100%;
+	max-width: 18rem;
+	height: 0.4rem;
+	border-radius: 999px;
+	background: #e3e3e3;
+	overflow: hidden;
+}
+
+.ild-photo__progress-bar {
+	display: block;
+	width: 40%;
+	height: 100%;
+	border-radius: inherit;
+	background: #1f3d2b;
+	animation: ild-progress 1.1s ease-in-out infinite;
+}
+
+@keyframes ild-progress {
+	0% { transform: translateX(-120%); }
+	100% { transform: translateX(320%); }
+}
+
+.ild-photo__status {
+	margin: 0;
+	font-size: 0.9em;
+}
+
+.ild-photo__error {
+	margin: 0.25rem 0 0;
+	font-size: 0.9em;
+	color: #b3261e;
+}
+
+/* The verification step: thumbnail beside the editable text, stacking small. */
+.ild-verify {
+	margin-bottom: 1.25rem;
+	padding: 1rem;
+	border: 1px solid #e3e3e3;
+	border-radius: 8px;
+	background: #fff;
+}
+
+.ild-verify__inner {
+	display: flex;
+	gap: 1rem;
+	align-items: flex-start;
+}
+
+.ild-verify__media {
+	flex: none;
+}
+
+.ild-verify__thumb {
+	display: block;
+	width: 8rem;
+	height: 8rem;
+	object-fit: cover;
+	border-radius: 6px;
+	background: #f1f1f1;
+}
+
+.ild-verify__body {
+	flex: 1;
+	min-width: 0;
+}
+
+.ild-verify__heading {
+	margin: 0 0 0.35rem;
+}
+
+.ild-verify__notice {
+	margin: 0 0 0.6rem;
+	font-size: 0.9em;
+}
+
+.ild-verify__text {
+	display: block;
+	width: 100%;
+	font: inherit;
+	min-height: 7rem;
+	padding: 0.6rem 0.75rem;
+	border: 1px solid #c9c9c9;
+	border-radius: 4px;
+	resize: vertical;
+}
+
+.ild-verify__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-top: 0.75rem;
+}
+
+/* Stack the thumbnail above the text on narrow screens. */
+@media ( max-width: 480px ) {
+	.ild-verify__inner {
+		flex-direction: column;
+	}
+
+	.ild-verify__thumb {
+		width: 100%;
+		height: auto;
+		max-height: 14rem;
+	}
+}
+
+/* ---------------------------------------------------------------------------
+ * The honeypot: kept well away from real people.
+ * ------------------------------------------------------------------------- */
+.ild-hp {
+	position: absolute !important;
+	left: -9999px !important;
+	top: auto;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+}
+
+/* ---------------------------------------------------------------------------
+ * Summary block
+ * ------------------------------------------------------------------------- */
+.ild-summary {
+	margin-top: 1.5rem;
+}
+
+.ild-summary__point {
+	display: flex;
+	gap: 0.5rem;
+	margin: 0.5rem 0;
+}
+
+.ild-summary__caveat {
+	font-size: 0.9em;
+	opacity: 0.85;
+}
+
+/* ---------------------------------------------------------------------------
+ * Ingredient list
+ * ------------------------------------------------------------------------- */
+.ild-ingredients__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.ild-ingredient {
+	padding: 0.75rem 0;
+	border-bottom: 1px solid #ececec;
+}
+
+.ild-ingredient__head {
+	display: flex;
+	align-items: baseline;
+	gap: 0.6rem;
+}
+
+.ild-ingredient__pos {
+	opacity: 0.6;
+	font-variant-numeric: tabular-nums;
+}
+
+.ild-ingredient__name {
+	font-weight: 600;
+}
+
+.ild-ingredient__meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+	margin-top: 0.4rem;
+}
+
+.ild-ingredient__badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	font-size: 0.85em;
+	padding: 0.15rem 0.5rem;
+	border-radius: 999px;
+	background: #f1f1f1;
+}
+
+/* The expandable detail: hide the native marker, lay the toggle out ourselves. */
+.ild-ingredient__detail {
+	margin-top: 0.5rem;
+}
+
+.ild-ingredient__detail-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	cursor: pointer;
+	list-style: none;
+}
+
+.ild-ingredient__detail-toggle::-webkit-details-marker {
+	display: none;
+}
+
+.ild-ingredient__expand-icon {
+	display: inline-block;
+	width: 0.5rem;
+	height: 0.5rem;
+	border-right: 2px solid currentColor;
+	border-bottom: 2px solid currentColor;
+	transform: rotate(45deg);
+	transition: transform 0.15s ease;
+}
+
+.ild-ingredient__detail[open] .ild-ingredient__expand-icon {
+	transform: rotate(-135deg);
+}
+
+.ild-ingredient__detail-panel {
+	margin-top: 0.5rem;
+}
+
+.ild-ingredient__founder {
+	border-left: 3px solid currentColor;
+	padding-left: 0.75rem;
+	margin-top: 0.5rem;
+}
+
+.ild-ingredient__evidence-label,
+.ild-ingredient__founder-label {
+	display: block;
+	font-size: 0.8em;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	opacity: 0.7;
+}
+
+/* ---------------------------------------------------------------------------
+ * States: the icon slots, the spinner, the skeleton
+ * ------------------------------------------------------------------------- */
+
+/*
+ * Optional icon slots. They render nothing until a designer gives them a size
+ * and a background (image or colour) through the widget's controls, so they stay
+ * invisible by default without needing to be removed from the markup.
+ */
+.ild-summary__icon,
+.ild-summary__point-icon,
+.ild-ingredient__status-icon,
+.ild-state__icon {
+	display: inline-block;
+	width: 0;
+	height: 0;
+	flex: none;
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: contain;
+}
+
+.ild-state {
+	display: flex;
+	gap: 0.5rem;
+	align-items: flex-start;
+	margin-top: 1rem;
+	padding: 0.75rem 1rem;
+	border: 1px solid #e3e3e3;
+	border-radius: 4px;
+}
+
+.ild-state__message {
+	margin: 0;
+}
+
+.ild-loading {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	margin-top: 1rem;
+}
+
+.ild-loading__spinner {
+	display: inline-block;
+	width: 1.1rem;
+	height: 1.1rem;
+	border: 2px solid currentColor;
+	border-top-color: transparent;
+	border-radius: 50%;
+	animation: ild-spin 0.7s linear infinite;
+}
+
+@keyframes ild-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* The skeleton is the alternative to the spinner; off unless chosen. */
+.ild-loading__skeleton {
+	display: none;
+	flex: 1;
+}
+
+.ild-skeleton {
+	display: block;
+	height: 0.8rem;
+	margin: 0.4rem 0;
+	border-radius: 4px;
+	background: linear-gradient( 90deg, #ececec 25%, #f6f6f6 37%, #ececec 63% );
+	background-size: 400% 100%;
+	animation: ild-shimmer 1.4s ease infinite;
+}
+
+.ild-skeleton--short {
+	width: 60%;
+}
+
+@keyframes ild-shimmer {
+	0% {
+		background-position: 100% 50%;
+	}
+	100% {
+		background-position: 0 50%;
+	}
+}
+
+/* When the skeleton is chosen, hide the spinner and show the bars. */
+.ild-tool--loading-skeleton .ild-loading__spinner,
+.ild-tool--loading-skeleton .ild-loading__label {
+	display: none;
+}
+
+.ild-tool--loading-skeleton .ild-loading__skeleton {
+	display: block;
+}
+
+/* ---------------------------------------------------------------------------
+ * Read-next block
+ * ------------------------------------------------------------------------- */
+.ild-readnext {
+	margin-top: 2rem;
+}
+
+.ild-readnext__heading {
+	margin: 0 0 1rem;
+}
+
+.ild-readnext__grid {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1rem;
+}
+
+.ild-readnext__item {
+	display: flex;
+}
+
+.ild-readnext__card {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	text-decoration: none;
+	color: inherit;
+	border: 1px solid #ececec;
+	border-radius: 8px;
+	overflow: hidden;
+	background: #fff;
+	transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+
+.ild-readnext__card:hover,
+.ild-readnext__card:focus-visible {
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+	transform: translateY(-2px);
+}
+
+.ild-readnext__thumb-wrap {
+	display: block;
+}
+
+.ild-readnext__thumb {
+	display: block;
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	object-fit: cover;
+}
+
+.ild-readnext__body {
+	display: block;
+	padding: 0.85rem 1rem 1rem;
+}
+
+.ild-readnext__title {
+	display: block;
+	font-weight: 600;
+}
+
+.ild-readnext__excerpt {
+	display: block;
+	margin-top: 0.35rem;
+	font-size: 0.9em;
+	opacity: 0.85;
+}
+
+.ild-readnext__meta {
+	display: block;
+	margin-top: 0.5rem;
+	font-size: 0.8em;
+	opacity: 0.7;
+}
+
+/* Stack the read-next cards on narrow screens. */
+@media ( max-width: 600px ) {
+	.ild-readnext__grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ---------------------------------------------------------------------------
+ * Accessibility: always-visible focus, even before a designer styles it.
+ * ------------------------------------------------------------------------- */
+.ild-tool :focus-visible {
+	outline: 2px solid var( --ild-focus-colour, #1f3d2b );
+	outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Motion: honour the OS setting, and the widget's own motion toggle.
+ * ------------------------------------------------------------------------- */
+@media ( prefers-reduced-motion: reduce ) {
+	.ild-tool *,
+	.ild-tool *::before,
+	.ild-tool *::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.001ms !important;
+	}
+}
+
+.ild-tool--no-motion *,
+.ild-tool--no-motion *::before,
+.ild-tool--no-motion *::after {
+	animation: none !important;
+	transition: none !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * Print: a clean, ink-light reading. Disabled when the widget turns it off.
+ * ------------------------------------------------------------------------- */
+@media print {
+	.ild-tool:not(.ild-tool--print-off) .ild-form,
+	.ild-tool:not(.ild-tool--print-off) .ild-loading,
+	.ild-tool:not(.ild-tool--print-off) .ild-result__actions,
+	.ild-tool:not(.ild-tool--print-off) .ild-error--network {
+		display: none !important;
+	}
+
+	.ild-tool:not(.ild-tool--print-off) .ild-ingredient__detail-panel {
+		display: block !important;
+	}
+
+	.ild-tool:not(.ild-tool--print-off) * {
+		color: #000 !important;
+		background: transparent !important;
+		box-shadow: none !important;
+	}
+}
