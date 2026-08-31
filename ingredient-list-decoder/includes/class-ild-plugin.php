@@ -56,6 +56,13 @@ class ILD_Plugin {
 	private $library;
 
 	/**
+	 * The parser/matcher test screen component.
+	 *
+	 * @var ILD_Matcher
+	 */
+	private $matcher;
+
+	/**
 	 * Build the plugin's components, ready to be hooked in.
 	 */
 	public function __construct() {
@@ -64,6 +71,7 @@ class ILD_Plugin {
 		$this->settings    = new ILD_Settings();
 		$this->csv         = new ILD_CSV();
 		$this->library     = new ILD_Library();
+		$this->matcher     = new ILD_Matcher();
 	}
 
 	/**
@@ -84,6 +92,7 @@ class ILD_Plugin {
 		$this->settings->register_hooks();
 		$this->csv->register_hooks();
 		$this->library->register_hooks();
+		$this->matcher->register_hooks();
 	}
 
 	/**

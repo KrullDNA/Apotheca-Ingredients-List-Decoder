@@ -76,3 +76,31 @@ function ild_find_ingredient_by_title( $title, $exclude_id = 0 ) {
 
 	return $id ? (int) $id : 0;
 }
+
+/**
+ * Parse a raw pasted ingredient list into ordered, cleaned tokens.
+ *
+ * A thin public wrapper around ILD_Parser::parse(), so callers (and later
+ * stages) can reach the parser as a plain function without knowing the class.
+ *
+ * @param string $raw The pasted ingredient list.
+ * @return array|WP_Error The ordered tokens, or an error if the input is too long.
+ */
+function ild_parse_ingredient_list( $raw ) {
+	return ILD_Parser::parse( $raw );
+}
+
+/**
+ * Parse and match a raw pasted ingredient list against the library.
+ *
+ * The main entry point for the engine: hand it raw pasted text and get back a
+ * structured, order-preserving result of matched ingredients, suggestions and
+ * unmatched tokens. A thin public wrapper around ILD_Matcher::match().
+ *
+ * @param string $raw The pasted ingredient list.
+ * @return array|WP_Error The structured match result, or an error if the input
+ *                        is too long.
+ */
+function ild_match_ingredient_list( $raw ) {
+	return ILD_Matcher::match( $raw );
+}

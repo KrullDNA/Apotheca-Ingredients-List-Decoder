@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 0.3.0
+Stable tag: 0.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -53,6 +53,16 @@ Everything that makes a growing library workable for whoever is curating it.
 * **Revisions** are enabled on the ingredient post type, so a bad edit to an entry can be rolled back from the editor.
 * A **Review Queue** screen under the Ingredient Decoder menu: a single list of everything still in draft or needing review, ordered alphabetically. (Once ingredients can be requested from the front end, in a later stage, the most-requested entries will rise to the top — the ordering is left open for that via a filter.)
 
+= Stage 4: the parser and matcher =
+
+The engine that turns a pasted ingredient list into a structured, ordered read of the library. No front end yet — it is exposed as plain PHP and as a diagnostic screen.
+
+* **Parsing.** `ild_parse_ingredient_list( $raw )` cleans raw pasted text: it splits on commas, semicolons and line breaks; strips bracketed translations, asterisks and trailing full stops; drops any "may contain" / pigment tail; turns the supplier "(and)" blend separator into a real split; collapses whitespace and normalises case. Order is preserved from start to finish, because an ingredient list is ranked by amount and that order is the whole basis of the analysis.
+* **Matching.** `ild_match_ingredient_list( $raw )` looks each cleaned token up against the INCI name first, then against the "also known as" aliases. Anything still unmatched gets a fuzzy match, which returns a single best suggestion only when it is close enough to be believable (an edit-distance threshold that scales with the token's length, and never fires on very short tokens); otherwise the token is returned as unmatched.
+* **Output.** A structured array whose ordered `items` list is the spine of the later analysis — each item carries its position, the original token, and whether it matched (with the post ID), was a suggestion (with the original token and the suggested entry), or was unmatched. The same outcomes are also grouped into `matched`, `suggestions` and `unmatched` for convenience, with counts.
+* **Safety.** The input length is capped; anything implausibly long (a whole page pasted by mistake) is rejected rather than processed.
+* **Test screen.** *Ingredient Decoder → Test Parser* — paste a list and see, in original order, how every token was split, cleaned and matched. Nothing is saved.
+
 == How to test Stage 1 ==
 
 1. Zip the `ingredient-list-decoder` folder and upload it under Plugins → Add New → Upload Plugin, then activate it. Confirm no error appears.
@@ -87,7 +97,20 @@ Everything that makes a growing library workable for whoever is curating it.
 9. Open **Ingredient Decoder → Review Queue**. Confirm every draft and needs-review entry is listed alphabetically, and that published entries are not.
 10. Edit an entry twice, then open the editor's Revisions to confirm the earlier version can be restored.
 
+== How to test Stage 4 ==
+
+1. Add or import a handful of ingredients (for example Aqua, Glycerin, Phenoxyethanol, Sodium Hyaluronate), and give Aqua an alias of "Water" in its "Also known as" field.
+2. Open **Ingredient Decoder → Test Parser**.
+3. Paste a realistic list, e.g. `Aqua (Water), Glycerin, Cetearyl Alcohol (and) Ceteareth-20, Sodium Hyaluronate*, Phenoxyethanol. May contain: CI 77891 (Titanium Dioxide).`
+4. Confirm the result table, in the original order: "Aqua (Water)" reads as **Aqua**, "Water" would match Aqua by alias, the "(and)" blend has been split into two separate tokens, the asterisk and the bracketed translations are gone, and everything after "May contain" has been dropped.
+5. Add a deliberate typo, e.g. `Glcerin`, and confirm it comes back as a **suggestion** pointing at Glycerin.
+6. Add a nonsense token, e.g. `Zzzzqqx`, and confirm it comes back as **unmatched**.
+7. Paste something enormous (tens of thousands of characters) and confirm it is rejected with a clear message rather than processed.
+
 == Changelog ==
+
+= 0.4.0 =
+* Stage 4: the parser and matcher — cleans a pasted list into ordered tokens, matches on INCI name then aliases, offers a single fuzzy suggestion within a length-scaled threshold, caps the input length, and adds a Test Parser diagnostic screen. Exposed as ild_parse_ingredient_list() and ild_match_ingredient_list().
 
 = 0.3.0 =
 * Stage 3: the ingredient library admin screens — sortable columns, status/family/role/below-1% filters, alias-aware search, bulk status and term actions, export-selected, duplicate-INCI blocking, and a review queue.
