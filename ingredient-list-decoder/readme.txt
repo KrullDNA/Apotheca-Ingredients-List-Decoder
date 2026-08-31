@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 0.5.0
+Stable tag: 0.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -77,6 +77,18 @@ The logic that reads a matched, ordered list as a formula. It is not AI: it is t
 
 The *Test Parser* screen now also shows the raw findings array beneath the match table, as a developer diagnostic (no phrasing applied).
 
+= Stage 6: the front-end tool (shortcode) =
+
+The public tool, as a shortcode — `[ingredient_decoder]` — with all the wording in one file and all the markup in templates, ready for Stage 7 to style. It is deliberately unstyled.
+
+* **The form.** A textarea to paste or type a list, an optional product-name field (captured for later stages but never shown in the reading — no product mentions), a submit button, and a hidden honeypot field against bots.
+* **AJAX, no reload.** Submitting posts to admin-ajax with a nonce; the engine runs and a rendered HTML fragment is dropped straight into the page. Loading, empty and error states are real templates, not afterthoughts.
+* **The result, in three parts.** A short descriptive summary of what the formula is built on; an ordered list of every ingredient showing its role and family, with the full description expanding on tap; and an empty region reserved for the read-next block (Stage 9).
+* **The voice (section 7).** Every inferred finding is hedged — "appears to sit below the one per cent line", never a stated percentage — and the standing caveat notes that order below one per cent is unregulated and *some brands* list it alphabetically. No brand names, no verdicts, no product mentions anywhere in the output.
+* **Three unmatched states, handled distinctly.** A did-you-mean suggestion; a plausible ingredient we don't have in the library yet; and a token that couldn't be read at all.
+* **Safety.** Every field is sanitised, all output is escaped, the request is nonced, and the honeypot is checked.
+* **Where the wording lives.** All copy is in `ILD_Phrases` (one file), turned into a view model by `ILD_Presenter`, and rendered by the templates in `/templates`. Editing the voice never means touching logic or markup.
+
 == How to test Stage 1 ==
 
 1. Zip the `ingredient-list-decoder` folder and upload it under Plugins → Add New → Upload Plugin, then activate it. Confirm no error appears.
@@ -133,7 +145,21 @@ The *Test Parser* screen now also shows the raw findings array beneath the match
 4. Paste a list with no sub-one ingredients at all and confirm the line comes back as `undetermined`, not guessed.
 5. Confirm every finding carries a `confidence` flag and the numbers behind it, and that the order of the list is preserved throughout.
 
+== How to test Stage 6 ==
+
+1. Create a page and add the shortcode `[ingredient_decoder]`, then view it while logged out (an incognito window is easiest).
+2. Confirm the form shows a textarea, an optional product-name field, and a submit button, with no styling.
+3. Paste a real ingredient list and submit. Confirm the page does not reload, a brief loading message appears, and then a result appears in three parts: a summary of what the formula is built on, an ordered list of every ingredient with its role and family, and an empty read-next region.
+4. Tap an ingredient's **Detail** toggle and confirm its full description expands and collapses.
+5. Confirm the summary hedges — "appears to sit below the one per cent line" — and never states a percentage, and that no brand or product name appears anywhere.
+6. In the list, confirm the three unmatched states read differently: a typo shows a "did you mean…" line, a real-but-unknown ingredient shows "we don't have this one yet", and gibberish shows "we couldn't read this one".
+7. Submit an empty box (or nonsense) and confirm the empty state appears. Paste something enormous and confirm the error state appears. Both should look like proper messages, not raw errors.
+8. Enter the product name and confirm it never shows up in the reading.
+
 == Changelog ==
+
+= 0.6.0 =
+* Stage 6: the front-end tool as the [ingredient_decoder] shortcode — AJAX with no reload, a three-part result (summary, ordered ingredient list with detail on tap, reserved read-next region), and real loading/empty/error templates. All wording in one phrases file (Apotheca voice, hedged inferences, no brand names or verdicts), all markup in templates for Stage 7 to style. Three unmatched states handled distinctly; nonce, honeypot, sanitised input and escaped output throughout.
 
 = 0.5.0 =
 * Stage 5: the analysis engine — locates the probable one per cent line from sub-one markers (undetermined when none), places each active against it, describes the base from the top third, and notes shape observations. Findings only, each with a confidence flag and its underlying data; no phrasing. Exposed as ild_analyse_ingredients() and ild_analyse_ingredient_list(), with a raw findings view on the Test Parser screen.

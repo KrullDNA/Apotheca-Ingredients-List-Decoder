@@ -63,6 +63,13 @@ class ILD_Plugin {
 	private $matcher;
 
 	/**
+	 * The front-end shortcode and AJAX component.
+	 *
+	 * @var ILD_Shortcode
+	 */
+	private $shortcode;
+
+	/**
 	 * Build the plugin's components, ready to be hooked in.
 	 */
 	public function __construct() {
@@ -72,6 +79,7 @@ class ILD_Plugin {
 		$this->csv         = new ILD_CSV();
 		$this->library     = new ILD_Library();
 		$this->matcher     = new ILD_Matcher();
+		$this->shortcode   = new ILD_Shortcode();
 	}
 
 	/**
@@ -93,6 +101,7 @@ class ILD_Plugin {
 		$this->csv->register_hooks();
 		$this->library->register_hooks();
 		$this->matcher->register_hooks();
+		$this->shortcode->register_hooks();
 	}
 
 	/**
