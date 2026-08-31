@@ -112,6 +112,27 @@ class ILD_Plugin {
 	private $unknown_admin;
 
 	/**
+	 * The result cache component.
+	 *
+	 * @var ILD_Cache
+	 */
+	private $cache;
+
+	/**
+	 * The rate-limit and daily-cap component.
+	 *
+	 * @var ILD_Rate_Limit
+	 */
+	private $rate_limit;
+
+	/**
+	 * The dashboard panel component.
+	 *
+	 * @var ILD_Dashboard
+	 */
+	private $dashboard;
+
+	/**
 	 * The email gate component.
 	 *
 	 * @var ILD_Gate
@@ -149,6 +170,9 @@ class ILD_Plugin {
 		$this->leads         = new ILD_Leads();
 		$this->leads_admin   = new ILD_Leads_Admin();
 		$this->unknown_admin = new ILD_Unknown_Admin();
+		$this->cache         = new ILD_Cache();
+		$this->rate_limit    = new ILD_Rate_Limit();
+		$this->dashboard     = new ILD_Dashboard();
 		$this->gate          = new ILD_Gate();
 		$this->email         = new ILD_Email();
 		$this->elementor     = new ILD_Elementor();
@@ -180,6 +204,9 @@ class ILD_Plugin {
 		$this->leads->register_hooks();
 		$this->leads_admin->register_hooks();
 		$this->unknown_admin->register_hooks();
+		$this->cache->register_hooks();
+		$this->rate_limit->register_hooks();
+		$this->dashboard->register_hooks();
 		$this->gate->register_hooks();
 		$this->email->register_hooks();
 

@@ -228,6 +228,16 @@ class ILD_Transcription {
 			$this->fail( 'not_ready' );
 		}
 
+		// A tighter per-IP limit on photos, because each one costs money to read.
+		if ( ILD_Rate_Limit::too_many( 'image' ) ) {
+			$this->fail( 'rate_limited' );
+		}
+
+		// The hard, site-wide daily cap on paid requests. A graceful message.
+		if ( ILD_Rate_Limit::is_capped() ) {
+			$this->fail( 'capped' );
+		}
+
 		// Exactly one uploaded file, arriving cleanly.
 		if ( empty( $_FILES[ self::FILE_FIELD ] ) || ! isset( $_FILES[ self::FILE_FIELD ]['tmp_name'] ) ) {
 			$this->fail( 'read_failed' );
@@ -331,6 +341,9 @@ class ILD_Transcription {
 				),
 			),
 		);
+
+		// This call costs money: count it against today's cap before making it.
+		ILD_Rate_Limit::record_paid_call();
 
 		$response = wp_remote_post(
 			self::API_URL,

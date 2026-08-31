@@ -300,6 +300,8 @@ class ILD_Phrases {
 			'no_text'        => __( 'We couldn\'t find an ingredient list in that photo. Try a clearer photo of the back of the pack, or type the list instead.', 'ingredient-list-decoder' ),
 			'network'        => __( 'Something interrupted reading your photo. Please try again.', 'ingredient-list-decoder' ),
 			'not_ready'      => __( 'Reading photos isn\'t switched on yet. Please type the list instead.', 'ingredient-list-decoder' ),
+			'rate_limited'   => __( 'That\'s a few photos in quick succession. Give it a minute, or type the list instead.', 'ingredient-list-decoder' ),
+			'capped'         => __( 'We\'ve read a lot of photos today and have reached our daily limit. Please type the list instead, or try again tomorrow.', 'ingredient-list-decoder' ),
 		);
 	}
 
@@ -339,6 +341,11 @@ class ILD_Phrases {
 	/** @return string Shown when the pasted text is far too long to be one list. */
 	public static function error_too_long() {
 		return __( 'That\'s more text than a single product\'s ingredient list. Please paste just the ingredients from one product.', 'ingredient-list-decoder' );
+	}
+
+	/** @return string Shown when a visitor is submitting a little too quickly. */
+	public static function rate_limited() {
+		return __( 'You\'re going a little fast. Give it a moment, then try again.', 'ingredient-list-decoder' );
 	}
 
 	/*

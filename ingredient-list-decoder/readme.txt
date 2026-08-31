@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 0.13.0
+Stable tag: 0.14.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -179,6 +179,17 @@ Two custom tables and an admin screen for growing the library from real demand.
 
 `define( 'ILD_ANTHROPIC_API_KEY', 'sk-ant-...' );`
 
+= Stage 14: rate limiting, caching and the dashboard =
+
+The guards that keep the tool fast, cheap and abuse-resistant, plus an at-a-glance panel.
+
+* **Per-IP limits.** A configurable hourly limit on analyses, and a separate, tighter one on photo uploads (each of which costs money to read). Go over and you get a calm "you're going a little fast" message, not an error.
+* **A hard daily cost cap.** A single, site-wide daily cap on every request that costs money — photo reads and AI drafts. When it's reached, the tool asks people to type the list instead or come back tomorrow, gracefully, rather than erroring or running up a bill.
+* **Nothing that identifies a person is stored.** The per-IP counters are keyed on a salted hash of the address, never the address itself.
+* **Result caching.** The complete result of decoding a list is cached, keyed on a hash of the normalised ingredient list, so a repeated list is served instantly. The whole cache is invalidated the moment any ingredient entry is saved or deleted, so an edit to the library shows up straight away. (The per-page read-next block is rebuilt each time and has its own cache.)
+* **The dashboard panel.** A widget on the WordPress dashboard showing submissions this week, leads this week, the top unmatched ingredients, the library size by status, and how much of today's paid-request cap has been used — aggregate counts only.
+* **Settings.** A Limits & cost section holds the two per-IP limits and the daily cap.
+
 == How to test Stage 1 ==
 
 1. Zip the `ingredient-list-decoder` folder and upload it under Plugins → Add New → Upload Plugin, then activate it. Confirm no error appears.
@@ -328,7 +339,19 @@ Two custom tables and an admin screen for growing the library from real demand.
 8. Open **Ingredient Decoder → Review Queue** and confirm entries drafted from the most-requested tokens appear at the top (ordered by demand, then alphabetically).
 9. Delete a lead and confirm its submissions are removed from the submissions table (no orphan rows).
 
+== How to test Stage 14 ==
+
+1. In **Settings → Limits & cost**, set the analyses-per-hour low (say 3). Analyse a few different lists quickly and confirm the fourth is refused with a calm "going a little fast" message.
+2. Set the photo-uploads-per-hour lower still and confirm photo uploads are refused sooner than analyses.
+3. Set the daily cap to 1, read one photo (or draft one entry), then try another money-costing action and confirm it's refused gracefully with the "reached our daily limit" message.
+4. Decode the same list twice; confirm the second is served instantly (it's cached). Edit or save any ingredient, decode the same list again, and confirm the result now reflects the change (the cache was invalidated).
+5. Open **Dashboard** and confirm the Ingredient Decoder panel shows submissions this week, leads this week, the top unmatched ingredients, the library counts by status, and today's paid-API usage against the cap.
+6. Confirm nothing in the options table or transients holds a raw IP address (the rate-limit keys are hashed).
+
 == Changelog ==
+
+= 0.14.0 =
+* Stage 14: rate limiting, caching and the dashboard. Configurable per-IP hourly limits on analyses and (tighter) on photo uploads, and a hard site-wide daily cap on money-costing requests (photo reads and AI drafts), all with graceful messages rather than errors. Counters are keyed on a salted hash of the address — no IP stored. The complete result is cached on a hash of the normalised list and invalidated whenever an ingredient is saved or deleted. A dashboard panel shows submissions and leads this week, top unmatched ingredients, library size by status, and paid-API usage against the daily cap. Adds a Limits & cost settings section.
 
 = 0.13.0 =
 * Stage 13: submission storage and the unknown-ingredient queue. A custom submissions table (normalised list, findings summary, time, product name, lead ID; indexed on lead ID and date) with pre-gate rows attached to the lead on gate completion in the same session, and deleted with the lead. A second custom table queues unmatched tokens by appearance count with no lead reference. An Unknown ingredients screen lists tokens by frequency with a dismiss action and an AI draft-entry button that creates a needs-review ingredient against the section-4 fields — never published automatically. The drafting key is read from the ILD_ANTHROPIC_API_KEY wp-config constant, not the options table. The token frequency now orders the Stage 3 review queue.

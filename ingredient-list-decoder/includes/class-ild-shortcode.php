@@ -350,6 +350,21 @@ class ILD_Shortcode {
 			);
 		}
 
+		// Per-IP rate limit on analyses. A graceful message, never a raw error.
+		if ( ILD_Rate_Limit::too_many( 'analysis' ) ) {
+			wp_send_json_success(
+				array(
+					'html' => self::render_view(
+						array(
+							'state'   => 'error',
+							'message' => ILD_Phrases::rate_limited(),
+							'variant' => 'rate-limit',
+						)
+					),
+				)
+			);
+		}
+
 		// The pasted list, kept as multi-line text.
 		$raw = isset( $_POST['ild_list'] ) ? sanitize_textarea_field( wp_unslash( $_POST['ild_list'] ) ) : '';
 
@@ -366,15 +381,17 @@ class ILD_Shortcode {
 		$consent_text  = isset( $_POST['ild_consent_text'] ) ? sanitize_textarea_field( wp_unslash( $_POST['ild_consent_text'] ) ) : ILD_Phrases::consent_default();
 		$exchange_text = isset( $_POST['ild_exchange_text'] ) ? sanitize_textarea_field( wp_unslash( $_POST['ild_exchange_text'] ) ) : ILD_Phrases::exchange_default();
 
-		// Run the pipeline. A parser error (too long) comes back as a WP_Error.
-		$match = ild_match_ingredient_list( $raw );
-		if ( is_wp_error( $match ) ) {
-			$view = ILD_Presenter::present( $match, null, $context );
+		// Run the pipeline, served from the result cache where possible. A parser
+		// error (too long) comes back as a WP_Error.
+		$result = $this->analyse_cached( $raw, $exclude_id );
+		if ( isset( $result['error'] ) ) {
+			$view = ILD_Presenter::present( $result['error'], null, $context );
 			wp_send_json_success( array( 'html' => self::render_view( $view ) ) );
 		}
 
-		$analysis = ILD_Analysis::analyse( $match );
-		$view     = ILD_Presenter::present( $match, $analysis, $context );
+		$match    = $result['match'];
+		$analysis = $result['analysis'];
+		$view     = $result['view'];
 
 		// Record the decoded list and any unmatched tokens. Done once here, at
 		// analysis time; the gate re-runs the engine to render but does not record.
@@ -395,6 +412,52 @@ class ILD_Shortcode {
 		}
 
 		wp_send_json_success( array( 'html' => self::render_view( $view, $vars ) ) );
+	}
+
+	/**
+	 * Run the pipeline for a raw list, served from the result cache where possible.
+	 *
+	 * The cache is keyed on the normalised list (page-independent); the read-next
+	 * block, which varies by page, is rebuilt each time and is not cached here.
+	 *
+	 * @param string $raw        The raw pasted list.
+	 * @param int    $exclude_id The current page, for the read-next block.
+	 * @return array { error } on a parser error, or { match, analysis, view, cached }.
+	 */
+	private function analyse_cached( $raw, $exclude_id ) {
+		// Parse first, only to derive the cache key (and to catch too-long input).
+		$parsed = ILD_Parser::parse( $raw );
+		if ( is_wp_error( $parsed ) ) {
+			return array( 'error' => $parsed );
+		}
+
+		$normalised = array();
+		foreach ( $parsed as $token ) {
+			if ( ! empty( $token['normalised'] ) ) {
+				$normalised[] = $token['normalised'];
+			}
+		}
+		$key = implode( ', ', $normalised );
+
+		$cached = ILD_Cache::get( $key );
+		if ( is_array( $cached ) && isset( $cached['view'], $cached['match'], $cached['analysis'] ) ) {
+			$view             = $cached['view'];
+			$view['readnext'] = ILD_Read_Next::build( $cached['analysis'], isset( $cached['match']['items'] ) ? $cached['match']['items'] : array(), $exclude_id );
+			return array( 'match' => $cached['match'], 'analysis' => $cached['analysis'], 'view' => $view, 'cached' => true );
+		}
+
+		$match    = ild_match_ingredient_list( $raw );
+		$analysis = ILD_Analysis::analyse( $match );
+		$view     = ILD_Presenter::present( $match, $analysis, array( 'exclude_id' => $exclude_id ) );
+
+		// Cache the complete result (without the per-page read-next block).
+		if ( isset( $view['state'] ) && 'result' === $view['state'] ) {
+			$core = $view;
+			unset( $core['readnext'] );
+			ILD_Cache::set( $key, array( 'match' => $match, 'analysis' => $analysis, 'view' => $core ) );
+		}
+
+		return array( 'match' => $match, 'analysis' => $analysis, 'view' => $view, 'cached' => false );
 	}
 
 	/**

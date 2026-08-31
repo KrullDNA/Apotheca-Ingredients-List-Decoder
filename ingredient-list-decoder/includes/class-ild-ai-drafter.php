@@ -82,6 +82,11 @@ class ILD_AI_Drafter {
 			return new WP_Error( 'ild_draft_exists', __( 'An ingredient with this name already exists.', 'ingredient-list-decoder' ) );
 		}
 
+		// Drafting costs money: respect the site-wide daily cap.
+		if ( ILD_Rate_Limit::is_capped() ) {
+			return new WP_Error( 'ild_draft_capped', __( 'The daily paid-request limit has been reached. Try again tomorrow, or raise the cap in settings.', 'ingredient-list-decoder' ) );
+		}
+
 		$fields = self::request_draft( $token );
 		if ( is_wp_error( $fields ) ) {
 			return $fields;
@@ -97,6 +102,9 @@ class ILD_AI_Drafter {
 	 * @return array|WP_Error
 	 */
 	private static function request_draft( $token ) {
+		// This call costs money: count it against today's cap.
+		ILD_Rate_Limit::record_paid_call();
+
 		$response = wp_remote_post(
 			self::API_URL,
 			array(

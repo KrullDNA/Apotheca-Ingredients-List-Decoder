@@ -204,6 +204,20 @@ class ILD_Submissions {
 	}
 
 	/**
+	 * Count submissions since a given GMT datetime.
+	 *
+	 * @param string $since_gmt A 'Y-m-d H:i:s' GMT datetime.
+	 * @return int
+	 */
+	public static function count_since( $since_gmt ) {
+		global $wpdb;
+		$table = self::table();
+		return (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->prepare( "SELECT COUNT(*) FROM $table WHERE created_at >= %s", $since_gmt )
+		);
+	}
+
+	/**
 	 * Read (and, if needed, set) the session token for attaching submissions.
 	 *
 	 * @return string
