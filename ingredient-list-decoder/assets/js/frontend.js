@@ -121,6 +121,10 @@
 	// Remember each tool's current thumbnail URL so it can be revoked.
 	var thumbUrls = new WeakMap();
 
+	// Keep the prepared JPEG per tool, so the optional "read it more accurately"
+	// button can re-send the same image without asking for it again.
+	var preparedBlobs = new WeakMap();
+
 	/**
 	 * Look up a photo-handling message by key, with a sensible fallback.
 	 *
@@ -214,6 +218,66 @@
 			} );
 	}
 
+	// Tesseract.js is loaded on demand, only when a photo is actually read. It
+	// does the free reading entirely in the browser — the photo never leaves the
+	// device on this path.
+	var ocrPromise = null;
+	function loadOcrEngine() {
+		if ( window.Tesseract ) {
+			return Promise.resolve();
+		}
+		if ( ocrPromise ) {
+			return ocrPromise;
+		}
+		if ( ! settings.tesseractUrl ) {
+			return Promise.reject( new Error( 'no-ocr-url' ) );
+		}
+		ocrPromise = new Promise( function ( resolve, reject ) {
+			var s = document.createElement( 'script' );
+			s.src = settings.tesseractUrl;
+			s.onload = resolve;
+			s.onerror = reject;
+			document.head.appendChild( s );
+		} );
+		return ocrPromise;
+	}
+
+	/**
+	 * Tidy raw OCR output: trim, drop empty lines, and collapse runs of blank
+	 * lines. Commas and newlines are both treated as separators downstream, so no
+	 * more than this is needed — the visitor checks and corrects it next.
+	 *
+	 * @param {string} text The raw recognised text.
+	 * @return {string}
+	 */
+	function tidyOcr( text ) {
+		return String( text || '' )
+			.replace( /\r/g, '' )
+			.split( '\n' )
+			.map( function ( line ) { return line.replace( /[ \t]+/g, ' ' ).trim(); } )
+			.filter( function ( line ) { return '' !== line; } )
+			.join( '\n' )
+			.trim();
+	}
+
+	/**
+	 * Read the text off a prepared image in the browser with Tesseract.js.
+	 *
+	 * @param {Blob} blob The prepared JPEG.
+	 * @return {Promise<string>} The tidied text (may be empty).
+	 */
+	function runOcr( blob ) {
+		return loadOcrEngine().then( function () {
+			if ( ! window.Tesseract || ! window.Tesseract.recognize ) {
+				return Promise.reject( new Error( 'no-ocr' ) );
+			}
+			var lang = settings.ocrLang || 'eng';
+			return window.Tesseract.recognize( blob, lang ).then( function ( result ) {
+				return tidyOcr( result && result.data ? result.data.text : '' );
+			} );
+		} );
+	}
+
 	/**
 	 * Prepare a chosen file for upload: decode (converting HEIC where the
 	 * browser can't), resize to the configured cap, and compress under the
@@ -273,8 +337,24 @@
 			error:    tool.querySelector( '[data-ild-photo-error]' ),
 			verify:   tool.querySelector( '[data-ild-verify]' ),
 			text:     tool.querySelector( '[data-ild-verify-text]' ),
-			thumb:    tool.querySelector( '[data-ild-verify-thumb]' )
+			thumb:    tool.querySelector( '[data-ild-verify-thumb]' ),
+			enhance:  tool.querySelector( '[data-ild-verify-enhance]' ),
+			vstatus:  tool.querySelector( '[data-ild-verify-status]' )
 		};
+	}
+
+	/**
+	 * Show or clear the small status line inside the verification step.
+	 *
+	 * @param {Element} tool    The tool wrapper.
+	 * @param {string}  message The text to show, or '' to hide it.
+	 */
+	function setVerifyStatus( tool, message ) {
+		var p = photoParts( tool );
+		if ( p.vstatus ) {
+			p.vstatus.textContent = message || '';
+			p.vstatus.hidden = ! message;
+		}
 	}
 
 	function setUploading( tool, on ) {
@@ -319,6 +399,10 @@
 
 	function showVerify( tool, text, thumbUrl ) {
 		var p = photoParts( tool );
+		setVerifyStatus( tool, '' );
+		if ( p.enhance ) {
+			p.enhance.disabled = false;
+		}
 		if ( p.text ) {
 			p.text.value = text;
 		}
@@ -349,6 +433,9 @@
 		if ( p.field && ! keepField ) {
 			p.field.hidden = false;
 		}
+		setVerifyStatus( tool, '' );
+		// The prepared image is no longer needed once we leave the verify step.
+		preparedBlobs.delete( tool );
 		var old = thumbUrls.get( tool );
 		if ( old ) {
 			URL.revokeObjectURL( old );
@@ -357,13 +444,15 @@
 	}
 
 	/**
-	 * Send a prepared image to the transcription endpoint.
+	 * Send a prepared image to the paid transcription endpoint (the more accurate
+	 * AI reading). Resolves the transcribed text; rejects with an Error whose
+	 * userMessage carries the server's own message.
 	 *
-	 * @param {Element} tool     The tool wrapper.
-	 * @param {Blob}    blob     The prepared JPEG.
-	 * @param {string}  thumbUrl An object URL for the thumbnail.
+	 * @param {Element} tool The tool wrapper.
+	 * @param {Blob}    blob The prepared JPEG.
+	 * @return {Promise<string>}
 	 */
-	function uploadPhoto( tool, blob, thumbUrl ) {
+	function serverTranscribe( tool, blob ) {
 		var form = tool.querySelector( '.ild-form' );
 		var nonceField = form ? form.querySelector( 'input[name="ild_transcribe_nonce"]' ) : null;
 
@@ -374,25 +463,83 @@
 		}
 		data.append( 'ild_image', blob, 'ingredients.jpg' );
 
-		fetch( settings.ajaxUrl, {
+		return fetch( settings.ajaxUrl, {
 			method: 'POST',
 			credentials: 'same-origin',
 			body: data
 		} )
 			.then( function ( response ) { return response.json(); } )
 			.then( function ( payload ) {
-				setUploading( tool, false );
 				if ( payload && payload.success && payload.data && typeof payload.data.text === 'string' ) {
-					showVerify( tool, payload.data.text, thumbUrl );
+					return payload.data.text;
+				}
+				var err = new Error( 'server' );
+				err.userMessage = ( payload && payload.data && payload.data.message ) ? payload.data.message : photoMsg( 'read_failed' );
+				throw err;
+			} );
+	}
+
+	/**
+	 * When free reading finds nothing (or the engine fails) and an API key is
+	 * configured, fall back to the paid AI reading of the same prepared image.
+	 *
+	 * @param {Element} tool     The tool wrapper.
+	 * @param {Blob}    blob     The prepared JPEG.
+	 * @param {string}  thumbUrl An object URL for the thumbnail.
+	 */
+	function serverFallback( tool, blob, thumbUrl ) {
+		serverTranscribe( tool, blob )
+			.then( function ( text ) {
+				setUploading( tool, false );
+				text = ( text || '' ).trim();
+				if ( text ) {
+					showVerify( tool, text, thumbUrl );
 				} else {
 					URL.revokeObjectURL( thumbUrl );
-					var msg = ( payload && payload.data && payload.data.message ) ? payload.data.message : photoMsg( 'read_failed' );
-					showPhotoError( tool, msg );
+					showPhotoError( tool, photoMsg( 'no_text' ) );
 				}
 			} )
-			.catch( function () {
+			.catch( function ( err ) {
+				setUploading( tool, false );
 				URL.revokeObjectURL( thumbUrl );
-				showPhotoError( tool, photoMsg( 'network' ) );
+				showPhotoError( tool, ( err && err.userMessage ) ? err.userMessage : photoMsg( 'network' ) );
+			} );
+	}
+
+	/**
+	 * Read a prepared image: free, in the browser, by default. If it yields
+	 * nothing (or can't run) and an API key is set, fall back to the AI reading.
+	 *
+	 * @param {Element} tool     The tool wrapper.
+	 * @param {Blob}    blob     The prepared JPEG.
+	 * @param {string}  thumbUrl An object URL for the thumbnail.
+	 */
+	function readPhoto( tool, blob, thumbUrl ) {
+		runOcr( blob )
+			.then( function ( text ) {
+				if ( text ) {
+					setUploading( tool, false );
+					showVerify( tool, text, thumbUrl );
+					return;
+				}
+				// Nothing read for free. Try the AI reading if it's available.
+				if ( settings.photoEnabled ) {
+					serverFallback( tool, blob, thumbUrl );
+					return;
+				}
+				setUploading( tool, false );
+				URL.revokeObjectURL( thumbUrl );
+				showPhotoError( tool, photoMsg( 'no_text' ) );
+			} )
+			.catch( function () {
+				// The free engine couldn't run. Fall back to AI if available.
+				if ( settings.photoEnabled ) {
+					serverFallback( tool, blob, thumbUrl );
+					return;
+				}
+				setUploading( tool, false );
+				URL.revokeObjectURL( thumbUrl );
+				showPhotoError( tool, photoMsg( 'read_failed' ) );
 			} );
 	}
 
@@ -408,7 +555,7 @@
 		}
 		clearPhotoError( tool );
 
-		if ( settings.photoEnabled === false ) {
+		if ( settings.ocrEnabled === false ) {
 			showPhotoError( tool, photoMsg( 'not_ready' ) );
 			return;
 		}
@@ -427,12 +574,17 @@
 		prepareImage( file )
 			.then( function ( blob ) {
 				if ( ! blob ) {
+					setUploading( tool, false );
 					showPhotoError( tool, photoMsg( 'convert_failed' ) );
 					return;
 				}
-				uploadPhoto( tool, blob, URL.createObjectURL( blob ) );
+				// Keep the prepared image so the verify step's "read it more
+				// accurately" button can re-send it without a re-pick.
+				preparedBlobs.set( tool, blob );
+				readPhoto( tool, blob, URL.createObjectURL( blob ) );
 			} )
 			.catch( function () {
+				setUploading( tool, false );
 				showPhotoError( tool, photoMsg( 'convert_failed' ) );
 			} );
 	}
@@ -507,6 +659,41 @@
 					form.dispatchEvent( new Event( 'submit', { cancelable: true, bubbles: true } ) );
 				}
 			}
+			return;
+		}
+
+		// "Read it more accurately": re-read the same photo with the paid AI, and
+		// replace the transcription in place. Only present when a key is set.
+		var enhance = target.closest( '[data-ild-verify-enhance]' );
+		if ( enhance ) {
+			event.preventDefault();
+			if ( enhance.disabled ) {
+				return;
+			}
+			var etool = toolOf( enhance );
+			if ( ! etool ) {
+				return;
+			}
+			var eblob = preparedBlobs.get( etool );
+			if ( ! eblob ) {
+				return;
+			}
+			var eparts = photoParts( etool );
+			enhance.disabled = true;
+			setVerifyStatus( etool, settings.photoEnhancing || '' );
+			serverTranscribe( etool, eblob )
+				.then( function ( text ) {
+					text = ( text || '' ).trim();
+					if ( text && eparts.text ) {
+						eparts.text.value = text;
+					}
+					setVerifyStatus( etool, '' );
+					enhance.disabled = false;
+				} )
+				.catch( function ( err ) {
+					setVerifyStatus( etool, ( err && err.userMessage ) ? err.userMessage : photoMsg( 'enhance_failed' ) );
+					enhance.disabled = false;
+				} );
 			return;
 		}
 

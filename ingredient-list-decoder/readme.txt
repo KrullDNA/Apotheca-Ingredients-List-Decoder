@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -112,13 +112,14 @@ A second way to give the tool a list: a photo of the back of the pack. It is par
 
 * **Upload or camera.** A dropzone that accepts a single JPEG, PNG or HEIC photo, with a "take a photo" control that opens the camera on a phone. iPhone HEIC photos are handled explicitly.
 * **Prepared in the browser.** The photo is converted and shrunk on the device before anything is uploaded, so a large phone photo becomes a small JPEG. HEIC is decoded natively where the browser can (Safari, i.e. most iPhones) and converted with a small library elsewhere, loaded only when a HEIC actually needs it.
-* **Transcription only.** The image is sent to the Anthropic API with a transcription-only instruction — read the printed ingredient list, add nothing, translate nothing, interpret nothing. The returned text is written into a **verification area, not into the analysis.**
+* **Read free, in the browser, by default.** The prepared photo is read on the device with a free, in-browser reader (Tesseract.js, loaded on demand). No API key is needed, nothing costs anything, and the photo never leaves the visitor's device on this path. The recognised text is written into a **verification area, not into the analysis.**
+* **An optional, more accurate AI reading.** If an Anthropic API key is set, the verification step also offers a **"Read it more accurately"** button that re-reads the same photo through the Anthropic API (transcription only — read the printed list, add nothing, translate nothing). If the free reading finds nothing at all, and a key is set, it falls back to the AI reading automatically. With no key, the tool simply stays on the free reading.
 * **She checks it first.** The transcription appears in an editable field with the photo thumbnail beside it (stacking on mobile) so she can compare the two, correct anything misread, and only then confirm. Nothing is analysed until she does; a "use a different photo" button starts over.
-* **The photo is deleted immediately.** The uploaded image is read once, transcribed, and deleted from the server the instant the text comes back — on every path, including errors. No copy is ever stored, and nothing about the image beyond its printed text is used.
-* **Settings.** A new Photo transcription section holds the Anthropic API key, the model (a fast vision model by default) and the maximum photo size. With no key set, the photo control simply doesn't appear and the tool works by typing as before.
+* **The photo is deleted immediately (AI path).** When the AI reading is used, the uploaded image is read once, transcribed, and deleted from the server the instant the text comes back — on every path, including errors. No copy is ever stored, and nothing about the image beyond its printed text is used. The free browser reading uploads nothing in the first place.
+* **Settings.** The Photo transcription section holds a "Read the list from a photo" switch (on by default, free), and — optionally — the Anthropic API key, the model (a fast vision model by default) and the maximum photo size. With the switch on and no key, the photo control still appears and reads for free; with the switch off, it doesn't appear and the tool works by typing as before.
 * **The full control set from section 11 groups B and C.** Group B (upload): dropzone background, border, radius and padding with separate normal, hover, drag-over, uploading and error states; icon colour and size; prompt and hint typography; progress-bar colour, height and radius; thumbnail size and radius. Group C (verification): container background, border, radius and padding; heading typography; notice typography and colour; transcription-field typography, background and border; and independently styled confirm and retake buttons. Every dimensional control is responsive, and the editor's preview-state control gains a Photo verification option so the whole step can be styled without uploading anything.
 
-**A note on the transcription library.** HEIC conversion for non-Safari browsers uses `heic2any`, loaded on demand from a CDN. The URL is filterable (`ild_heic_converter_url`) so it can be pointed at a bundled copy on sites that must avoid third-party requests; Safari and iPhone photos never need it.
+**A note on the reading libraries.** The free browser reading uses `Tesseract.js`, and HEIC conversion for non-Safari browsers uses `heic2any`; both are loaded on demand from a CDN, only when a photo is actually read. Both URLs are filterable (`ild_ocr_engine_url` and `ild_heic_converter_url`) so they can be pointed at bundled copies on sites that must avoid third-party requests, and the reading language is filterable too (`ild_ocr_language`, `eng` by default). Safari and iPhone photos never need the HEIC library.
 
 = Stage 9: the read-next block =
 
@@ -282,17 +283,17 @@ The core captures every consented lead locally on its own. This stage lets those
 
 == How to test Stage 8 ==
 
-1. Open **Ingredient Decoder → Settings** and, in the **Photo transcription** section, paste an Anthropic API key and save. (Leave the model and size at their defaults.)
-2. View the tool logged out. Confirm a photo dropzone now appears beside the textarea, with "Choose a photo" and "Take a photo".
-3. Choose a clear JPEG or PNG photo of an ingredient list. Confirm a brief progress indicator, then a verification area showing the photo thumbnail beside an editable transcription — and that the list has NOT been analysed yet.
-4. On a phone, use "Take a photo" and confirm the camera opens; try an iPhone (HEIC) photo and confirm it is read.
-5. Correct a word in the transcription, then press **Confirm and read the formula**. Confirm the engine now runs on the corrected text and the normal three-part result appears.
-6. Repeat, and this time press **Use a different photo**; confirm the verification clears and the dropzone returns.
+1. **Free reading, no key.** With no Anthropic API key set (and the **Read the list from a photo** switch on, its default), view the tool logged out. Confirm a photo dropzone appears beside the textarea, with "Choose a photo" and "Take a photo".
+2. Choose a clear JPEG or PNG photo of an ingredient list. Confirm a brief "reading" indicator, then a verification area showing the photo thumbnail beside an editable transcription — read for free in the browser — and that the list has NOT been analysed yet. Confirm there is **no** "Read it more accurately" button (no key set).
+3. On a phone, use "Take a photo" and confirm the camera opens; try an iPhone (HEIC) photo and confirm it is read.
+4. Correct any words in the transcription, then press **Confirm and read the formula**. Confirm the engine runs on the corrected text and the normal three-part result appears.
+5. Press **Use a different photo**; confirm the verification clears and the dropzone returns.
+6. **The optional AI reading.** Now paste an Anthropic API key in **Settings → Photo transcription** and save. Read a photo again; in the verification step confirm a **Read it more accurately** button appears. Press it and confirm the transcription is replaced by the AI reading, with a brief status while it runs.
 7. Try a photo larger than the size limit and a non-image file; confirm each is refused with a clear message and nothing is uploaded.
-8. Confirm no product or brand name from the photo appears in the reading, and that the transcription step never states a percentage.
-9. Clear the API key in Settings and save; confirm the photo control disappears and the tool still works by typing.
+8. Confirm no product or brand name from the photo appears in the reading, and that the reading step never states a percentage.
+9. **Switch the feature off.** Untick **Read the list from a photo** and save; confirm the photo control disappears entirely and the tool still works by typing.
 10. In Elementor, set the widget's **Preview state** to Photo verification and confirm the dropzone and verification area render for styling; work through the **B · Photo upload** and **C · Verification** style groups.
-11. (Privacy) Confirm that after a transcription no image file is left in the uploads folder — the photo is deleted immediately after it is read.
+11. (Privacy) Confirm the free reading uploads no file at all, and that after an AI reading no image is left in the uploads folder — it is deleted immediately after it is read.
 
 == How to test Stage 9 ==
 
@@ -367,6 +368,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.1.0 =
+* Photo reading is now free by default. The prepared photo is read in the visitor's own browser (Tesseract.js, loaded on demand) with no API key and no upload — the image never leaves the device. When an Anthropic API key is set, the verification step also offers a "Read it more accurately" button (the paid AI reading), and a free reading that finds nothing falls back to it automatically. A new "Read the list from a photo" switch (on by default) turns the whole photo feature on or off; the API key is now optional. The reader script URL and language are filterable (ild_ocr_engine_url, ild_ocr_language).
 
 = 1.0.0 =
 * First stable release. All sixteen build stages of the brief are complete: the ingredient library and taxonomies, CSV import/export, the review queue, the decoding engine and findings, the read-next block, the shortcode and the native Elementor widget, photo transcription, the email gate and branded result email, the leads and submissions admin, the unknown-ingredient queue with AI drafting, rate limiting, caching and the dashboard, and the provider-agnostic email-connector interface. The version numbering during the build tracked the stage (0.1.0–0.15.0); this release marks the finished plugin. No functional change from 0.15.0.

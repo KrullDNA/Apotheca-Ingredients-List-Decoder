@@ -284,6 +284,16 @@ class ILD_Phrases {
 		return __( 'Use a different photo', 'ingredient-list-decoder' );
 	}
 
+	/** @return string The button offering a more accurate AI reading of the photo. */
+	public static function verify_enhance() {
+		return __( 'Read it more accurately', 'ingredient-list-decoder' );
+	}
+
+	/** @return string Announced/shown while the more accurate AI reading runs. */
+	public static function verify_enhancing() {
+		return __( 'Reading it more accurately…', 'ingredient-list-decoder' );
+	}
+
 	/**
 	 * The small set of photo-handling messages the script may need to show.
 	 *
@@ -297,6 +307,7 @@ class ILD_Phrases {
 			'wrong_type'     => __( 'That doesn\'t look like a JPEG, PNG or HEIC photo. Please choose one of those.', 'ingredient-list-decoder' ),
 			'convert_failed' => __( 'We couldn\'t prepare that photo. Please try another, or type the list instead.', 'ingredient-list-decoder' ),
 			'read_failed'    => __( 'We couldn\'t read the text from that photo. Try a clearer, straight-on shot, or type the list instead.', 'ingredient-list-decoder' ),
+			'enhance_failed' => __( 'We couldn\'t improve the reading just now. Keep the text below, fix anything by hand, or try a clearer photo.', 'ingredient-list-decoder' ),
 			'no_text'        => __( 'We couldn\'t find an ingredient list in that photo. Try a clearer photo of the back of the pack, or type the list instead.', 'ingredient-list-decoder' ),
 			'network'        => __( 'Something interrupted reading your photo. Please try again.', 'ingredient-list-decoder' ),
 			'not_ready'      => __( 'Reading photos isn\'t switched on yet. Please type the list instead.', 'ingredient-list-decoder' ),

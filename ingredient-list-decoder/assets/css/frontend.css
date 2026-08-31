@@ -416,6 +416,13 @@
 	margin-top: 0.75rem;
 }
 
+/* The "reading it more accurately" status/error under the verify actions. */
+.ild-verify__status {
+	margin: 0.5rem 0 0;
+	font-size: 0.9em;
+	opacity: 0.85;
+}
+
 /* Stack the thumbnail above the text on narrow screens. */
 @media ( max-width: 480px ) {
 	.ild-verify__inner {
