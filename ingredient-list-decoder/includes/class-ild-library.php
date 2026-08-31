@@ -868,11 +868,15 @@ class ILD_Library {
 	/**
 	 * Stop a save that would create a second entry with an existing INCI name.
 	 *
-	 * Runs just before the post is written. If another ingredient already holds
-	 * this exact INCI name, the entry being saved is forced down to a draft (so a
-	 * duplicate can never go live) and a message is queued naming the entry that
-	 * already has the name. The importer and status changes are unaffected: they
-	 * always pass the entry's own ID, which is excluded from the check.
+	 * Runs just before the post is written, on every route that inserts or updates
+	 * an ingredient (the editor, Quick Edit, the CSV importer, the AI drafter, any
+	 * wp_insert_post). Matching is on the normalised key, never the raw title. If
+	 * another ingredient already owns this key, the entry being saved is forced
+	 * down to a draft (so a duplicate can never go live) and a message is queued
+	 * naming the entry that already has the name. Renames are covered too, since
+	 * an update runs through here just as a creation does; the entry's own ID is
+	 * excluded from the check. The database's unique index is the final backstop
+	 * for two saves that race past this PHP check at once.
 	 *
 	 * @param array $data    The sanitised post fields about to be written.
 	 * @param array $postarr The raw submitted post array (holds the ID, if any).
@@ -898,9 +902,16 @@ class ILD_Library {
 			return $data;
 		}
 
-		// Look for another entry with the same name, ignoring this one.
+		// Match on the normalised key, never the raw string, so a difference of
+		// case, spacing, stray punctuation or dash style is still a duplicate.
+		$key = ILD_Ingredient_Keys::key( $title );
+		if ( '' === $key ) {
+			return $data;
+		}
+
+		// Look for another entry that already owns this key, ignoring this one.
 		$exclude  = isset( $postarr['ID'] ) ? (int) $postarr['ID'] : 0;
-		$existing = ild_find_ingredient_by_title( $title, $exclude );
+		$existing = ILD_Ingredient_Keys::owner_of_key( $key, $exclude );
 
 		if ( $existing ) {
 			// Never let the duplicate reach a live or review state.

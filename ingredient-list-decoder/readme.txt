@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.2.0
+Stable tag: 1.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,7 +34,7 @@ Everything later stages build on:
 
 An **Import / Export** screen under the Ingredient Decoder menu.
 
-* **Import** a UTF-8 CSV whose header row uses the field names above. Nothing is written on upload: a **column mapping screen** is shown first, with each column auto-matched to a field by name and editable before you commit. On import, a new INCI name creates a new ingredient and an existing one is updated in place — never a duplicate (matching is case-insensitive on the INCI name). Everything imports as **needs review**, never published. The result is a summary of created / updated / skipped counts, with the row number and reason for every skipped row.
+* **Import** a UTF-8 CSV whose header row uses the field names above. Nothing is written on upload: a **column mapping screen** is shown first, with each column auto-matched to a field by name and editable before you commit. On import, a new INCI name creates a new ingredient and an existing one is updated in place — never a duplicate (matching is on the normalised INCI key, so case, spacing, edge punctuation and dash style do not create a second entry). Everything imports as **needs review**, never published. The result is a summary of created / updated / skipped counts, with the row number and reason for every skipped row.
 * **Export** the whole library to a CSV using the same column names, so a file can be exported, edited and imported straight back — a lossless round trip.
 * Roles accept either the label ("pH adjuster") or the slug ("ph-adjuster"). Families and topics may hold several values separated by a pipe. The below-1% marker accepts yes / y / 1 / true.
 * Guards throughout: a manage_options capability check, a nonce on every step, every field sanitised, and a 2 MB file-size cap. The upload is held in a transient between the mapping and import steps, so no CSV is left on the server.
@@ -49,7 +49,7 @@ Everything that makes a growing library workable for whoever is curating it.
 * **Filters** above the list, for Status, Family, Role, the below-1% marker, marker confidence and category. They combine, so you can narrow to, say, every strong-confidence 1% marker in the Colour category still needing review.
 * **Search** that looks in both the INCI name and the "also known as" aliases, so a common name or a misspelling still finds the right entry.
 * **Bulk actions**: set the status of the selection (Published, Needs Review or Draft), add a family or a topic to the selection (you pick the term on a short confirmation screen), and export just the selected rows to CSV using the same columns as the full export.
-* **Duplicate blocking.** Saving an entry whose INCI name already belongs to another entry keeps the new one as a draft and shows a clear message naming — and linking to — the entry that already holds the name. Two entries can never share an INCI name.
+* **Duplicate prevention, on every route.** Every ingredient carries a normalised key derived from its INCI name — lower-cased, whitespace collapsed, leading and trailing punctuation stripped, and every hyphen or en-dash variant folded to a plain hyphen — and all duplicate checks compare that key, never the raw string. The keys live in their own table with a UNIQUE index, so the database itself refuses a second entry for the same key even if two saves arrive at once; a PHP check alone could not. The guard covers creation and renaming alike, and every path that reaches them: the editor, Quick Edit, the CSV importer and the AI drafter. A blocked save is kept as a draft with a clear message naming and linking to the entry that already holds the key. On the Add New / edit screen the check also runs **as you type**: an exact key match blocks the save and names the existing entry; a match against another entry's **also known as** alias is a warning (not a block) that names the holder; and a close **near-match** (via the same fuzzy matcher the reader uses) is a warning that always allows the save, because Ceramide NP and Ceramide AP are different ingredients.
 * **Revisions** are enabled on the ingredient post type, so a bad edit to an entry can be rolled back from the editor.
 * A **Review Queue** screen under the Ingredient Decoder menu: a single list of everything still in draft or needing review, ordered alphabetically. (Once ingredients can be requested from the front end, in a later stage, the most-requested entries will rise to the top — the ordering is left open for that via a filter.)
 
@@ -231,9 +231,13 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Tick a few entries and use **Bulk actions → Set status: Published**, then **Apply**. Confirm the count notice appears and the statuses change.
 6. Tick a few entries and use **Bulk actions → Add to family…**. On the confirmation screen, choose a family and apply. Confirm the family is added (existing families are kept, not replaced).
 7. Tick a few entries and use **Bulk actions → Export selected to CSV**, then click **Download CSV** in the notice. Confirm only the selected rows are in the file.
-8. Add a new ingredient whose INCI name exactly matches an existing one and try to publish it. Confirm it is held as a draft and a message names the existing entry with an edit link.
-9. Open **Ingredient Decoder → Review Queue**. Confirm every draft and needs-review entry is listed alphabetically, and that published entries are not.
-10. Edit an entry twice, then open the editor's Revisions to confirm the earlier version can be restored.
+8. Add a new ingredient whose INCI name matches an existing one — try a difference of case, spacing or a stray full stop (e.g. "glycerin " for "Glycerin"). As you type, confirm a red message names the existing entry with an "Edit it" link and the Publish/Save buttons are disabled; force a save and confirm it is held as a draft with the same message.
+9. Rename an existing entry so its name collides with another entry's; confirm the same block applies to the rename, not only to new entries.
+10. Type a name that you have saved as another entry's **Also known as** alias; confirm a yellow warning names that entry but the save is still allowed.
+11. Type a name one or two letters away from an existing one (e.g. "Ceramide AP" when "Ceramide NP" exists); confirm a yellow near-match warning appears but the save is allowed — they are different ingredients.
+12. Import a CSV containing a row that duplicates an existing INCI name by case or spacing; confirm it updates the existing entry rather than creating a second one.
+13. Open **Ingredient Decoder → Review Queue**. Confirm every draft and needs-review entry is listed alphabetically, and that published entries are not.
+14. Edit an entry twice, then open the editor's Revisions to confirm the earlier version can be restored.
 
 == How to test Stage 4 ==
 
@@ -368,6 +372,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.3.0 =
+* Duplicate prevention rebuilt to cover every route that creates or renames an ingredient, matching on a normalised INCI key rather than the raw name. The key (lower-case, whitespace collapsed, edge punctuation stripped, hyphen/en-dash folded) is stored in a new table with a UNIQUE index, so the database refuses a duplicate even when two saves race past the PHP check. The editor now checks as you type: an exact key match blocks the save and links to the existing entry; an alias match warns without blocking; and a fuzzy near-match warns but always allows the save (Ceramide NP vs Ceramide AP). Adds the ild_ingredient_keys table (schema version 2; existing entries are backfilled on upgrade).
 
 = 1.2.0 =
 * Data layer expanded for colour cosmetics. The role vocabulary grows to 36 roles (original skincare slugs unchanged, so no saved data is orphaned). New ingredient fields: marker confidence (strong / moderate, only used where the below-1% marker is ticked) and category (Skincare / Colour / Both, for filtering only — the engine never reads it). Three Ingredient Family terms added: Pigments and fillers, Silicones, Surfactants. The library list screen gains Category and 1% marker columns, and marker-confidence and category filters. (Reactivate the plugin to seed the three new family terms on an existing install.)

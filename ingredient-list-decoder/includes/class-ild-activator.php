@@ -42,6 +42,7 @@ class ILD_Activator {
 		// Create the custom tables (submissions and the unknown-token queue).
 		ILD_Submissions::install();
 		ILD_Unknown_Tokens::install();
+		ILD_Ingredient_Keys::install();
 		update_option( 'ild_db_version', ILD_DB_VERSION );
 
 		// Remember which version first set things up (useful for upgrades later).

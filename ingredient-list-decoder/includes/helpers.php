@@ -39,13 +39,13 @@ function ild_get_setting( $key, $default = '' ) {
  *
  * The whole library is keyed on the INCI name, so several places need to ask
  * "is there already an entry called this?" — the CSV importer (to update rather
- * than duplicate), the list screen, and the duplicate guard on save. Keeping the
- * lookup here means they all match the same way.
+ * than duplicate), the AI drafter (to avoid re-creating one), and the duplicate
+ * guard on save. Keeping the lookup here means they all match the same way.
  *
- * The match is case-insensitive because MySQL's default collation treats
- * "Glycerin" and "glycerin" as the same string, which is exactly what stops two
- * near-identical entries being created. Trashed entries are ignored so a
- * deleted-but-not-purged entry never blocks a fresh one.
+ * The match is on the normalised key, never the raw title, so a difference of
+ * case, spacing, stray punctuation or dash style still counts as the same
+ * ingredient. Trashed entries hold no key, so a deleted-but-not-purged entry
+ * never blocks a fresh one.
  *
  * @param string $title      The INCI name to look for.
  * @param int    $exclude_id An entry ID to ignore (so an entry never clashes
@@ -53,28 +53,12 @@ function ild_get_setting( $key, $default = '' ) {
  * @return int The matching ingredient's ID, or 0 when there is none.
  */
 function ild_find_ingredient_by_title( $title, $exclude_id = 0 ) {
-	global $wpdb;
-
-	// A blank title can never match a real entry.
-	$title = trim( (string) $title );
-	if ( '' === $title ) {
+	$key = ILD_Ingredient_Keys::key( $title );
+	if ( '' === $key ) {
 		return 0;
 	}
 
-	$exclude_id = (int) $exclude_id;
-
-	// A direct, prepared lookup by title and type, skipping the trash and the
-	// entry we were told to ignore.
-	$id = $wpdb->get_var(
-		$wpdb->prepare(
-			"SELECT ID FROM {$wpdb->posts} WHERE post_type = %s AND post_status != 'trash' AND ID != %d AND post_title = %s ORDER BY ID ASC LIMIT 1",
-			ILD_Post_Types::POST_TYPE,
-			$exclude_id,
-			$title
-		)
-	);
-
-	return $id ? (int) $id : 0;
+	return ILD_Ingredient_Keys::owner_of_key( $key, (int) $exclude_id );
 }
 
 /**

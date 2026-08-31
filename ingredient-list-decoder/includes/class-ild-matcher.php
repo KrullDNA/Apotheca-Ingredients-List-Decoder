@@ -239,6 +239,46 @@ class ILD_Matcher {
 	}
 
 	/**
+	 * Find the nearest existing entry to a name, for a near-match warning.
+	 *
+	 * Reuses the same fuzzy matcher the front-end analysis uses, so "close enough"
+	 * means the same thing everywhere. It never blocks a save — Ceramide NP and
+	 * Ceramide AP resemble each other but are different ingredients — it only names
+	 * the entry a curator may want to glance at.
+	 *
+	 * @param string $name       The raw name being typed or saved.
+	 * @param int    $exclude_id An entry to leave out (the one being edited).
+	 * @return array|null A suggestion { post_id, inci_name, distance }, or null.
+	 */
+	public static function nearest( $name, $exclude_id = 0 ) {
+		$norm = ILD_Parser::normalise( $name );
+		if ( '' === $norm ) {
+			return null;
+		}
+
+		$exclude_id = (int) $exclude_id;
+		$index      = self::build_index();
+
+		// Drop the entry being edited so it never resembles itself.
+		$candidates = array();
+		foreach ( $index['candidates'] as $candidate ) {
+			if ( (int) $candidate['id'] !== $exclude_id ) {
+				$candidates[] = $candidate;
+			}
+		}
+
+		$best = self::fuzzy_best( $norm, $candidates );
+
+		// An exact normalised hit is a collision, handled elsewhere; only report a
+		// genuine near-miss here.
+		if ( $best && isset( $best['distance'] ) && 0 === (int) $best['distance'] ) {
+			return null;
+		}
+
+		return $best;
+	}
+
+	/**
 	 * Find the single best fuzzy match for a token, if it is close enough.
 	 *
 	 * Uses the edit (Levenshtein) distance against every INCI name, with a

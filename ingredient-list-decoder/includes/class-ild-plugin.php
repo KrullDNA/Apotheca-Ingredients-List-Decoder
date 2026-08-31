@@ -35,6 +35,13 @@ class ILD_Plugin {
 	private $meta_fields;
 
 	/**
+	 * The INCI key store and duplicate-prevention component.
+	 *
+	 * @var ILD_Ingredient_Keys
+	 */
+	private $ingredient_keys;
+
+	/**
 	 * The settings page component.
 	 *
 	 * @var ILD_Settings
@@ -166,6 +173,7 @@ class ILD_Plugin {
 	public function __construct() {
 		$this->post_types  = new ILD_Post_Types();
 		$this->meta_fields = new ILD_Meta_Fields();
+		$this->ingredient_keys = new ILD_Ingredient_Keys();
 		$this->settings    = new ILD_Settings();
 		$this->csv         = new ILD_CSV();
 		$this->library     = new ILD_Library();
@@ -201,6 +209,7 @@ class ILD_Plugin {
 		// Let each component wire itself onto WordPress.
 		$this->post_types->register_hooks();
 		$this->meta_fields->register_hooks();
+		$this->ingredient_keys->register_hooks();
 		$this->settings->register_hooks();
 		$this->csv->register_hooks();
 		$this->library->register_hooks();
@@ -254,6 +263,7 @@ class ILD_Plugin {
 		}
 		ILD_Submissions::install();
 		ILD_Unknown_Tokens::install();
+		ILD_Ingredient_Keys::install();
 		update_option( 'ild_db_version', ILD_DB_VERSION );
 	}
 }
