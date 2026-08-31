@@ -323,6 +323,9 @@ class ILD_Post_Types {
 			'UV filters',
 			'Solvents and carriers',
 			'Botanical extracts',
+			'Pigments and fillers',
+			'Silicones',
+			'Surfactants',
 		);
 	}
 

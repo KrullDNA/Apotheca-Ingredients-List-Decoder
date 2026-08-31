@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,10 +21,10 @@ Everything later stages build on:
 
 * The `ild_ingredient` custom post type. It has a full admin interface but is not publicly queryable, because an ingredient is a database record, not a page.
 * Two taxonomies, seeded on activation with the terms from the brief:
-  * **Ingredient Family** (`ild_family`) — applied to ingredients only.
+  * **Ingredient Family** (`ild_family`) — applied to ingredients only. Includes Pigments and fillers, Silicones and Surfactants alongside the skincare families.
   * **Skin Topic** (`ild_topic`) — shared between ingredients and standard posts, so one tag can link an ingredient to the articles worth reading next.
-* The controlled **role vocabulary**, defined once in `ILD_Roles` so it can never drift, and exposed on the ingredient screen as a multi-select.
-* The ingredient **meta fields**: also known as, role, typical use range (low and high), the below-one-per-cent marker, description, evidence note and founder take.
+* The controlled **role vocabulary**, defined once in `ILD_Roles` so it can never drift, and exposed on the ingredient screen as a multi-select. It covers colour cosmetics as well as skincare (36 roles: the original skincare set plus solubiliser, carrier, preservative booster, buffering, stabiliser, fragrance allergen, pigment, opacifier, absorbent, filler, slip modifier, binder, coating, dispersant, wax, silicone, exfoliant, soothing, astringent and viscosity modifier).
+* The ingredient **meta fields**: also known as, role, typical use range (low and high), the below-one-per-cent marker, a **marker confidence** (strong or moderate, only used where the below-1% marker is ticked), a **category** (Skincare, Colour or Both, for filtering only — the engine never reads it), description, evidence note and founder take.
 * A single **Settings page** with a section-registration API. Every later stage adds its own section to this one page rather than creating a page of its own. The General section is registered now with the email sender name, the email sender address, the cookie duration, and the opt-in "delete data on uninstall" control.
 * Translation-ready throughout, everything prefixed `ild_`.
 
@@ -45,8 +45,8 @@ An **Import / Export** screen under the Ingredient Decoder menu.
 
 Everything that makes a growing library workable for whoever is curating it.
 
-* A tuned **list screen**. Columns for INCI name, Family, Role, Status and Last modified, each one sortable. (Sorting by role orders on the stored role value; sorting by family orders on the first family name.)
-* **Filters** above the list, for Status, Family, Role and the below-1% marker. They combine, so you can narrow to, say, every humectant still needing review.
+* A tuned **list screen**. Columns for INCI name, Family, Role, Category, 1% marker, Status, Topic and Last modified. INCI name, Family, Role, Status and Last modified are sortable. (Sorting by role orders on the stored role value; sorting by family orders on the first family name.)
+* **Filters** above the list, for Status, Family, Role, the below-1% marker, marker confidence and category. They combine, so you can narrow to, say, every strong-confidence 1% marker in the Colour category still needing review.
 * **Search** that looks in both the INCI name and the "also known as" aliases, so a common name or a misspelling still finds the right entry.
 * **Bulk actions**: set the status of the selection (Published, Needs Review or Draft), add a family or a topic to the selection (you pick the term on a short confirmation screen), and export just the selected rows to CSV using the same columns as the full export.
 * **Duplicate blocking.** Saving an entry whose INCI name already belongs to another entry keeps the new one as a draft and shows a clear message naming — and linking to — the entry that already holds the name. Two entries can never share an INCI name.
@@ -368,6 +368,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.2.0 =
+* Data layer expanded for colour cosmetics. The role vocabulary grows to 36 roles (original skincare slugs unchanged, so no saved data is orphaned). New ingredient fields: marker confidence (strong / moderate, only used where the below-1% marker is ticked) and category (Skincare / Colour / Both, for filtering only — the engine never reads it). Three Ingredient Family terms added: Pigments and fillers, Silicones, Surfactants. The library list screen gains Category and 1% marker columns, and marker-confidence and category filters. (Reactivate the plugin to seed the three new family terms on an existing install.)
 
 = 1.1.0 =
 * Photo reading is now free by default. The prepared photo is read in the visitor's own browser (Tesseract.js, loaded on demand) with no API key and no upload — the image never leaves the device. When an Anthropic API key is set, the verification step also offers a "Read it more accurately" button (the paid AI reading), and a free reading that finds nothing falls back to it automatically. A new "Read the list from a photo" switch (on by default) turns the whole photo feature on or off; the API key is now optional. The reader script URL and language are filterable (ild_ocr_engine_url, ild_ocr_language).

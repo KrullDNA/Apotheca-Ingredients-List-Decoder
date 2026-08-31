@@ -92,6 +92,13 @@ class ILD_Meta_Fields {
 				'description' => __( 'Tick for ingredients that sit below the one per cent line. These are how the engine locates that line.', 'ingredient-list-decoder' ),
 				'sanitize'    => array( __CLASS__, 'sanitize_checkbox' ),
 			),
+			'_ild_marker_confidence' => array(
+				'label'       => __( 'Marker confidence', 'ingredient-list-decoder' ),
+				'type'        => 'select',
+				'options'     => self::marker_confidence_options(),
+				'description' => __( 'How reliably this ingredient marks the one per cent line. Only used when "almost always used below 1%" is ticked; left blank otherwise.', 'ingredient-list-decoder' ),
+				'sanitize'    => array( __CLASS__, 'sanitize_marker_confidence' ),
+			),
 			'_ild_description'   => array(
 				'label'       => __( 'Description', 'ingredient-list-decoder' ),
 				'type'        => 'textarea',
@@ -110,6 +117,43 @@ class ILD_Meta_Fields {
 				'description' => __( 'Founder voice, only where there is a real view. Optional.', 'ingredient-list-decoder' ),
 				'sanitize'    => array( __CLASS__, 'sanitize_textarea' ),
 			),
+			'_ild_category'      => array(
+				'label'       => __( 'Category', 'ingredient-list-decoder' ),
+				'type'        => 'select',
+				'options'     => self::category_options(),
+				'description' => __( 'Which product world this ingredient belongs to. For filtering the library only — the engine does not read it.', 'ingredient-list-decoder' ),
+				'sanitize'    => array( __CLASS__, 'sanitize_category' ),
+			),
+		);
+	}
+
+	/**
+	 * The allowed marker-confidence values: an empty "not set", plus strong and
+	 * moderate. Kept in one place so the field, its cleaning and the list column
+	 * all agree.
+	 *
+	 * @return array<string,string> Stored value => label.
+	 */
+	public static function marker_confidence_options() {
+		return array(
+			''         => __( '— Not set', 'ingredient-list-decoder' ),
+			'strong'   => __( 'Strong', 'ingredient-list-decoder' ),
+			'moderate' => __( 'Moderate', 'ingredient-list-decoder' ),
+		);
+	}
+
+	/**
+	 * The allowed category values: an empty "not set", plus skincare, colour and
+	 * both. For filtering only.
+	 *
+	 * @return array<string,string> Stored value => label.
+	 */
+	public static function category_options() {
+		return array(
+			''         => __( '— Not set', 'ingredient-list-decoder' ),
+			'skincare' => __( 'Skincare', 'ingredient-list-decoder' ),
+			'colour'   => __( 'Colour', 'ingredient-list-decoder' ),
+			'both'     => __( 'Both', 'ingredient-list-decoder' ),
 		);
 	}
 
@@ -216,6 +260,20 @@ class ILD_Meta_Fields {
 				case 'roles':
 					$this->render_roles_control( $meta_key, $value );
 					break;
+
+				case 'select':
+					$options = isset( $field['options'] ) ? $field['options'] : array();
+					printf( '<select id="%1$s" name="%2$s">', esc_attr( $field_id ), esc_attr( $meta_key ) );
+					foreach ( $options as $option_value => $option_label ) {
+						printf(
+							'<option value="%1$s" %2$s>%3$s</option>',
+							esc_attr( $option_value ),
+							selected( (string) $value, (string) $option_value, false ),
+							esc_html( $option_label )
+						);
+					}
+					echo '</select>';
+					break;
 			}
 
 			// The plain-English helper line under each control.
@@ -316,6 +374,13 @@ class ILD_Meta_Fields {
 				update_post_meta( $post_id, $meta_key, $clean );
 			}
 		}
+
+		// Marker confidence only applies to sub-1% markers. If this entry is not
+		// marked as sitting below 1%, drop any confidence value so the two can
+		// never disagree.
+		if ( 'yes' !== get_post_meta( $post_id, '_ild_sub_one_marker', true ) ) {
+			delete_post_meta( $post_id, '_ild_marker_confidence' );
+		}
 	}
 
 	/*
@@ -369,6 +434,28 @@ class ILD_Meta_Fields {
 	 */
 	public static function sanitize_checkbox( $value ) {
 		return ( 'yes' === $value ) ? 'yes' : '';
+	}
+
+	/**
+	 * Clean the marker-confidence select to one of its allowed values, or ''.
+	 *
+	 * @param mixed $value The raw value.
+	 * @return string 'strong', 'moderate', or '' (not set).
+	 */
+	public static function sanitize_marker_confidence( $value ) {
+		$value = is_string( $value ) ? $value : '';
+		return array_key_exists( $value, self::marker_confidence_options() ) ? $value : '';
+	}
+
+	/**
+	 * Clean the category select to one of its allowed values, or ''.
+	 *
+	 * @param mixed $value The raw value.
+	 * @return string 'skincare', 'colour', 'both', or '' (not set).
+	 */
+	public static function sanitize_category( $value ) {
+		$value = is_string( $value ) ? $value : '';
+		return array_key_exists( $value, self::category_options() ) ? $value : '';
 	}
 
 	/**
