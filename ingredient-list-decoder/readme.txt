@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.3.1
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -57,9 +57,10 @@ Everything that makes a growing library workable for whoever is curating it.
 
 The engine that turns a pasted ingredient list into a structured, ordered read of the library. No front end yet — it is exposed as plain PHP and as a diagnostic screen.
 
-* **Parsing.** `ild_parse_ingredient_list( $raw )` cleans raw pasted text: it splits on commas, semicolons and line breaks; strips bracketed translations, asterisks and trailing full stops; drops any "may contain" / pigment tail; turns the supplier "(and)" blend separator into a real split; collapses whitespace and normalises case. Order is preserved from start to finish, because an ingredient list is ranked by amount and that order is the whole basis of the analysis.
-* **Matching.** `ild_match_ingredient_list( $raw )` looks each cleaned token up against the INCI name first, then against the "also known as" aliases. Anything still unmatched gets a fuzzy match, which returns a single best suggestion only when it is close enough to be believable (an edit-distance threshold that scales with the token's length, and never fires on very short tokens); otherwise the token is returned as unmatched.
-* **Output.** A structured array whose ordered `items` list is the spine of the later analysis — each item carries its position, the original token, and whether it matched (with the post ID), was a suggestion (with the original token and the suggested entry), or was unmatched. The same outcomes are also grouped into `matched`, `suggestions` and `unmatched` for convenience, with counts.
+* **Parsing.** `ild_parse_ingredient_list( $raw )` cleans raw pasted text: it splits on commas, semicolons and line breaks; removes asterisks and trailing full stops; turns the supplier "(and)" blend separator into a real split; collapses whitespace and normalises case. **Bracketed content is kept**, because the brackets usually carry the common name (Aqua (Water), Butyrospermum Parkii (Shea) Butter) and keeping them helps a token line up with the stored INCI name. Order is preserved from start to finish, because an ingredient list is ranked by amount and that order is the whole basis of the analysis.
+* **The shade declaration.** Everything after a "may contain", "+/-" or "±" marker is a shade range, not a concentration-ordered list, so it is **held apart and never ranked**. Inside it, the individual CI colourants are collapsed to a single flag — the reading says the product contains colourants without naming them. Titanium Dioxide and Zinc Oxide are the exceptions (matched by name or by their CI numbers 77891 / 77947): they double as UV filters and opacifiers, so they keep their full entries wherever they appear. The shade block comes back as a separate `shade` element of the output.
+* **Matching.** `ild_match_ingredient_list( $raw )` looks each cleaned token up against the INCI name first, then against the "also known as" aliases. A token whose brackets carry only a common name (Aqua (Water)) is retried with the parenthetical removed, so it still finds its entry, while a name whose stored INCI itself contains a parenthetical matches directly. Anything still unmatched gets a fuzzy match, which returns a single best suggestion only when it is close enough to be believable (an edit-distance threshold that scales with the token's length, and never fires on very short tokens); otherwise the token is returned as unmatched.
+* **Output.** A structured array whose ordered `items` list is the spine of the later analysis — each item carries its position, the original token, and whether it matched (with the post ID), was a suggestion, or was unmatched — plus a separate `shade` element ({ present, colourants, items }) for the shade range. The same item outcomes are also grouped into `matched`, `suggestions` and `unmatched` for convenience, with counts.
 * **Safety.** The input length is capped; anything implausibly long (a whole page pasted by mistake) is rejected rather than processed.
 * **Test screen.** *Ingredient Decoder → Test Parser* — paste a list and see, in original order, how every token was split, cleaned and matched. Nothing is saved.
 
@@ -243,11 +244,12 @@ The core captures every consented lead locally on its own. This stage lets those
 
 1. Add or import a handful of ingredients (for example Aqua, Glycerin, Phenoxyethanol, Sodium Hyaluronate), and give Aqua an alias of "Water" in its "Also known as" field.
 2. Open **Ingredient Decoder → Test Parser**.
-3. Paste a realistic list, e.g. `Aqua (Water), Glycerin, Cetearyl Alcohol (and) Ceteareth-20, Sodium Hyaluronate*, Phenoxyethanol. May contain: CI 77891 (Titanium Dioxide).`
-4. Confirm the result table, in the original order: "Aqua (Water)" reads as **Aqua**, "Water" would match Aqua by alias, the "(and)" blend has been split into two separate tokens, the asterisk and the bracketed translations are gone, and everything after "May contain" has been dropped.
-5. Add a deliberate typo, e.g. `Glcerin`, and confirm it comes back as a **suggestion** pointing at Glycerin.
-6. Add a nonsense token, e.g. `Zzzzqqx`, and confirm it comes back as **unmatched**.
-7. Paste something enormous (tens of thousands of characters) and confirm it is rejected with a clear message rather than processed.
+3. Paste a realistic list, e.g. `Aqua (Water), Glycerin, Cetearyl Alcohol (and) Ceteareth-20, Sodium Hyaluronate*, Phenoxyethanol. May contain: CI 77491, CI 77492, Titanium Dioxide (CI 77891), Zinc Oxide.`
+4. Confirm the result table, in the original order: "Aqua (Water)" keeps its bracket and still reads as **Aqua**, the "(and)" blend has been split into two separate tokens, the asterisk and trailing full stops are gone — and the "May contain" range is **not** in the ordered list.
+5. Under the table, confirm a **Shade declaration** section: it says the product contains colourants (the CI 77491 / CI 77492 numbers are not listed), and it keeps **Titanium Dioxide** and **Zinc Oxide** as named entries.
+6. Add a deliberate typo, e.g. `Glcerin`, and confirm it comes back as a **suggestion** pointing at Glycerin.
+7. Add a nonsense token, e.g. `Zzzzqqx`, and confirm it comes back as **unmatched**.
+8. Paste something enormous (tens of thousands of characters) and confirm it is rejected with a clear message rather than processed.
 
 == How to test Stage 5 ==
 
@@ -372,6 +374,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.4.0 =
+* Parser reworked. Bracketed content is now kept rather than stripped, because the brackets usually carry the common name and keeping them helps matching (the matcher retries a bracketed token with the parenthetical removed, so both "Aqua (Water)" and a stored "…(Shea) Butter" INCI resolve). The shade declaration — everything after "may contain", "+/-" or "±" — is separated out and never passed to the concentration-ordering logic, and returned as its own `shade` element. Individual CI colourants in that block collapse to a single "contains colourants" flag rather than being listed, with Titanium Dioxide and Zinc Oxide kept as full entries (by name or CI number) since they double as UV filters and opacifiers. The Test Parser screen shows the shade block.
 
 = 1.3.1 =
 * CSV importer/exporter now carries the marker_confidence and category columns, accepting either the stored value or the human label (marker confidence is kept only where the below-1% marker is set). Create-versus-update is decided on the normalised INCI key, and when one file holds the same key more than once the last occurrence wins while each earlier one is skipped with the row number that superseded it.

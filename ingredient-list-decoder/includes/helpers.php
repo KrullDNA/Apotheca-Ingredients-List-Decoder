@@ -62,13 +62,14 @@ function ild_find_ingredient_by_title( $title, $exclude_id = 0 ) {
 }
 
 /**
- * Parse a raw pasted ingredient list into ordered, cleaned tokens.
+ * Parse a raw pasted ingredient list into ordered tokens and a shade block.
  *
  * A thin public wrapper around ILD_Parser::parse(), so callers (and later
  * stages) can reach the parser as a plain function without knowing the class.
  *
  * @param string $raw The pasted ingredient list.
- * @return array|WP_Error The ordered tokens, or an error if the input is too long.
+ * @return array|WP_Error The { items, shade } result, or an error if the input is
+ *                        too long.
  */
 function ild_parse_ingredient_list( $raw ) {
 	return ILD_Parser::parse( $raw );

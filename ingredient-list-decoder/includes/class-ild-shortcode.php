@@ -448,12 +448,25 @@ class ILD_Shortcode {
 		}
 
 		$normalised = array();
-		foreach ( $parsed as $token ) {
+		foreach ( $parsed['items'] as $token ) {
 			if ( ! empty( $token['normalised'] ) ) {
 				$normalised[] = $token['normalised'];
 			}
 		}
 		$key = implode( ', ', $normalised );
+
+		// Fold the shade block into the key, so two lists that differ only in their
+		// shade range never share a cached result.
+		$shade = isset( $parsed['shade'] ) ? $parsed['shade'] : array();
+		if ( ! empty( $shade['present'] ) ) {
+			$shade_norms = array();
+			foreach ( (array) ( isset( $shade['items'] ) ? $shade['items'] : array() ) as $shade_token ) {
+				if ( ! empty( $shade_token['normalised'] ) ) {
+					$shade_norms[] = $shade_token['normalised'];
+				}
+			}
+			$key .= ' |shade:' . ( empty( $shade['colourants'] ) ? '0' : '1' ) . ':' . implode( ',', $shade_norms );
+		}
 
 		$cached = ILD_Cache::get( $key );
 		if ( is_array( $cached ) && isset( $cached['view'], $cached['match'], $cached['analysis'] ) ) {
