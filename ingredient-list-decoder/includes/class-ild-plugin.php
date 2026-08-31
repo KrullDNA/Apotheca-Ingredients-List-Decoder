@@ -133,6 +133,13 @@ class ILD_Plugin {
 	private $dashboard;
 
 	/**
+	 * The connector queue/push manager.
+	 *
+	 * @var ILD_Connector_Manager
+	 */
+	private $connectors;
+
+	/**
 	 * The email gate component.
 	 *
 	 * @var ILD_Gate
@@ -173,6 +180,7 @@ class ILD_Plugin {
 		$this->cache         = new ILD_Cache();
 		$this->rate_limit    = new ILD_Rate_Limit();
 		$this->dashboard     = new ILD_Dashboard();
+		$this->connectors    = new ILD_Connector_Manager();
 		$this->gate          = new ILD_Gate();
 		$this->email         = new ILD_Email();
 		$this->elementor     = new ILD_Elementor();
@@ -207,6 +215,7 @@ class ILD_Plugin {
 		$this->cache->register_hooks();
 		$this->rate_limit->register_hooks();
 		$this->dashboard->register_hooks();
+		$this->connectors->register_hooks();
 		$this->gate->register_hooks();
 		$this->email->register_hooks();
 

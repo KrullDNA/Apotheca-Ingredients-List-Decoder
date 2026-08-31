@@ -3,7 +3,7 @@
  * Plugin Name:       Ingredient List Decoder
  * Plugin URI:        https://apotheca.com.au/
  * Description:        Reads a skincare ingredient list as a whole and explains how the formula is built. Stage 1: foundation, data layer and the settings framework every later stage registers into.
- * Version:           0.14.0
+ * Version:           0.15.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            KDNA for Apotheca
@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 
 // The plugin's own version number. Bumped each release; used to bust caches later.
-define( 'ILD_VERSION', '0.14.0' );
+define( 'ILD_VERSION', '0.15.0' );
 
 // The custom-table schema version. Bumped when a table's structure changes, so
 // the tables are (re)built via dbDelta on the next admin request.
@@ -80,6 +80,8 @@ require_once ILD_PLUGIN_DIR . 'includes/class-ild-submissions.php';
 require_once ILD_PLUGIN_DIR . 'includes/class-ild-unknown-tokens.php';
 require_once ILD_PLUGIN_DIR . 'includes/class-ild-ai-drafter.php';
 require_once ILD_PLUGIN_DIR . 'includes/class-ild-leads.php';
+require_once ILD_PLUGIN_DIR . 'includes/interface-ild-email-connector.php';
+require_once ILD_PLUGIN_DIR . 'includes/class-ild-connector-manager.php';
 require_once ILD_PLUGIN_DIR . 'includes/class-ild-leads-admin.php';
 require_once ILD_PLUGIN_DIR . 'includes/class-ild-unknown-admin.php';
 require_once ILD_PLUGIN_DIR . 'includes/class-ild-dashboard.php';

@@ -125,6 +125,12 @@ class ILD_Gate {
 			ILD_Submissions::attach_session_to_lead( $session, $lead_id );
 		}
 
+		// Let the connector queue know a lead was captured, so it can push to any
+		// active marketing connector. The core keeps the lead regardless.
+		if ( $lead_id > 0 ) {
+			do_action( 'ild_lead_captured', $lead_id );
+		}
+
 		// Set the first-party cookie so the gate is skipped on this device.
 		$this->set_cookie();
 

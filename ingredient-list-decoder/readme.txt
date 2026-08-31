@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 0.14.0
+Stable tag: 0.15.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -190,6 +190,16 @@ The guards that keep the tool fast, cheap and abuse-resistant, plus an at-a-glan
 * **The dashboard panel.** A widget on the WordPress dashboard showing submissions this week, leads this week, the top unmatched ingredients, the library size by status, and how much of today's paid-request cap has been used — aggregate counts only.
 * **Settings.** A Limits & cost section holds the two per-IP limits and the daily cap.
 
+= Stage 15: the email-connector interface and the Campaign Monitor add-on =
+
+The core captures every consented lead locally on its own. This stage lets those leads flow out to an email platform, without tying the core to any one provider.
+
+* **A provider-agnostic interface.** The core defines a single PHP interface, `ILD_Email_Connector`, that any provider add-on implements — with methods to identify itself, say whether it is configured, test its connection, and push one lead. The core holds the queue, decides when a push should happen, honours consent, retries with a growing backoff, and records the outcome. A provider only has to know how to talk to its own service.
+* **Leads are captured whether or not a connector is active.** With no add-on installed the leads still land in the Leads screen; there is simply nothing to push them to. Install a connector and new leads start syncing.
+* **Consent is the gate.** A lead is pushed only where consent is recorded and not withdrawn. Unsubscribed and un-consented leads are never sent.
+* **Failures are surfaced, never swallowed.** When a provider rejects a push, the core records it against the lead — with the provider's own message — so it appears in the **Leads → Failed sync** view with a Retry, and retries it a few times with a growing backoff first.
+* **The Campaign Monitor add-on** is a separate plugin built against this interface. See its own readme. It pushes the name (where given), email, source page and consent date to a configurable list, with the capturing tool recorded as a custom field so these leads can be segmented apart from Founding Faces members. It has an API-key and list-ID setting with a test-connection button, and any rejection flows into the failed-sync view above.
+
 == How to test Stage 1 ==
 
 1. Zip the `ingredient-list-decoder` folder and upload it under Plugins → Add New → Upload Plugin, then activate it. Confirm no error appears.
@@ -348,7 +358,18 @@ The guards that keep the tool fast, cheap and abuse-resistant, plus an at-a-glan
 5. Open **Dashboard** and confirm the Ingredient Decoder panel shows submissions this week, leads this week, the top unmatched ingredients, the library counts by status, and today's paid-API usage against the cap.
 6. Confirm nothing in the options table or transients holds a raw IP address (the rate-limit keys are hashed).
 
+== How to test Stage 15 ==
+
+1. With no connector add-on installed, complete the front-end gate with consent and confirm the lead still appears in the Leads screen (captured locally with nothing to push to).
+2. Install and activate the **Ingredient List Decoder — Campaign Monitor** add-on. Under **Ingredient Decoder → Settings → Campaign Monitor**, enter a valid API key and list ID and click **Test connection**; confirm it reports success, and that a bad key reports the service's error.
+3. Complete the gate again with consent and confirm the lead reaches the Campaign Monitor list, with the source, consent date and tool name set as custom fields.
+4. Complete the gate without consent (or for an unsubscribed address) and confirm nothing is pushed.
+5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
+
 == Changelog ==
+
+= 0.15.0 =
+* Stage 15: the email-connector interface. The core now defines a single provider-agnostic PHP interface (ILD_Email_Connector) and owns the sync queue — deciding when to push a captured lead, honouring consent, retrying with a growing backoff, and recording each outcome against the lead so a rejection shows in the Leads → Failed sync view. Leads are captured locally whether or not any connector is active. The Campaign Monitor connector ships as a separate add-on plugin built against this interface.
 
 = 0.14.0 =
 * Stage 14: rate limiting, caching and the dashboard. Configurable per-IP hourly limits on analyses and (tighter) on photo uploads, and a hard site-wide daily cap on money-costing requests (photo reads and AI drafts), all with graceful messages rather than errors. Counters are keyed on a salted hash of the address — no IP stored. The complete result is cached on a hash of the normalised list and invalidated whenever an ingredient is saved or deleted. A dashboard panel shows submissions and leads this week, top unmatched ingredients, library size by status, and paid-API usage against the daily cap. Adds a Limits & cost settings section.
