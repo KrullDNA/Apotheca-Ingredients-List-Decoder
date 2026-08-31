@@ -73,6 +73,57 @@ class ILD_Phrases {
 
 	/*
 	 * -----------------------------------------------------------------------
+	 * The result email (Stage 10 of the brief / build Stage 11)
+	 * -----------------------------------------------------------------------
+	 */
+
+	/** @return string The default subject line for the result email. */
+	public static function email_subject_default() {
+		return __( 'Your ingredient reading', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The default editable intro line in the email. */
+	public static function email_intro_default() {
+		return __( 'Here\'s your reading. Below is how this formula looks to be built, then every ingredient in order — no expanding needed, it\'s all laid out.', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The default editable sign-off in the email. */
+	public static function email_signoff_default() {
+		return __( 'With care, the Apotheca® team.', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The default editable footer line in the email. */
+	public static function email_footer_default() {
+		return __( 'You\'re receiving this because you asked us to read a formula for you.', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The heading over the ingredient breakdown in the email. */
+	public static function email_read_next_heading() {
+		return __( 'Worth reading next', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The label on the read-next links in the email. */
+	public static function email_read_more() {
+		return __( 'Read the article', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The unsubscribe link text in the email footer. */
+	public static function email_unsubscribe() {
+		return __( 'Unsubscribe', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The privacy link text in the email footer. */
+	public static function email_privacy() {
+		return __( 'Privacy Policy', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The confirmation shown after unsubscribing. */
+	public static function email_unsubscribed_confirmation() {
+		return __( 'You\'ve been unsubscribed. You won\'t receive any more emails from us.', 'ingredient-list-decoder' );
+	}
+
+	/*
+	 * -----------------------------------------------------------------------
 	 * The email gate (Stage 9 of the brief / build Stage 10)
 	 * -----------------------------------------------------------------------
 	 */

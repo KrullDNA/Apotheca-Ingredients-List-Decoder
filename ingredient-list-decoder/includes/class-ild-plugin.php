@@ -98,6 +98,13 @@ class ILD_Plugin {
 	private $gate;
 
 	/**
+	 * The result email component.
+	 *
+	 * @var ILD_Email
+	 */
+	private $email;
+
+	/**
 	 * The Elementor widget integration.
 	 *
 	 * @var ILD_Elementor
@@ -119,6 +126,7 @@ class ILD_Plugin {
 		$this->read_next     = new ILD_Read_Next();
 		$this->leads         = new ILD_Leads();
 		$this->gate          = new ILD_Gate();
+		$this->email         = new ILD_Email();
 		$this->elementor     = new ILD_Elementor();
 	}
 
@@ -146,6 +154,7 @@ class ILD_Plugin {
 		$this->read_next->register_hooks();
 		$this->leads->register_hooks();
 		$this->gate->register_hooks();
+		$this->email->register_hooks();
 		$this->elementor->register_hooks();
 	}
 

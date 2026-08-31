@@ -108,7 +108,7 @@ class ILD_Gate {
 		$exclude_id   = isset( $_POST['ild_page_id'] ) ? absint( wp_unslash( $_POST['ild_page_id'] ) ) : 0;
 
 		// Store the lead: address, time, consent state, exact wording, source.
-		ILD_Leads::store(
+		$lead_id = ILD_Leads::store(
 			array(
 				'email'        => $email,
 				'consent'      => $consent,
@@ -116,6 +116,7 @@ class ILD_Gate {
 				'source'       => $source,
 			)
 		);
+		$lead_id = is_wp_error( $lead_id ) ? 0 : (int) $lead_id;
 
 		// Set the first-party cookie so the gate is skipped on this device.
 		$this->set_cookie();
@@ -132,6 +133,10 @@ class ILD_Gate {
 		if ( ! isset( $view['state'] ) || 'result' !== $view['state'] ) {
 			$this->fail( 'network' );
 		}
+
+		// Email the result. A failed send never blocks the on-screen breakdown.
+		$mailer = new ILD_Email();
+		$mailer->send_result( $email, $view, array( 'lead_id' => $lead_id ) );
 
 		wp_send_json_success( array( 'html' => ILD_Shortcode::render_breakdown( $view ) ) );
 	}

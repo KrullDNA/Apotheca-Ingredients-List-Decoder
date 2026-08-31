@@ -259,6 +259,34 @@ class ILD_Settings {
 		$type     = isset( $field['type'] ) ? $field['type'] : 'text';
 
 		switch ( $type ) {
+			case 'callback':
+				// A field that renders itself (used for the email preview/test UI).
+				if ( isset( $field['render'] ) && is_callable( $field['render'] ) ) {
+					call_user_func( $field['render'], $field );
+				}
+				return;
+
+			case 'color':
+				printf(
+					'<input type="text" id="%1$s" name="%2$s" value="%3$s" class="ild-color-field" data-default-color="%4$s" />',
+					esc_attr( $field_id ),
+					esc_attr( $name ),
+					esc_attr( (string) $value ),
+					esc_attr( isset( $field['default'] ) ? $field['default'] : '' )
+				);
+				break;
+
+			case 'media':
+				printf(
+					'<span class="ild-media-field-wrap"><input type="url" id="%1$s" name="%2$s" value="%3$s" class="ild-media-field regular-text" /> <button type="button" class="button ild-media-button">%4$s</button><span class="ild-media-preview">%5$s</span></span>',
+					esc_attr( $field_id ),
+					esc_attr( $name ),
+					esc_attr( (string) $value ),
+					esc_html__( 'Choose', 'ingredient-list-decoder' ),
+					'' !== $value ? '<img src="' . esc_url( (string) $value ) . '" alt="" style="max-width:160px;height:auto;display:block;margin-top:8px;" />' : ''
+				);
+				break;
+
 			case 'textarea':
 				printf(
 					'<textarea id="%1$s" name="%2$s" rows="4" class="large-text">%3$s</textarea>',
@@ -393,6 +421,10 @@ class ILD_Settings {
 				return 'absint';
 			case 'textarea':
 				return 'sanitize_textarea_field';
+			case 'color':
+				return 'sanitize_hex_color';
+			case 'media':
+				return 'esc_url_raw';
 			default:
 				return 'sanitize_text_field';
 		}

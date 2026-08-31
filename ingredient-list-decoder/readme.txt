@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 0.10.0
+Stable tag: 0.11.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -143,6 +143,17 @@ The summary is shown immediately; the full ingredient breakdown and the read-nex
 * **Guarded.** A honeypot field and a nonce on the gate, a valid-email check, and a required consent box, all validated again on the server.
 * **The full control set from section 11 group J.** Container background, border, radius, padding and shadow; heading and body typography; the email field inherited or overridden; the consent checkbox size, colour, checked colour and radius; consent-text typography and colour; the privacy-link colour; and the submit button inherited or overridden, including its disabled state. The exchange and consent wording are both editable Elementor controls (defaulting to the brief's suggested wording); the privacy-policy link and the unsubscribe line are deliberately not editable. The editor gains an Email gate preview state so the whole gate can be styled.
 
+= Stage 11: the branded result email =
+
+When someone completes the gate, their reading is emailed to them — a branded HTML email built from the same result.
+
+* **Built for email clients.** A table-based layout, with the CSS inlined onto each element by a small built-in inliner (media queries are left in the head for clients that honour them). A plain-text alternative is generated alongside from the same data, so every send is a proper multipart email.
+* **The reading, flattened.** Logo, an editable intro line, the summary, and the full ingredient breakdown — shown in full, since email cannot expand and collapse — then the read-next articles with thumbnails, and a footer with the privacy link and a **working unsubscribe link on every send**. Unsubscribing (a signed, first-party link) marks the lead unsubscribed straight away.
+* **Fully themeable from Settings.** A Result email section with the logo, widths, corner radius, header/page/container backgrounds, heading and body colour, size and line height, link colour, divider colour, the button (background, text, radius, padding), the font stack, and the editable intro, sign-off and footer text.
+* **Web-safe by design.** The default font stack needs no web fonts, and the template's sizing and spacing are set for it — the fallback chain is what actually renders, not an afterthought.
+* **A live preview and a test send.** The settings page shows a live preview that reflects unsaved changes, and sends a test to any address.
+* **Through the site's mail transport.** Mail goes out via wp_mail(), so it uses whatever transactional service the site has configured (SMTP, a sending API, and so on) rather than PHP mail() directly.
+
 == How to test Stage 1 ==
 
 1. Zip the `ingredient-list-decoder` folder and upload it under Plugins → Add New → Upload Plugin, then activate it. Confirm no error appears.
@@ -259,7 +270,21 @@ The summary is shown immediately; the full ingredient breakdown and the read-nex
 8. Try submitting with an invalid email, or with the box unticked via dev tools — confirm the server refuses it and nothing is stored.
 9. In Elementor, edit the widget: change the Exchange text and Consent checkbox text and confirm they appear on the page; confirm the privacy-policy link and unsubscribe line cannot be edited. Set the Preview state to Email gate and work through the **J · Email gate** style group, including the checkbox and the submit button's disabled state.
 
+== How to test Stage 11 ==
+
+1. Open **Ingredient Decoder → Settings** and find the **Result email** section. Confirm a live preview of the email appears and updates as you change colours, widths, the font stack and the intro/sign-off/footer text — before saving.
+2. Upload a logo and confirm it appears in the preview header; clear it and confirm the brand name shows instead.
+3. Enter your address next to "Send a test to" and click **Send test**. Confirm the email arrives, looks right, and that its plain-text version (view source / "show original") is present and readable.
+4. In the received email, confirm the ingredient breakdown is shown in full (no expand/collapse), the read-next articles show with thumbnails, and the footer has a privacy link and an unsubscribe link.
+5. Click the unsubscribe link and confirm it works (a confirmation page) — for a real send it marks that lead unsubscribed.
+6. Complete the front-end gate with your own email and confirm the same result email is delivered to you automatically.
+7. If you use an SMTP or transactional-email plugin, confirm the email goes through it (check its log) rather than PHP mail.
+8. Turn off web-font loading in your mail client (or just trust the defaults) and confirm the email still reads well on the fallback fonts.
+
 == Changelog ==
+
+= 0.11.0 =
+* Stage 11: the branded result email. A table-based HTML email built from the reading, with its CSS inlined and a plain-text alternative generated alongside — logo, editable intro, the summary, the full (flattened) ingredient breakdown, read-next articles with thumbnails, and a footer with the privacy link and a working unsubscribe link on every send. A Result email settings section themes all of it (logo, widths, radius, colours, type, button, font stack, intro/sign-off/footer), with a live admin preview and a test send. Sent through wp_mail() so the site's transactional transport is used. The email is sent automatically when the gate is completed. Web-safe font stack by design.
 
 = 0.10.0 =
 * Stage 10: the email gate. The summary shows immediately; the ingredient breakdown and read-next block are held behind an email form (and never sent to the page until it is completed). One consent checkbox, unticked by default, covers the result email and marketing from Apotheca®, with the submit button disabled until it is ticked and the reason shown. The exchange wording also appears up front near the input. On submission a first-party cookie (default twelve months) skips the gate next time, and the address, timestamp, consent state, exact wording shown, and source page are stored as a private lead. Honeypot and nonce throughout. Adds the section-11 group J style controls, editable exchange/consent wording (privacy link and unsubscribe line fixed), and an Email gate preview state.
