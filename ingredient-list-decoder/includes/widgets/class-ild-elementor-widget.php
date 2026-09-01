@@ -733,6 +733,12 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 			)
 		);
 
+		// The two upload buttons ("Choose a photo" and "Take a photo"). They share
+		// the .ild-dropzone__button class, so one control set styles both; the full
+		// button control set gives typography, padding, radius, border and every
+		// state, matching the other buttons.
+		$this->button_controls( 'dropzone_button', __( 'Upload buttons', 'ingredient-list-decoder' ), '{{WRAPPER}} .ild-dropzone__button' );
+
 		// Progress indicator.
 		$this->add_control(
 			'progress_heading',

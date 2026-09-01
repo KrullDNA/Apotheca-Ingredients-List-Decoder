@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.4.1
+Stable tag: 1.4.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,10 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.4.2 =
+* The Elementor widget now styles the two photo-upload buttons ("Choose a photo" and "Take a photo") — a full button control set under B · Photo upload, which had been missing.
+* The front-end reader handles a stale security token distinctly: a cached page with an expired nonce now shows a "please refresh the page" message instead of the generic error, which is the usual cause of the tool working in the admin but not on a cached front-end page. Any other unexpected error during a reading is caught, shown calmly, and logged when WP_DEBUG is on, rather than surfacing as an opaque failure.
 
 = 1.4.1 =
 * The one per cent line now weighs marker confidence. A single strong marker places the line on its own; a moderate marker (an unrated one counts as moderate) places it only when a second marker of either level corroborates it further down; a lone moderate marker with nothing to corroborate it is reported as undetermined rather than placed. The line logic never runs across the shade block separated out by the parser.
