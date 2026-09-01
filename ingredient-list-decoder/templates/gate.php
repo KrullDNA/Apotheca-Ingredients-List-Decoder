@@ -1,14 +1,14 @@
 <?php
 /**
- * The email gate: shown in place of the breakdown until the visitor gives an
- * email and consent.
+ * The optional "email me a copy" form, shown beneath the reading.
  *
- * The summary is already above this. This form carries a copy of the pasted list
- * so the server can re-run the analysis and return the breakdown once the gate
- * is completed — the breakdown is never in the page until then. One consent
- * checkbox covers both emailing the result and marketing from Apotheca®; the
- * submit button stays disabled until it is ticked, with the reason shown rather
- * than failing silently.
+ * The full reading — summary and breakdown — is already on screen above this.
+ * This form is not a gate: it only offers to send the reading to an inbox so the
+ * visitor can keep it. It carries a copy of the pasted list so the server can
+ * re-run the analysis to build the email. One consent checkbox covers both
+ * emailing the reading and marketing from Apotheca®; the submit button stays
+ * disabled until it is ticked, with the reason shown rather than failing
+ * silently.
  *
  * Expects (from result.php's scope):
  *   $carry (array)         { list, page_id } to re-run the analysis.

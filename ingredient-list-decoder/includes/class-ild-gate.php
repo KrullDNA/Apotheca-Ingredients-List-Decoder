@@ -134,7 +134,8 @@ class ILD_Gate {
 		// Set the first-party cookie so the gate is skipped on this device.
 		$this->set_cookie();
 
-		// Re-run the analysis and return just the gated breakdown.
+		// Re-run the analysis so the reading can be emailed. The breakdown is
+		// already on screen, so this is only used to build the email.
 		$match = ild_match_ingredient_list( $raw );
 		if ( is_wp_error( $match ) ) {
 			$this->fail( 'network' );
@@ -147,11 +148,16 @@ class ILD_Gate {
 			$this->fail( 'network' );
 		}
 
-		// Email the result. A failed send never blocks the on-screen breakdown.
+		// Email the result. A failed send never blocks the on-screen reading.
 		$mailer = new ILD_Email();
 		$mailer->send_result( $email, $view, array( 'lead_id' => $lead_id ) );
 
-		wp_send_json_success( array( 'html' => ILD_Shortcode::render_breakdown( $view ) ) );
+		// The reading is already shown; replace the form with a short confirmation.
+		$confirmation = '<div class="ild-gate ild-gate--sent" tabindex="-1"><p class="ild-gate__sent">'
+			. esc_html( ILD_Phrases::gate_sent() )
+			. '</p></div>';
+
+		wp_send_json_success( array( 'html' => $confirmation ) );
 	}
 
 	/**

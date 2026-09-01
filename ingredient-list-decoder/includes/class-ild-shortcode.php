@@ -384,21 +384,13 @@ class ILD_Shortcode {
 	 * @return void
 	 */
 	public function ajax_analyse() {
-		// A stale nonce is nearly always a cached page serving an old token, not a
-		// real fault — so it gets its own "refresh the page" message rather than
-		// the generic one, which also makes the cause obvious in testing.
-		if ( ! check_ajax_referer( self::ACTION, 'ild_nonce', false ) ) {
-			wp_send_json_success(
-				array(
-					'html' => self::render_view(
-						array(
-							'state'   => 'error',
-							'message' => ILD_Phrases::error_expired(),
-						)
-					),
-				)
-			);
-		}
+		// Reading a list is public and read-only, so a stale or missing nonce must
+		// never block it. Full-page caches (WP Rocket, LiteSpeed) and JavaScript
+		// optimisers can leave the token stale or stop the fresh-nonce fetch from
+		// running, and none of that should stop a visitor getting their reading.
+		// The nonce is still verified when present (defence in depth), but the
+		// honeypot and the per-IP rate limit are what actually guard this endpoint.
+		check_ajax_referer( self::ACTION, 'ild_nonce', false );
 
 		// The honeypot must be empty; a filled one is a bot, sent away quietly.
 		if ( ! empty( $_POST['ild_hp'] ) ) {
@@ -468,13 +460,14 @@ class ILD_Shortcode {
 					$this->record_submission( $match, $view, $product_name );
 				}
 
-				// Gate the breakdown when this is a real result and the device has
-				// no access cookie yet. The summary always shows; the breakdown
-				// does not.
+				// The full reading — summary, every ingredient in order, and the
+				// read-next block — always shows on screen. The email form is an
+				// optional way to keep a copy, offered beneath the reading until the
+				// visitor has given an address (its cookie).
 				$vars = array();
 				if ( 'result' === $view['state'] && ! ILD_Gate::has_access() ) {
 					$vars = array(
-						'gated'         => true,
+						'email_offer'   => true,
 						'carry'         => array( 'list' => $raw, 'page_id' => $exclude_id, 'product' => $product_name ),
 						'consent_text'  => $consent_text,
 						'exchange_text' => $exchange_text,

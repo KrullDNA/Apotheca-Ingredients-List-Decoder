@@ -15,6 +15,22 @@
  */
 
 /* ---------------------------------------------------------------------------
+ * The hidden attribute must always win.
+ *
+ * Several states (the loading spinner, the network-error box, the verification
+ * panel, the photo messages) are markup that sits in the page from the start and
+ * is shown only when the script removes the `hidden` attribute. Because rules
+ * like `.ild-loading { display: flex }` below carry the same specificity as the
+ * browser's own `[hidden] { display: none }`, they would otherwise override it
+ * and leave those states on screen permanently. This guard keeps `hidden`
+ * authoritative, whatever else sets `display`.
+ * ------------------------------------------------------------------------- */
+.ild-tool [hidden],
+.ild-tool[hidden] {
+	display: none !important;
+}
+
+/* ---------------------------------------------------------------------------
  * Layout shell
  * ------------------------------------------------------------------------- */
 .ild-tool {

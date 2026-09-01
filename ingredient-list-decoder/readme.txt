@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.4.3
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -133,17 +133,17 @@ The reserved region beneath the result now fills itself with the articles worth 
 * **Cached, and kept fresh.** The ranked candidates are cached per term-set. A cache generation number, bumped whenever any post or ingredient is saved, retires every cached set at once, so a newly published or re-tagged article shows up straight away.
 * **The full control set from section 11 group I.** Section-heading typography and spacing; card background, border, radius, shadow and content padding; thumbnail size, aspect ratio and radius; title, excerpt and meta typography; a hover state; and columns and gap per breakpoint. The editor's Result preview now includes sample cards so the whole block can be styled without running a real query.
 
-= Stage 10: the email gate =
+= Stage 10: the reading, and an optional "email me a copy" =
 
-The summary is shown immediately; the full ingredient breakdown and the read-next block are held behind a short email form.
+The whole reading — the summary, every ingredient in order, and the read-next block — is shown on screen straight away. Beneath it, a short email form offers to send the reading to an inbox so the visitor can keep it. It is not a gate: nothing is hidden, and no email is needed to read the formula. (Earlier builds held the breakdown behind this form; that was reversed — the email is only for keeping a copy.)
 
-* **Summary first, then the gate.** On submit, the descriptive summary appears straight away. The breakdown is not in the page at all until the gate is completed — it is delivered only after, so it can't simply be read from the source.
-* **One consent, covering both.** A single checkbox, unticked by default, covers emailing the result and marketing from Apotheca®. The submit button stays disabled until it is ticked, with the reason shown beneath it rather than failing silently.
-* **The terms, up front.** The same exchange wording is shown near the input, before anything is pasted, as well as at the gate.
-* **Skipped next time.** On submission a first-party cookie is set, its duration taken from the plugin's "cookie duration" setting (twelve months by default), so the gate is skipped on that device afterwards.
-* **What's stored.** Each capture records the address, the timestamp, the consent state, the exact consent wording shown at that moment, and the source page — kept as a private lead entry. (The admin view and privacy tools come in a later stage.)
-* **Guarded.** A honeypot field and a nonce on the gate, a valid-email check, and a required consent box, all validated again on the server.
-* **The full control set from section 11 group J.** Container background, border, radius, padding and shadow; heading and body typography; the email field inherited or overridden; the consent checkbox size, colour, checked colour and radius; consent-text typography and colour; the privacy-link colour; and the submit button inherited or overridden, including its disabled state. The exchange and consent wording are both editable Elementor controls (defaulting to the brief's suggested wording); the privacy-policy link and the unsubscribe line are deliberately not editable. The editor gains an Email gate preview state so the whole gate can be styled.
+* **The reading, in full, on screen.** On submit, the summary and the full breakdown appear immediately for everyone.
+* **Optional email, one consent.** Beneath the reading, an email form offers to send a copy. Its single checkbox, unticked by default, covers emailing the reading and marketing from Apotheca®; the submit button stays disabled until it is ticked, with the reason shown rather than failing silently. Completing it emails the reading and shows a short confirmation in place of the form.
+* **The terms, up front.** The same exchange wording is shown near the input, before anything is pasted, as well as at the email form.
+* **Shown until subscribed.** On submission a first-party cookie is set, its duration taken from the plugin's "cookie duration" setting (twelve months by default), so the email offer is not shown again on that device.
+* **What's stored.** Each capture records the address, the timestamp, the consent state, the exact consent wording shown at that moment, and the source page — kept as a private lead entry.
+* **Guarded.** A honeypot field and a nonce on the form, a valid-email check, and a required consent box, all validated again on the server.
+* **The full control set from section 11 group J.** Container background, border, radius, padding and shadow; heading and body typography; the email field inherited or overridden; the consent checkbox size, colour, checked colour and radius; consent-text typography and colour; the privacy-link colour; and the submit button inherited or overridden, including its disabled state. The exchange and consent wording are both editable Elementor controls (defaulting to the brief's suggested wording); the privacy-policy link and the unsubscribe line are deliberately not editable. The editor keeps a preview state for the email form so the whole thing can be styled.
 
 = Stage 11: the branded result email =
 
@@ -375,6 +375,13 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.5.0 =
+* The email form is no longer a gate. The full reading — summary, every ingredient in order, and the read-next block — now shows on screen straight away for everyone. Beneath it, an optional "email me a copy" form still captures the address and consent and sends the branded email so the visitor can keep their reading; on completion it shows a short confirmation in place of the form. No email is needed to read a formula.
+
+= 1.4.4 =
+* Fixed the loading spinner ("Reading the formula…") and the error box showing permanently, even before anything was submitted. Those states are markup that the script reveals by removing the `hidden` attribute, but the stylesheet had no guard to keep `hidden` winning over the `display` rules, so both showed all the time (the error text was just the default in the markup, not a real failure). A `[hidden]` guard now keeps them hidden until they are actually needed.
+* Reading a list — a public, read-only action — no longer hard-fails on a stale or missing security nonce, so aggressive page caches (WP Rocket, LiteSpeed) and JavaScript optimisers can never block a reading. The honeypot and the per-IP rate limit still guard the endpoint, and the fresh-nonce fetch from 1.4.3 remains the primary path.
 
 = 1.4.3 =
 * The front-end tool is now cache-proof. On a site with full-page caching (LiteSpeed, WP Rocket, Cloudflare) the security nonce baked into the cached page could be hours or months stale, so every submission failed with "something went wrong". The script now fetches a live nonce from a tiny never-cached endpoint on load and uses it for the reading, the email gate and the photo upload, so the tool works regardless of how long the page was cached. (If a page must still be excluded from cache, the stale-nonce message from 1.4.2 makes that obvious.)
