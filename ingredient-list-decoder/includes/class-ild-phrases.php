@@ -349,6 +349,15 @@ class ILD_Phrases {
 		return __( 'Something went wrong reading that list. Please try again.', 'ingredient-list-decoder' );
 	}
 
+	/**
+	 * Shown when the security token is stale — almost always a cached page.
+	 *
+	 * @return string
+	 */
+	public static function error_expired() {
+		return __( 'This page has been open a while. Please refresh it and try again.', 'ingredient-list-decoder' );
+	}
+
 	/** @return string Shown when the pasted text is far too long to be one list. */
 	public static function error_too_long() {
 		return __( 'That\'s more text than a single product\'s ingredient list. Please paste just the ingredients from one product.', 'ingredient-list-decoder' );

@@ -349,11 +349,24 @@ class ILD_Shortcode {
 	 * @return void
 	 */
 	public function ajax_analyse() {
-		// The request must carry our valid nonce, and the honeypot must be empty.
-		$nonce_ok = check_ajax_referer( self::ACTION, 'ild_nonce', false );
-		$is_bot   = ! empty( $_POST['ild_hp'] );
+		// A stale nonce is nearly always a cached page serving an old token, not a
+		// real fault — so it gets its own "refresh the page" message rather than
+		// the generic one, which also makes the cause obvious in testing.
+		if ( ! check_ajax_referer( self::ACTION, 'ild_nonce', false ) ) {
+			wp_send_json_success(
+				array(
+					'html' => self::render_view(
+						array(
+							'state'   => 'error',
+							'message' => ILD_Phrases::error_expired(),
+						)
+					),
+				)
+			);
+		}
 
-		if ( ! $nonce_ok || $is_bot ) {
+		// The honeypot must be empty; a filled one is a bot, sent away quietly.
+		if ( ! empty( $_POST['ild_hp'] ) ) {
 			wp_send_json_success(
 				array(
 					'html' => self::render_view(
@@ -397,37 +410,57 @@ class ILD_Shortcode {
 		$consent_text  = isset( $_POST['ild_consent_text'] ) ? sanitize_textarea_field( wp_unslash( $_POST['ild_consent_text'] ) ) : ILD_Phrases::consent_default();
 		$exchange_text = isset( $_POST['ild_exchange_text'] ) ? sanitize_textarea_field( wp_unslash( $_POST['ild_exchange_text'] ) ) : ILD_Phrases::exchange_default();
 
-		// Run the pipeline, served from the result cache where possible. A parser
-		// error (too long) comes back as a WP_Error.
-		$result = $this->analyse_cached( $raw, $exclude_id );
-		if ( isset( $result['error'] ) ) {
-			$view = ILD_Presenter::present( $result['error'], null, $context );
-			wp_send_json_success( array( 'html' => self::render_view( $view ) ) );
-		}
+		// Everything from here can touch the database and third-party data, so any
+		// unexpected error is caught: the visitor gets a calm message instead of a
+		// blank 500, and the real cause is logged when WP_DEBUG is on.
+		try {
+			// Run the pipeline, served from the result cache where possible. A
+			// parser error (too long) comes back as a WP_Error.
+			$result = $this->analyse_cached( $raw, $exclude_id );
 
-		$match    = $result['match'];
-		$analysis = $result['analysis'];
-		$view     = $result['view'];
+			if ( isset( $result['error'] ) ) {
+				$view = ILD_Presenter::present( $result['error'], null, $context );
+				$html = self::render_view( $view );
+			} else {
+				$match    = $result['match'];
+				$analysis = $result['analysis'];
+				$view     = $result['view'];
 
-		// Record the decoded list and any unmatched tokens. Done once here, at
-		// analysis time; the gate re-runs the engine to render but does not record.
-		if ( 'result' === $view['state'] ) {
-			$this->record_submission( $match, $view, $product_name );
-		}
+				// Record the decoded list and any unmatched tokens. Done once here,
+				// at analysis time; the gate re-runs the engine to render but does
+				// not record.
+				if ( 'result' === $view['state'] ) {
+					$this->record_submission( $match, $view, $product_name );
+				}
 
-		// Gate the breakdown when this is a real result and the device has no
-		// access cookie yet. The summary always shows; the breakdown does not.
-		$vars = array();
-		if ( 'result' === $view['state'] && ! ILD_Gate::has_access() ) {
-			$vars = array(
-				'gated'         => true,
-				'carry'         => array( 'list' => $raw, 'page_id' => $exclude_id, 'product' => $product_name ),
-				'consent_text'  => $consent_text,
-				'exchange_text' => $exchange_text,
+				// Gate the breakdown when this is a real result and the device has
+				// no access cookie yet. The summary always shows; the breakdown
+				// does not.
+				$vars = array();
+				if ( 'result' === $view['state'] && ! ILD_Gate::has_access() ) {
+					$vars = array(
+						'gated'         => true,
+						'carry'         => array( 'list' => $raw, 'page_id' => $exclude_id, 'product' => $product_name ),
+						'consent_text'  => $consent_text,
+						'exchange_text' => $exchange_text,
+					);
+				}
+
+				$html = self::render_view( $view, $vars );
+			}
+		} catch ( \Throwable $e ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'Ingredient List Decoder: analyse failed — ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Guarded by WP_DEBUG.
+			}
+			$html = self::render_view(
+				array(
+					'state'   => 'error',
+					'message' => ILD_Phrases::error_generic(),
+				)
 			);
 		}
 
-		wp_send_json_success( array( 'html' => self::render_view( $view, $vars ) ) );
+		wp_send_json_success( array( 'html' => $html ) );
 	}
 
 	/**
