@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.4.0
+Stable tag: 1.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -69,7 +69,7 @@ The engine that turns a pasted ingredient list into a structured, ordered read o
 The logic that reads a matched, ordered list as a formula. It is not AI: it is the section-6 rules applied to the ingredient metadata, so it is instant and returns the same answer every time. It produces **findings only** — no HTML and no wording. Every finding carries a **confidence flag** and the **underlying data**, so a later stage can phrase it as an inference rather than a fact.
 
 * `ild_analyse_ingredients( $match_result )` takes the Stage 4 output and returns `{ findings, meta }`. `ild_analyse_ingredient_list( $raw )` runs the whole pipeline from raw text.
-* **The one per cent line.** Finds the first ingredient flagged as a sub-one marker and confirms it with a second marker further down; everything from the line onward is treated as likely below one per cent. With a second marker the confidence is high; with only one it is low; **with no marker at all the line is returned as undetermined, never guessed.**
+* **The one per cent line.** Placement turns on the markers' confidence. A single sub-one marker of **strong** confidence is enough to place the line on its own. A **moderate** marker (an unrated marker counts as moderate) places the line only when a **second marker of either level appears further down** to corroborate it. A lone moderate marker with nothing to corroborate it — or no marker at all — leaves the line **undetermined, never guessed**. When placed, the line sits at the first marker's position and everything from there on is treated as likely below one per cent. The shade block from the parser is held apart and never contributes a marker to this logic.
 * **The actives.** Each active's position is recorded, along with which side of the line it sits on (above, below, or undetermined when there is no line).
 * **The base.** Roles are counted across the top third of the list to say what the product is built on before anything else is added.
 * **The shape.** Zero or more observations: an unusually short or long list, fragrance sitting in the top half, or a heavily loaded top third (several actives crowded near the top).
@@ -253,15 +253,16 @@ The core captures every consented lead locally on its own. This stage lets those
 
 == How to test Stage 5 ==
 
-1. Make sure a few ingredients carry the right metadata: mark a couple as sub-one (for example Phenoxyethanol, Sodium Hyaluronate), give one or two the "active" role, and give a fragrance entry the "fragrance" role.
+1. Make sure a few ingredients carry the right metadata: mark a couple as sub-one and set their **marker confidence** (one Strong, one Moderate — for example Phenoxyethanol Strong, Sodium Hyaluronate Moderate), give one or two the "active" role, and give a fragrance entry the "fragrance" role.
 2. Open **Ingredient Decoder → Test Parser** and paste a realistic list.
-3. Below the match table, read the **Analysis findings** dump. Confirm:
-   * the `one_percent_line` finding locates the line at the first sub-one marker, and is only `confirmed` (high confidence) when a second marker appears further down;
+3. Below the match table, read the **Analysis findings** dump. Confirm the `one_percent_line` finding:
+   * a list whose first sub-one marker is **strong** places the line there (status `located`, `basis` strong), on that one marker alone;
+   * a list whose only sub-one marker is **moderate** comes back `undetermined` — until a second marker (of either level) appears further down, at which point it places the line at the first marker (`basis` corroborated);
    * each active is listed with a `side` of above or below that line;
-   * the `base` finding counts roles across the top third;
-   * shape findings appear where relevant (short or long list, fragrance in the top half, a loaded top third).
-4. Paste a list with no sub-one ingredients at all and confirm the line comes back as `undetermined`, not guessed.
-5. Confirm every finding carries a `confidence` flag and the numbers behind it, and that the order of the list is preserved throughout.
+   * the `base` finding counts roles across the top third, and shape findings appear where relevant.
+4. Paste a list with no sub-one ingredients at all, and separately one with a single moderate marker, and confirm both come back `undetermined`, not guessed.
+5. Put a colourant shade range ("May contain: CI 77491, Titanium Dioxide") on a list whose only strong-ish marker is inside it, and confirm the line is **not** placed from the shade block — it is held apart and never ranked.
+6. Confirm every finding carries a `confidence` flag and the numbers behind it, and that the order of the list is preserved throughout.
 
 == How to test Stage 6 ==
 
@@ -374,6 +375,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.4.1 =
+* The one per cent line now weighs marker confidence. A single strong marker places the line on its own; a moderate marker (an unrated one counts as moderate) places it only when a second marker of either level corroborates it further down; a lone moderate marker with nothing to corroborate it is reported as undetermined rather than placed. The line logic never runs across the shade block separated out by the parser.
 
 = 1.4.0 =
 * Parser reworked. Bracketed content is now kept rather than stripped, because the brackets usually carry the common name and keeping them helps matching (the matcher retries a bracketed token with the parenthetical removed, so both "Aqua (Water)" and a stored "…(Shea) Butter" INCI resolve). The shade declaration — everything after "may contain", "+/-" or "±" — is separated out and never passed to the concentration-ordering logic, and returned as its own `shade` element. Individual CI colourants in that block collapse to a single "contains colourants" flag rather than being listed, with Titanium Dioxide and Zinc Oxide kept as full entries (by name or CI number) since they double as UV filters and opacifiers. The Test Parser screen shows the shade block.
