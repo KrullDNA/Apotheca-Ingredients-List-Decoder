@@ -26,6 +26,7 @@ $preview       = isset( $preview ) ? $preview : '';
 $preview_html  = isset( $preview_html ) ? $preview_html : '';
 $submit_icon   = isset( $submit_icon ) ? $submit_icon : '';
 $show_photo    = isset( $show_photo ) ? (bool) $show_photo : false;
+$ai_enhance    = isset( $ai_enhance ) ? (bool) $ai_enhance : false;
 $exchange_text = isset( $exchange_text ) && '' !== $exchange_text ? $exchange_text : ILD_Phrases::exchange_default();
 $consent_text  = isset( $consent_text ) && '' !== $consent_text ? $consent_text : ILD_Phrases::consent_default();
 $wrap_class    = 'ild-tool' . ( '' !== $extra_class ? ' ' . $extra_class : '' );
@@ -114,8 +115,14 @@ $wrap_class    = 'ild-tool' . ( '' !== $extra_class ? ' ' . $extra_class : '' );
 						<textarea class="ild-verify__text" id="<?php echo esc_attr( $uid ); ?>-verify" rows="6" data-ild-verify-text><?php echo ( 'verify' === $preview ) ? esc_textarea( 'Aqua, Glycerin, Niacinamide, Cetearyl Alcohol, Phenoxyethanol' ) : ''; ?></textarea>
 						<div class="ild-verify__actions">
 							<button type="button" class="ild-button ild-verify__confirm" data-ild-verify-confirm><?php echo esc_html( ILD_Phrases::verify_confirm() ); ?></button>
+							<?php // A more accurate AI reading, offered only when an API key is set. ?>
+							<?php if ( $ai_enhance ) : ?>
+								<button type="button" class="ild-button ild-button--secondary ild-verify__enhance" data-ild-verify-enhance><?php echo esc_html( ILD_Phrases::verify_enhance() ); ?></button>
+							<?php endif; ?>
 							<button type="button" class="ild-button ild-button--secondary ild-verify__retake" data-ild-verify-retake><?php echo esc_html( ILD_Phrases::verify_retake() ); ?></button>
 						</div>
+						<?php // Status/error for the more accurate reading, set by the script. ?>
+						<p class="ild-verify__status" data-ild-verify-status role="status" aria-live="polite" hidden></p>
 					</div>
 				</div>
 			</div>

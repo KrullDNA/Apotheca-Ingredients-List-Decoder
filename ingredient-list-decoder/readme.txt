@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,10 +21,10 @@ Everything later stages build on:
 
 * The `ild_ingredient` custom post type. It has a full admin interface but is not publicly queryable, because an ingredient is a database record, not a page.
 * Two taxonomies, seeded on activation with the terms from the brief:
-  * **Ingredient Family** (`ild_family`) — applied to ingredients only.
+  * **Ingredient Family** (`ild_family`) — applied to ingredients only. Includes Pigments and fillers, Silicones and Surfactants alongside the skincare families.
   * **Skin Topic** (`ild_topic`) — shared between ingredients and standard posts, so one tag can link an ingredient to the articles worth reading next.
-* The controlled **role vocabulary**, defined once in `ILD_Roles` so it can never drift, and exposed on the ingredient screen as a multi-select.
-* The ingredient **meta fields**: also known as, role, typical use range (low and high), the below-one-per-cent marker, description, evidence note and founder take.
+* The controlled **role vocabulary**, defined once in `ILD_Roles` so it can never drift, and exposed on the ingredient screen as a multi-select. It covers colour cosmetics as well as skincare (36 roles: the original skincare set plus solubiliser, carrier, preservative booster, buffering, stabiliser, fragrance allergen, pigment, opacifier, absorbent, filler, slip modifier, binder, coating, dispersant, wax, silicone, exfoliant, soothing, astringent and viscosity modifier).
+* The ingredient **meta fields**: also known as, role, typical use range (low and high), the below-one-per-cent marker, a **marker confidence** (strong or moderate, only used where the below-1% marker is ticked), a **category** (Skincare, Colour or Both, for filtering only — the engine never reads it), description, evidence note and founder take.
 * A single **Settings page** with a section-registration API. Every later stage adds its own section to this one page rather than creating a page of its own. The General section is registered now with the email sender name, the email sender address, the cookie duration, and the opt-in "delete data on uninstall" control.
 * Translation-ready throughout, everything prefixed `ild_`.
 
@@ -34,9 +34,9 @@ Everything later stages build on:
 
 An **Import / Export** screen under the Ingredient Decoder menu.
 
-* **Import** a UTF-8 CSV whose header row uses the field names above. Nothing is written on upload: a **column mapping screen** is shown first, with each column auto-matched to a field by name and editable before you commit. On import, a new INCI name creates a new ingredient and an existing one is updated in place — never a duplicate (matching is case-insensitive on the INCI name). Everything imports as **needs review**, never published. The result is a summary of created / updated / skipped counts, with the row number and reason for every skipped row.
+* **Import** a UTF-8 CSV whose header row uses the field names above. Nothing is written on upload: a **column mapping screen** is shown first, with each column auto-matched to a field by name and editable before you commit. On import, create versus update is decided on the **normalised INCI key** from the duplicate-prevention work, so case, spacing, edge punctuation and dash style all update the right entry rather than creating a second one. Where one file holds the same key more than once, the **last occurrence wins** and each earlier one is skipped, named with the row number that superseded it. Everything imports as **needs review**, never published. The result is a summary of created / updated / skipped counts, with the row number and reason for every skipped row.
 * **Export** the whole library to a CSV using the same column names, so a file can be exported, edited and imported straight back — a lossless round trip.
-* Roles accept either the label ("pH adjuster") or the slug ("ph-adjuster"). Families and topics may hold several values separated by a pipe. The below-1% marker accepts yes / y / 1 / true.
+* The columns include **marker_confidence** (strong / moderate) and **category** (Skincare / Colour / Both) alongside the rest. Roles accept either the label ("pH adjuster") or the slug ("ph-adjuster"), and so do marker_confidence and category. Families and topics may hold several values separated by a pipe. The below-1% marker accepts yes / y / 1 / true. Marker confidence is only kept where the below-1% marker is set, matching the edit screen.
 * Guards throughout: a manage_options capability check, a nonce on every step, every field sanitised, and a 2 MB file-size cap. The upload is held in a transient between the mapping and import steps, so no CSV is left on the server.
 
 **A note on the imported "status" column.** The importer accepts a status column so the header matches the field list and a round trip works, but it never uses it to publish: per the brief, every imported and updated row is set to "needs review" regardless of what the file says.
@@ -45,11 +45,11 @@ An **Import / Export** screen under the Ingredient Decoder menu.
 
 Everything that makes a growing library workable for whoever is curating it.
 
-* A tuned **list screen**. Columns for INCI name, Family, Role, Status and Last modified, each one sortable. (Sorting by role orders on the stored role value; sorting by family orders on the first family name.)
-* **Filters** above the list, for Status, Family, Role and the below-1% marker. They combine, so you can narrow to, say, every humectant still needing review.
+* A tuned **list screen**. Columns for INCI name, Family, Role, Category, 1% marker, Status, Topic and Last modified. INCI name, Family, Role, Status and Last modified are sortable. (Sorting by role orders on the stored role value; sorting by family orders on the first family name.)
+* **Filters** above the list, for Status, Family, Role, the below-1% marker, marker confidence and category. They combine, so you can narrow to, say, every strong-confidence 1% marker in the Colour category still needing review.
 * **Search** that looks in both the INCI name and the "also known as" aliases, so a common name or a misspelling still finds the right entry.
 * **Bulk actions**: set the status of the selection (Published, Needs Review or Draft), add a family or a topic to the selection (you pick the term on a short confirmation screen), and export just the selected rows to CSV using the same columns as the full export.
-* **Duplicate blocking.** Saving an entry whose INCI name already belongs to another entry keeps the new one as a draft and shows a clear message naming — and linking to — the entry that already holds the name. Two entries can never share an INCI name.
+* **Duplicate prevention, on every route.** Every ingredient carries a normalised key derived from its INCI name — lower-cased, whitespace collapsed, leading and trailing punctuation stripped, and every hyphen or en-dash variant folded to a plain hyphen — and all duplicate checks compare that key, never the raw string. The keys live in their own table with a UNIQUE index, so the database itself refuses a second entry for the same key even if two saves arrive at once; a PHP check alone could not. The guard covers creation and renaming alike, and every path that reaches them: the editor, Quick Edit, the CSV importer and the AI drafter. A blocked save is kept as a draft with a clear message naming and linking to the entry that already holds the key. On the Add New / edit screen the check also runs **as you type**: an exact key match blocks the save and names the existing entry; a match against another entry's **also known as** alias is a warning (not a block) that names the holder; and a close **near-match** (via the same fuzzy matcher the reader uses) is a warning that always allows the save, because Ceramide NP and Ceramide AP are different ingredients.
 * **Revisions** are enabled on the ingredient post type, so a bad edit to an entry can be rolled back from the editor.
 * A **Review Queue** screen under the Ingredient Decoder menu: a single list of everything still in draft or needing review, ordered alphabetically. (Once ingredients can be requested from the front end, in a later stage, the most-requested entries will rise to the top — the ordering is left open for that via a filter.)
 
@@ -57,9 +57,10 @@ Everything that makes a growing library workable for whoever is curating it.
 
 The engine that turns a pasted ingredient list into a structured, ordered read of the library. No front end yet — it is exposed as plain PHP and as a diagnostic screen.
 
-* **Parsing.** `ild_parse_ingredient_list( $raw )` cleans raw pasted text: it splits on commas, semicolons and line breaks; strips bracketed translations, asterisks and trailing full stops; drops any "may contain" / pigment tail; turns the supplier "(and)" blend separator into a real split; collapses whitespace and normalises case. Order is preserved from start to finish, because an ingredient list is ranked by amount and that order is the whole basis of the analysis.
-* **Matching.** `ild_match_ingredient_list( $raw )` looks each cleaned token up against the INCI name first, then against the "also known as" aliases. Anything still unmatched gets a fuzzy match, which returns a single best suggestion only when it is close enough to be believable (an edit-distance threshold that scales with the token's length, and never fires on very short tokens); otherwise the token is returned as unmatched.
-* **Output.** A structured array whose ordered `items` list is the spine of the later analysis — each item carries its position, the original token, and whether it matched (with the post ID), was a suggestion (with the original token and the suggested entry), or was unmatched. The same outcomes are also grouped into `matched`, `suggestions` and `unmatched` for convenience, with counts.
+* **Parsing.** `ild_parse_ingredient_list( $raw )` cleans raw pasted text: it splits on commas, semicolons and line breaks; removes asterisks and trailing full stops; turns the supplier "(and)" blend separator into a real split; collapses whitespace and normalises case. **Bracketed content is kept**, because the brackets usually carry the common name (Aqua (Water), Butyrospermum Parkii (Shea) Butter) and keeping them helps a token line up with the stored INCI name. Order is preserved from start to finish, because an ingredient list is ranked by amount and that order is the whole basis of the analysis.
+* **The shade declaration.** Everything after a "may contain", "+/-" or "±" marker is a shade range, not a concentration-ordered list, so it is **held apart and never ranked**. Inside it, the individual CI colourants are collapsed to a single flag — the reading says the product contains colourants without naming them. Titanium Dioxide and Zinc Oxide are the exceptions (matched by name or by their CI numbers 77891 / 77947): they double as UV filters and opacifiers, so they keep their full entries wherever they appear. The shade block comes back as a separate `shade` element of the output.
+* **Matching.** `ild_match_ingredient_list( $raw )` looks each cleaned token up against the INCI name first, then against the "also known as" aliases. A token whose brackets carry only a common name (Aqua (Water)) is retried with the parenthetical removed, so it still finds its entry, while a name whose stored INCI itself contains a parenthetical matches directly. Anything still unmatched gets a fuzzy match, which returns a single best suggestion only when it is close enough to be believable (an edit-distance threshold that scales with the token's length, and never fires on very short tokens); otherwise the token is returned as unmatched.
+* **Output.** A structured array whose ordered `items` list is the spine of the later analysis — each item carries its position, the original token, and whether it matched (with the post ID), was a suggestion, or was unmatched — plus a separate `shade` element ({ present, colourants, items }) for the shade range. The same item outcomes are also grouped into `matched`, `suggestions` and `unmatched` for convenience, with counts.
 * **Safety.** The input length is capped; anything implausibly long (a whole page pasted by mistake) is rejected rather than processed.
 * **Test screen.** *Ingredient Decoder → Test Parser* — paste a list and see, in original order, how every token was split, cleaned and matched. Nothing is saved.
 
@@ -68,7 +69,7 @@ The engine that turns a pasted ingredient list into a structured, ordered read o
 The logic that reads a matched, ordered list as a formula. It is not AI: it is the section-6 rules applied to the ingredient metadata, so it is instant and returns the same answer every time. It produces **findings only** — no HTML and no wording. Every finding carries a **confidence flag** and the **underlying data**, so a later stage can phrase it as an inference rather than a fact.
 
 * `ild_analyse_ingredients( $match_result )` takes the Stage 4 output and returns `{ findings, meta }`. `ild_analyse_ingredient_list( $raw )` runs the whole pipeline from raw text.
-* **The one per cent line.** Finds the first ingredient flagged as a sub-one marker and confirms it with a second marker further down; everything from the line onward is treated as likely below one per cent. With a second marker the confidence is high; with only one it is low; **with no marker at all the line is returned as undetermined, never guessed.**
+* **The one per cent line.** Placement turns on the markers' confidence. A single sub-one marker of **strong** confidence is enough to place the line on its own. A **moderate** marker (an unrated marker counts as moderate) places the line only when a **second marker of either level appears further down** to corroborate it. A lone moderate marker with nothing to corroborate it — or no marker at all — leaves the line **undetermined, never guessed**. When placed, the line sits at the first marker's position and everything from there on is treated as likely below one per cent. The shade block from the parser is held apart and never contributes a marker to this logic.
 * **The actives.** Each active's position is recorded, along with which side of the line it sits on (above, below, or undetermined when there is no line).
 * **The base.** Roles are counted across the top third of the list to say what the product is built on before anything else is added.
 * **The shape.** Zero or more observations: an unusually short or long list, fragrance sitting in the top half, or a heavily loaded top third (several actives crowded near the top).
@@ -112,13 +113,14 @@ A second way to give the tool a list: a photo of the back of the pack. It is par
 
 * **Upload or camera.** A dropzone that accepts a single JPEG, PNG or HEIC photo, with a "take a photo" control that opens the camera on a phone. iPhone HEIC photos are handled explicitly.
 * **Prepared in the browser.** The photo is converted and shrunk on the device before anything is uploaded, so a large phone photo becomes a small JPEG. HEIC is decoded natively where the browser can (Safari, i.e. most iPhones) and converted with a small library elsewhere, loaded only when a HEIC actually needs it.
-* **Transcription only.** The image is sent to the Anthropic API with a transcription-only instruction — read the printed ingredient list, add nothing, translate nothing, interpret nothing. The returned text is written into a **verification area, not into the analysis.**
+* **Read free, in the browser, by default.** The prepared photo is read on the device with a free, in-browser reader (Tesseract.js, loaded on demand). No API key is needed, nothing costs anything, and the photo never leaves the visitor's device on this path. The recognised text is written into a **verification area, not into the analysis.**
+* **An optional, more accurate AI reading.** If an Anthropic API key is set, the verification step also offers a **"Read it more accurately"** button that re-reads the same photo through the Anthropic API (transcription only — read the printed list, add nothing, translate nothing). If the free reading finds nothing at all, and a key is set, it falls back to the AI reading automatically. With no key, the tool simply stays on the free reading.
 * **She checks it first.** The transcription appears in an editable field with the photo thumbnail beside it (stacking on mobile) so she can compare the two, correct anything misread, and only then confirm. Nothing is analysed until she does; a "use a different photo" button starts over.
-* **The photo is deleted immediately.** The uploaded image is read once, transcribed, and deleted from the server the instant the text comes back — on every path, including errors. No copy is ever stored, and nothing about the image beyond its printed text is used.
-* **Settings.** A new Photo transcription section holds the Anthropic API key, the model (a fast vision model by default) and the maximum photo size. With no key set, the photo control simply doesn't appear and the tool works by typing as before.
+* **The photo is deleted immediately (AI path).** When the AI reading is used, the uploaded image is read once, transcribed, and deleted from the server the instant the text comes back — on every path, including errors. No copy is ever stored, and nothing about the image beyond its printed text is used. The free browser reading uploads nothing in the first place.
+* **Settings.** The Photo transcription section holds a "Read the list from a photo" switch (on by default, free), and — optionally — the Anthropic API key, the model (a fast vision model by default) and the maximum photo size. With the switch on and no key, the photo control still appears and reads for free; with the switch off, it doesn't appear and the tool works by typing as before.
 * **The full control set from section 11 groups B and C.** Group B (upload): dropzone background, border, radius and padding with separate normal, hover, drag-over, uploading and error states; icon colour and size; prompt and hint typography; progress-bar colour, height and radius; thumbnail size and radius. Group C (verification): container background, border, radius and padding; heading typography; notice typography and colour; transcription-field typography, background and border; and independently styled confirm and retake buttons. Every dimensional control is responsive, and the editor's preview-state control gains a Photo verification option so the whole step can be styled without uploading anything.
 
-**A note on the transcription library.** HEIC conversion for non-Safari browsers uses `heic2any`, loaded on demand from a CDN. The URL is filterable (`ild_heic_converter_url`) so it can be pointed at a bundled copy on sites that must avoid third-party requests; Safari and iPhone photos never need it.
+**A note on the reading libraries.** The free browser reading uses `Tesseract.js`, and HEIC conversion for non-Safari browsers uses `heic2any`; both are loaded on demand from a CDN, only when a photo is actually read. Both URLs are filterable (`ild_ocr_engine_url` and `ild_heic_converter_url`) so they can be pointed at bundled copies on sites that must avoid third-party requests, and the reading language is filterable too (`ild_ocr_language`, `eng` by default). Safari and iPhone photos never need the HEIC library.
 
 = Stage 9: the read-next block =
 
@@ -230,31 +232,37 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Tick a few entries and use **Bulk actions → Set status: Published**, then **Apply**. Confirm the count notice appears and the statuses change.
 6. Tick a few entries and use **Bulk actions → Add to family…**. On the confirmation screen, choose a family and apply. Confirm the family is added (existing families are kept, not replaced).
 7. Tick a few entries and use **Bulk actions → Export selected to CSV**, then click **Download CSV** in the notice. Confirm only the selected rows are in the file.
-8. Add a new ingredient whose INCI name exactly matches an existing one and try to publish it. Confirm it is held as a draft and a message names the existing entry with an edit link.
-9. Open **Ingredient Decoder → Review Queue**. Confirm every draft and needs-review entry is listed alphabetically, and that published entries are not.
-10. Edit an entry twice, then open the editor's Revisions to confirm the earlier version can be restored.
+8. Add a new ingredient whose INCI name matches an existing one — try a difference of case, spacing or a stray full stop (e.g. "glycerin " for "Glycerin"). As you type, confirm a red message names the existing entry with an "Edit it" link and the Publish/Save buttons are disabled; force a save and confirm it is held as a draft with the same message.
+9. Rename an existing entry so its name collides with another entry's; confirm the same block applies to the rename, not only to new entries.
+10. Type a name that you have saved as another entry's **Also known as** alias; confirm a yellow warning names that entry but the save is still allowed.
+11. Type a name one or two letters away from an existing one (e.g. "Ceramide AP" when "Ceramide NP" exists); confirm a yellow near-match warning appears but the save is allowed — they are different ingredients.
+12. Import a CSV containing a row that duplicates an existing INCI name by case or spacing; confirm it updates the existing entry rather than creating a second one.
+13. Open **Ingredient Decoder → Review Queue**. Confirm every draft and needs-review entry is listed alphabetically, and that published entries are not.
+14. Edit an entry twice, then open the editor's Revisions to confirm the earlier version can be restored.
 
 == How to test Stage 4 ==
 
 1. Add or import a handful of ingredients (for example Aqua, Glycerin, Phenoxyethanol, Sodium Hyaluronate), and give Aqua an alias of "Water" in its "Also known as" field.
 2. Open **Ingredient Decoder → Test Parser**.
-3. Paste a realistic list, e.g. `Aqua (Water), Glycerin, Cetearyl Alcohol (and) Ceteareth-20, Sodium Hyaluronate*, Phenoxyethanol. May contain: CI 77891 (Titanium Dioxide).`
-4. Confirm the result table, in the original order: "Aqua (Water)" reads as **Aqua**, "Water" would match Aqua by alias, the "(and)" blend has been split into two separate tokens, the asterisk and the bracketed translations are gone, and everything after "May contain" has been dropped.
-5. Add a deliberate typo, e.g. `Glcerin`, and confirm it comes back as a **suggestion** pointing at Glycerin.
-6. Add a nonsense token, e.g. `Zzzzqqx`, and confirm it comes back as **unmatched**.
-7. Paste something enormous (tens of thousands of characters) and confirm it is rejected with a clear message rather than processed.
+3. Paste a realistic list, e.g. `Aqua (Water), Glycerin, Cetearyl Alcohol (and) Ceteareth-20, Sodium Hyaluronate*, Phenoxyethanol. May contain: CI 77491, CI 77492, Titanium Dioxide (CI 77891), Zinc Oxide.`
+4. Confirm the result table, in the original order: "Aqua (Water)" keeps its bracket and still reads as **Aqua**, the "(and)" blend has been split into two separate tokens, the asterisk and trailing full stops are gone — and the "May contain" range is **not** in the ordered list.
+5. Under the table, confirm a **Shade declaration** section: it says the product contains colourants (the CI 77491 / CI 77492 numbers are not listed), and it keeps **Titanium Dioxide** and **Zinc Oxide** as named entries.
+6. Add a deliberate typo, e.g. `Glcerin`, and confirm it comes back as a **suggestion** pointing at Glycerin.
+7. Add a nonsense token, e.g. `Zzzzqqx`, and confirm it comes back as **unmatched**.
+8. Paste something enormous (tens of thousands of characters) and confirm it is rejected with a clear message rather than processed.
 
 == How to test Stage 5 ==
 
-1. Make sure a few ingredients carry the right metadata: mark a couple as sub-one (for example Phenoxyethanol, Sodium Hyaluronate), give one or two the "active" role, and give a fragrance entry the "fragrance" role.
+1. Make sure a few ingredients carry the right metadata: mark a couple as sub-one and set their **marker confidence** (one Strong, one Moderate — for example Phenoxyethanol Strong, Sodium Hyaluronate Moderate), give one or two the "active" role, and give a fragrance entry the "fragrance" role.
 2. Open **Ingredient Decoder → Test Parser** and paste a realistic list.
-3. Below the match table, read the **Analysis findings** dump. Confirm:
-   * the `one_percent_line` finding locates the line at the first sub-one marker, and is only `confirmed` (high confidence) when a second marker appears further down;
+3. Below the match table, read the **Analysis findings** dump. Confirm the `one_percent_line` finding:
+   * a list whose first sub-one marker is **strong** places the line there (status `located`, `basis` strong), on that one marker alone;
+   * a list whose only sub-one marker is **moderate** comes back `undetermined` — until a second marker (of either level) appears further down, at which point it places the line at the first marker (`basis` corroborated);
    * each active is listed with a `side` of above or below that line;
-   * the `base` finding counts roles across the top third;
-   * shape findings appear where relevant (short or long list, fragrance in the top half, a loaded top third).
-4. Paste a list with no sub-one ingredients at all and confirm the line comes back as `undetermined`, not guessed.
-5. Confirm every finding carries a `confidence` flag and the numbers behind it, and that the order of the list is preserved throughout.
+   * the `base` finding counts roles across the top third, and shape findings appear where relevant.
+4. Paste a list with no sub-one ingredients at all, and separately one with a single moderate marker, and confirm both come back `undetermined`, not guessed.
+5. Put a colourant shade range ("May contain: CI 77491, Titanium Dioxide") on a list whose only strong-ish marker is inside it, and confirm the line is **not** placed from the shade block — it is held apart and never ranked.
+6. Confirm every finding carries a `confidence` flag and the numbers behind it, and that the order of the list is preserved throughout.
 
 == How to test Stage 6 ==
 
@@ -282,17 +290,17 @@ The core captures every consented lead locally on its own. This stage lets those
 
 == How to test Stage 8 ==
 
-1. Open **Ingredient Decoder → Settings** and, in the **Photo transcription** section, paste an Anthropic API key and save. (Leave the model and size at their defaults.)
-2. View the tool logged out. Confirm a photo dropzone now appears beside the textarea, with "Choose a photo" and "Take a photo".
-3. Choose a clear JPEG or PNG photo of an ingredient list. Confirm a brief progress indicator, then a verification area showing the photo thumbnail beside an editable transcription — and that the list has NOT been analysed yet.
-4. On a phone, use "Take a photo" and confirm the camera opens; try an iPhone (HEIC) photo and confirm it is read.
-5. Correct a word in the transcription, then press **Confirm and read the formula**. Confirm the engine now runs on the corrected text and the normal three-part result appears.
-6. Repeat, and this time press **Use a different photo**; confirm the verification clears and the dropzone returns.
+1. **Free reading, no key.** With no Anthropic API key set (and the **Read the list from a photo** switch on, its default), view the tool logged out. Confirm a photo dropzone appears beside the textarea, with "Choose a photo" and "Take a photo".
+2. Choose a clear JPEG or PNG photo of an ingredient list. Confirm a brief "reading" indicator, then a verification area showing the photo thumbnail beside an editable transcription — read for free in the browser — and that the list has NOT been analysed yet. Confirm there is **no** "Read it more accurately" button (no key set).
+3. On a phone, use "Take a photo" and confirm the camera opens; try an iPhone (HEIC) photo and confirm it is read.
+4. Correct any words in the transcription, then press **Confirm and read the formula**. Confirm the engine runs on the corrected text and the normal three-part result appears.
+5. Press **Use a different photo**; confirm the verification clears and the dropzone returns.
+6. **The optional AI reading.** Now paste an Anthropic API key in **Settings → Photo transcription** and save. Read a photo again; in the verification step confirm a **Read it more accurately** button appears. Press it and confirm the transcription is replaced by the AI reading, with a brief status while it runs.
 7. Try a photo larger than the size limit and a non-image file; confirm each is refused with a clear message and nothing is uploaded.
-8. Confirm no product or brand name from the photo appears in the reading, and that the transcription step never states a percentage.
-9. Clear the API key in Settings and save; confirm the photo control disappears and the tool still works by typing.
+8. Confirm no product or brand name from the photo appears in the reading, and that the reading step never states a percentage.
+9. **Switch the feature off.** Untick **Read the list from a photo** and save; confirm the photo control disappears entirely and the tool still works by typing.
 10. In Elementor, set the widget's **Preview state** to Photo verification and confirm the dropzone and verification area render for styling; work through the **B · Photo upload** and **C · Verification** style groups.
-11. (Privacy) Confirm that after a transcription no image file is left in the uploads folder — the photo is deleted immediately after it is read.
+11. (Privacy) Confirm the free reading uploads no file at all, and that after an AI reading no image is left in the uploads folder — it is deleted immediately after it is read.
 
 == How to test Stage 9 ==
 
@@ -367,6 +375,24 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.4.1 =
+* The one per cent line now weighs marker confidence. A single strong marker places the line on its own; a moderate marker (an unrated one counts as moderate) places it only when a second marker of either level corroborates it further down; a lone moderate marker with nothing to corroborate it is reported as undetermined rather than placed. The line logic never runs across the shade block separated out by the parser.
+
+= 1.4.0 =
+* Parser reworked. Bracketed content is now kept rather than stripped, because the brackets usually carry the common name and keeping them helps matching (the matcher retries a bracketed token with the parenthetical removed, so both "Aqua (Water)" and a stored "…(Shea) Butter" INCI resolve). The shade declaration — everything after "may contain", "+/-" or "±" — is separated out and never passed to the concentration-ordering logic, and returned as its own `shade` element. Individual CI colourants in that block collapse to a single "contains colourants" flag rather than being listed, with Titanium Dioxide and Zinc Oxide kept as full entries (by name or CI number) since they double as UV filters and opacifiers. The Test Parser screen shows the shade block.
+
+= 1.3.1 =
+* CSV importer/exporter now carries the marker_confidence and category columns, accepting either the stored value or the human label (marker confidence is kept only where the below-1% marker is set). Create-versus-update is decided on the normalised INCI key, and when one file holds the same key more than once the last occurrence wins while each earlier one is skipped with the row number that superseded it.
+
+= 1.3.0 =
+* Duplicate prevention rebuilt to cover every route that creates or renames an ingredient, matching on a normalised INCI key rather than the raw name. The key (lower-case, whitespace collapsed, edge punctuation stripped, hyphen/en-dash folded) is stored in a new table with a UNIQUE index, so the database refuses a duplicate even when two saves race past the PHP check. The editor now checks as you type: an exact key match blocks the save and links to the existing entry; an alias match warns without blocking; and a fuzzy near-match warns but always allows the save (Ceramide NP vs Ceramide AP). Adds the ild_ingredient_keys table (schema version 2; existing entries are backfilled on upgrade).
+
+= 1.2.0 =
+* Data layer expanded for colour cosmetics. The role vocabulary grows to 36 roles (original skincare slugs unchanged, so no saved data is orphaned). New ingredient fields: marker confidence (strong / moderate, only used where the below-1% marker is ticked) and category (Skincare / Colour / Both, for filtering only — the engine never reads it). Three Ingredient Family terms added: Pigments and fillers, Silicones, Surfactants. The library list screen gains Category and 1% marker columns, and marker-confidence and category filters. (Reactivate the plugin to seed the three new family terms on an existing install.)
+
+= 1.1.0 =
+* Photo reading is now free by default. The prepared photo is read in the visitor's own browser (Tesseract.js, loaded on demand) with no API key and no upload — the image never leaves the device. When an Anthropic API key is set, the verification step also offers a "Read it more accurately" button (the paid AI reading), and a free reading that finds nothing falls back to it automatically. A new "Read the list from a photo" switch (on by default) turns the whole photo feature on or off; the API key is now optional. The reader script URL and language are filterable (ild_ocr_engine_url, ild_ocr_language).
 
 = 1.0.0 =
 * First stable release. All sixteen build stages of the brief are complete: the ingredient library and taxonomies, CSV import/export, the review queue, the decoding engine and findings, the read-next block, the shortcode and the native Elementor widget, photo transcription, the email gate and branded result email, the leads and submissions admin, the unknown-ingredient queue with AI drafting, rate limiting, caching and the dashboard, and the provider-agnostic email-connector interface. The version numbering during the build tracked the stage (0.1.0–0.15.0); this release marks the finished plugin. No functional change from 0.15.0.

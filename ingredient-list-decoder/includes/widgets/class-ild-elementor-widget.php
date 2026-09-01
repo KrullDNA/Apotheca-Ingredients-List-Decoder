@@ -189,7 +189,7 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 				'label_off'    => __( 'Off', 'ingredient-list-decoder' ),
 				'return_value' => 'yes',
 				'default'      => 'yes',
-				'description'  => __( 'Offer reading the list from a photo. The control appears on the live page only once an Anthropic API key is set under Ingredient Decoder → Settings.', 'ingredient-list-decoder' ),
+				'description'  => __( 'Offer reading the list from a photo. Reading is free in the visitor\'s browser by default; add an Anthropic API key under Ingredient Decoder → Settings to also offer a more accurate AI reading. The whole photo feature can be switched off under Settings too.', 'ingredient-list-decoder' ),
 			)
 		);
 

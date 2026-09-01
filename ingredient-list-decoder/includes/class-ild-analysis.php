@@ -13,8 +13,9 @@
  * word it. Crucially, order below one per cent is unregulated, so the engine
  * never claims a precise figure; it states which side of an inferred line an
  * ingredient sits on, and hands the front end enough to phrase it as an
- * inference rather than a fact. Where there is no sub-one marker to work from,
- * the line is reported as undetermined, not guessed.
+ * inference rather than a fact. The one per cent line is placed only when the
+ * markers justify it — a single strong marker, or a moderate one corroborated by
+ * another further down — and is otherwise reported as undetermined, not guessed.
  *
  * @package IngredientListDecoder
  */
@@ -97,10 +98,11 @@ class ILD_Analysis {
 				'matched'   => $is_match,
 				'post_id'   => $is_match ? (int) $item['post_id'] : 0,
 				'inci_name' => $is_match && isset( $item['inci_name'] ) ? $item['inci_name'] : '',
-				'roles'     => array(),
-				'sub_one'   => false,
-				'use_low'   => '',
-				'use_high'  => '',
+				'roles'             => array(),
+				'sub_one'           => false,
+				'marker_confidence' => '',
+				'use_low'           => '',
+				'use_high'          => '',
 			);
 
 			if ( $is_match ) {
@@ -111,6 +113,14 @@ class ILD_Analysis {
 				$high               = get_post_meta( $element['post_id'], '_ild_use_high', true );
 				$element['use_low']  = is_string( $low ) ? $low : '';
 				$element['use_high'] = is_string( $high ) ? $high : '';
+
+				// The marker's confidence, but only where it is a sub-one marker.
+				// An unrated marker is treated as moderate — the cautious tier — so
+				// it never places the line on its own.
+				if ( $element['sub_one'] ) {
+					$confidence                   = get_post_meta( $element['post_id'], '_ild_marker_confidence', true );
+					$element['marker_confidence'] = ( 'strong' === $confidence ) ? 'strong' : 'moderate';
+				}
 			}
 
 			$sequence[] = $element;
@@ -235,11 +245,20 @@ class ILD_Analysis {
 	/**
 	 * Rule 1: locate the probable one per cent line.
 	 *
-	 * The line is the position of the first sub-one marker; everything from there
-	 * on is likely below one per cent. A second marker further down confirms it.
-	 * With no marker at all, the line is undetermined rather than guessed.
+	 * Placement turns on the confidence of the sub-one markers:
+	 *  - a single marker of confidence "strong" is enough to place the line;
+	 *  - a "moderate" marker (an unrated one counts as moderate) places the line
+	 *    only when a second marker of either level appears further down the list
+	 *    to corroborate it;
+	 *  - a lone moderate marker with nothing to corroborate it, or no marker at
+	 *    all, leaves the line undetermined rather than guessing.
 	 *
-	 * @param array $sequence The enriched sequence.
+	 * The line, when placed, sits at the first marker's position; everything from
+	 * there on is treated as below one per cent. Only the ordered list reaches
+	 * this rule — the shade block from the parser is held apart and never ranked,
+	 * so it can never contribute a marker here.
+	 *
+	 * @param array $sequence The enriched sequence (the ordered list only).
 	 * @return array { 'finding' => array, 'line_position' => int|null }.
 	 */
 	private static function rule_one_percent_line( $sequence ) {
@@ -249,15 +268,35 @@ class ILD_Analysis {
 		foreach ( $sequence as $el ) {
 			if ( $el['matched'] && $el['sub_one'] ) {
 				$markers[] = array(
-					'position'  => $el['position'],
-					'post_id'   => $el['post_id'],
-					'inci_name' => $el['inci_name'],
+					'position'   => $el['position'],
+					'post_id'    => $el['post_id'],
+					'inci_name'  => $el['inci_name'],
+					'confidence' => $el['marker_confidence'],
 				);
 			}
 		}
 
-		// No marker: undetermined, low confidence, nothing placed against it.
-		if ( empty( $markers ) ) {
+		// Decide whether the markers are strong enough to place the line, and on
+		// what basis.
+		$line_position = null;
+		$basis         = '';
+		if ( ! empty( $markers ) ) {
+			if ( 'strong' === $markers[0]['confidence'] ) {
+				// A single strong marker is sufficient on its own.
+				$line_position = $markers[0]['position'];
+				$basis         = 'strong';
+			} elseif ( count( $markers ) >= 2 ) {
+				// The first marker is moderate, but a later marker (of either
+				// level) corroborates it — the markers are ordered, so any second
+				// one is further down the list.
+				$line_position = $markers[0]['position'];
+				$basis         = 'corroborated';
+			}
+			// Otherwise a lone moderate marker: not enough to place. Undetermined.
+		}
+
+		// Undetermined: no marker, or a single moderate one with no corroboration.
+		if ( null === $line_position ) {
 			return array(
 				'line_position' => null,
 				'finding'       => array(
@@ -267,7 +306,8 @@ class ILD_Analysis {
 						'status'        => 'undetermined',
 						'line_position' => null,
 						'confirmed'     => false,
-						'markers'       => array(),
+						'basis'         => '',
+						'markers'       => $markers,
 						'above_count'   => null,
 						'below_count'   => null,
 						'total'         => $n,
@@ -275,9 +315,6 @@ class ILD_Analysis {
 				),
 			);
 		}
-
-		$line_position = $markers[0]['position'];
-		$confirmed     = ( count( $markers ) >= 2 );
 
 		// Everything from the line onward is treated as below one per cent.
 		$below_count = 0;
@@ -292,12 +329,14 @@ class ILD_Analysis {
 			'line_position' => $line_position,
 			'finding'       => array(
 				'type'       => 'one_percent_line',
-				// A single marker is weak; a second one further down confirms it.
-				'confidence' => $confirmed ? 'high' : 'low',
+				// A placed line rests on either a strong marker or corroboration,
+				// so it is reported with high confidence either way.
+				'confidence' => 'high',
 				'data'       => array(
 					'status'        => 'located',
 					'line_position' => $line_position,
-					'confirmed'     => $confirmed,
+					'confirmed'     => true,
+					'basis'         => $basis,
 					'markers'       => $markers,
 					'above_count'   => $above_count,
 					'below_count'   => $below_count,

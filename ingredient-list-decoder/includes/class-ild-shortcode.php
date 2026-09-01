@@ -105,12 +105,19 @@ class ILD_Shortcode {
 				'charCount'       => ILD_Phrases::char_count_template(),
 				// Photo transcription (Stage 8).
 				'transcribeAction' => ILD_Transcription::ACTION,
+				// Free, in-browser reading is the default and needs no key.
+				'ocrEnabled'      => ILD_Transcription::feature_on(),
+				// The paid, more-accurate AI reading is offered only with a key.
 				'photoEnabled'    => ILD_Transcription::is_enabled(),
 				'maxImageBytes'   => ILD_Transcription::max_bytes(),
 				'maxImageDim'     => (int) apply_filters( 'ild_image_max_dimension', 1800 ),
 				'heicUrl'         => (string) apply_filters( 'ild_heic_converter_url', 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js' ),
+				// Tesseract.js does the free browser reading, loaded on demand.
+				'tesseractUrl'    => (string) apply_filters( 'ild_ocr_engine_url', 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js' ),
+				'ocrLang'         => (string) apply_filters( 'ild_ocr_language', 'eng' ),
 				'photoMessages'   => ILD_Phrases::photo_messages(),
 				'photoReading'    => ILD_Phrases::photo_reading(),
+				'photoEnhancing'  => ILD_Phrases::verify_enhancing(),
 				// The email gate (Stage 10).
 				'gateAction'      => ILD_Gate::ACTION,
 				'gateMessages'    => ILD_Phrases::gate_messages(),
@@ -153,6 +160,8 @@ class ILD_Shortcode {
 				'submit_icon'   => '',
 				// null = decide from settings; the widget may force true/false.
 				'show_photo'    => null,
+				// null = decide from settings (a key enables the AI reading).
+				'ai_enhance'    => null,
 				// The editable gate wording; defaults are the brief's suggestions.
 				'exchange_text' => ILD_Phrases::exchange_default(),
 				'consent_text'  => ILD_Phrases::consent_default(),
@@ -160,14 +169,20 @@ class ILD_Shortcode {
 			$args
 		);
 
-		// Show the photo control when transcription is configured, unless the
-		// caller (the widget) has made an explicit choice. The editor preview
-		// always shows it so it can be styled.
+		// Show the photo control whenever the photo feature is on (free browser
+		// reading needs no key), unless the caller (the widget) has made an
+		// explicit choice. The editor preview always shows it so it can be styled.
 		if ( null === $args['show_photo'] ) {
-			$args['show_photo'] = ILD_Transcription::is_enabled();
+			$args['show_photo'] = ILD_Transcription::feature_on();
 		}
 		if ( in_array( $args['preview'], array( 'verify' ), true ) ) {
 			$args['show_photo'] = true;
+		}
+
+		// Whether to offer the "read it more accurately" (paid AI) button inside
+		// the verification step. Only when an API key is configured.
+		if ( null === $args['ai_enhance'] ) {
+			$args['ai_enhance'] = ILD_Transcription::is_enabled();
 		}
 
 		// Load the assets now that we know the tool is on this page.
@@ -193,6 +208,7 @@ class ILD_Shortcode {
 				'preview_html'  => $preview_html,
 				'submit_icon'   => $args['submit_icon'],
 				'show_photo'    => (bool) $args['show_photo'],
+				'ai_enhance'    => (bool) $args['ai_enhance'],
 				'exchange_text' => $args['exchange_text'],
 				'consent_text'  => $args['consent_text'],
 			)
@@ -432,12 +448,25 @@ class ILD_Shortcode {
 		}
 
 		$normalised = array();
-		foreach ( $parsed as $token ) {
+		foreach ( $parsed['items'] as $token ) {
 			if ( ! empty( $token['normalised'] ) ) {
 				$normalised[] = $token['normalised'];
 			}
 		}
 		$key = implode( ', ', $normalised );
+
+		// Fold the shade block into the key, so two lists that differ only in their
+		// shade range never share a cached result.
+		$shade = isset( $parsed['shade'] ) ? $parsed['shade'] : array();
+		if ( ! empty( $shade['present'] ) ) {
+			$shade_norms = array();
+			foreach ( (array) ( isset( $shade['items'] ) ? $shade['items'] : array() ) as $shade_token ) {
+				if ( ! empty( $shade_token['normalised'] ) ) {
+					$shade_norms[] = $shade_token['normalised'];
+				}
+			}
+			$key .= ' |shade:' . ( empty( $shade['colourants'] ) ? '0' : '1' ) . ':' . implode( ',', $shade_norms );
+		}
 
 		$cached = ILD_Cache::get( $key );
 		if ( is_array( $cached ) && isset( $cached['view'], $cached['match'], $cached['analysis'] ) ) {

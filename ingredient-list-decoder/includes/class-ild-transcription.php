@@ -91,14 +91,21 @@ class ILD_Transcription {
 			array(
 				'id'          => 'ild_section_transcription',
 				'title'       => __( 'Photo transcription', 'ingredient-list-decoder' ),
-				'description' => __( 'Reads the ingredient list from a photo. The image is sent to the Anthropic API for transcription only, then deleted from the server immediately.', 'ingredient-list-decoder' ),
+				'description' => __( 'Reads the ingredient list from a photo. By default this happens free, in the visitor\'s own browser — the photo never leaves their device. Add an Anthropic API key below to also offer a more accurate AI reading; that reading sends the image to the Anthropic API for transcription only, then deletes it from the server immediately.', 'ingredient-list-decoder' ),
 				'fields'      => array(
+					array(
+						'id'          => 'read_from_photo',
+						'label'       => __( 'Read the list from a photo', 'ingredient-list-decoder' ),
+						'type'        => 'checkbox',
+						'default'     => 1,
+						'description' => __( 'Offer reading the ingredient list from a photo. Free browser reading is used by default; it needs no API key and no photo leaves the visitor\'s device.', 'ingredient-list-decoder' ),
+					),
 					array(
 						'id'          => 'anthropic_api_key',
 						'label'       => __( 'Anthropic API key', 'ingredient-list-decoder' ),
 						'type'        => 'text',
 						'default'     => '',
-						'description' => __( 'Required for photo transcription. Stored on your site and never shown in the tool. Leave blank to switch photo reading off.', 'ingredient-list-decoder' ),
+						'description' => __( 'Optional. When set, the tool also offers a more accurate AI reading of the photo. Stored on your site and never shown in the tool. Leave blank to use free browser reading only.', 'ingredient-list-decoder' ),
 						'sanitize'    => array( __CLASS__, 'sanitize_key_field' ),
 					),
 					array(
@@ -154,7 +161,23 @@ class ILD_Transcription {
 	}
 
 	/**
-	 * Whether photo transcription is switched on (an API key is present).
+	 * Whether the photo route is offered at all.
+	 *
+	 * This governs whether the upload/camera control appears. Free browser
+	 * reading needs no API key, so the control shows whenever the feature is on,
+	 * with or without a key.
+	 *
+	 * @return bool
+	 */
+	public static function feature_on() {
+		return 0 !== (int) ild_get_setting( 'read_from_photo', 1 );
+	}
+
+	/**
+	 * Whether the paid, more-accurate AI reading is available (a key is present).
+	 *
+	 * The free browser reading is always the default; this only decides whether
+	 * the "read it more accurately" option is offered on top of it.
 	 *
 	 * @return bool
 	 */

@@ -110,6 +110,8 @@ class ILD_Library {
 		$new['title']               = __( 'INCI name', 'ingredient-list-decoder' );
 		$new['taxonomy-ild_family'] = __( 'Family', 'ingredient-list-decoder' );
 		$new['ild_role']            = __( 'Role', 'ingredient-list-decoder' );
+		$new['ild_category']        = __( 'Category', 'ingredient-list-decoder' );
+		$new['ild_marker']          = __( '1% marker', 'ingredient-list-decoder' );
 		$new['ild_status']          = __( 'Status', 'ingredient-list-decoder' );
 		$new['taxonomy-ild_topic']  = __( 'Topic', 'ingredient-list-decoder' );
 		$new['ild_modified']        = __( 'Last modified', 'ingredient-list-decoder' );
@@ -121,7 +123,7 @@ class ILD_Library {
 	 * Fill in the value for each of our custom columns, row by row.
 	 *
 	 * WordPress renders the title and taxonomy columns itself; this only handles
-	 * the three columns we added.
+	 * the custom columns we added.
 	 *
 	 * @param string $column  The column key being drawn.
 	 * @param int    $post_id The ingredient in this row.
@@ -135,6 +137,33 @@ class ILD_Library {
 				if ( is_array( $roles ) && ! empty( $roles ) ) {
 					$labels = array_map( array( 'ILD_Roles', 'get_label' ), $roles );
 					echo esc_html( implode( ', ', $labels ) );
+				} else {
+					echo '<span aria-hidden="true">&mdash;</span>';
+				}
+				break;
+
+			case 'ild_category':
+				// The category, shown as its human label. Filtering only.
+				$category = (string) get_post_meta( $post_id, '_ild_category', true );
+				$options  = ILD_Meta_Fields::category_options();
+				if ( '' !== $category && isset( $options[ $category ] ) ) {
+					echo esc_html( $options[ $category ] );
+				} else {
+					echo '<span aria-hidden="true">&mdash;</span>';
+				}
+				break;
+
+			case 'ild_marker':
+				// Whether the entry marks the 1% line, and how reliably. Confidence
+				// only exists where the marker is set.
+				if ( 'yes' === get_post_meta( $post_id, '_ild_sub_one_marker', true ) ) {
+					$confidence = (string) get_post_meta( $post_id, '_ild_marker_confidence', true );
+					$options    = ILD_Meta_Fields::marker_confidence_options();
+					if ( '' !== $confidence && isset( $options[ $confidence ] ) ) {
+						echo esc_html( $options[ $confidence ] );
+					} else {
+						echo esc_html__( 'Yes', 'ingredient-list-decoder' );
+					}
 				} else {
 					echo '<span aria-hidden="true">&mdash;</span>';
 				}
@@ -315,6 +344,42 @@ class ILD_Library {
 			);
 		}
 		echo '</select>';
+
+		// --- Marker confidence. -------------------------------------------
+		$current_conf = isset( $_GET['ild_marker_conf_filter'] ) ? sanitize_key( wp_unslash( $_GET['ild_marker_conf_filter'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list filter.
+		echo '<label class="screen-reader-text" for="ild_marker_conf_filter">' . esc_html__( 'Filter by marker confidence', 'ingredient-list-decoder' ) . '</label>';
+		echo '<select name="ild_marker_conf_filter" id="ild_marker_conf_filter">';
+		printf( '<option value="">%s</option>', esc_html__( 'Any marker confidence', 'ingredient-list-decoder' ) );
+		foreach ( ILD_Meta_Fields::marker_confidence_options() as $value => $label ) {
+			if ( '' === $value ) {
+				continue; // The empty option is the "any" one above.
+			}
+			printf(
+				'<option value="%1$s" %2$s>%3$s</option>',
+				esc_attr( $value ),
+				selected( $current_conf, $value, false ),
+				esc_html( $label )
+			);
+		}
+		echo '</select>';
+
+		// --- Category. ----------------------------------------------------
+		$current_category = isset( $_GET['ild_category_filter'] ) ? sanitize_key( wp_unslash( $_GET['ild_category_filter'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list filter.
+		echo '<label class="screen-reader-text" for="ild_category_filter">' . esc_html__( 'Filter by category', 'ingredient-list-decoder' ) . '</label>';
+		echo '<select name="ild_category_filter" id="ild_category_filter">';
+		printf( '<option value="">%s</option>', esc_html__( 'All categories', 'ingredient-list-decoder' ) );
+		foreach ( ILD_Meta_Fields::category_options() as $value => $label ) {
+			if ( '' === $value ) {
+				continue; // The empty option is the "all" one above.
+			}
+			printf(
+				'<option value="%1$s" %2$s>%3$s</option>',
+				esc_attr( $value ),
+				selected( $current_category, $value, false ),
+				esc_html( $label )
+			);
+		}
+		echo '</select>';
 	}
 
 	/**
@@ -373,6 +438,24 @@ class ILD_Library {
 			$meta_query[] = array(
 				'key'     => '_ild_sub_one_marker',
 				'compare' => 'NOT EXISTS',
+			);
+		}
+
+		// --- Marker confidence. Only real where a marker is set. ----------
+		$confidence = isset( $_GET['ild_marker_conf_filter'] ) ? sanitize_key( wp_unslash( $_GET['ild_marker_conf_filter'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list filter.
+		if ( '' !== $confidence && array_key_exists( $confidence, ILD_Meta_Fields::marker_confidence_options() ) ) {
+			$meta_query[] = array(
+				'key'   => '_ild_marker_confidence',
+				'value' => $confidence,
+			);
+		}
+
+		// --- Category. Filtering only; the engine never reads it. ---------
+		$category = isset( $_GET['ild_category_filter'] ) ? sanitize_key( wp_unslash( $_GET['ild_category_filter'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list filter.
+		if ( '' !== $category && array_key_exists( $category, ILD_Meta_Fields::category_options() ) ) {
+			$meta_query[] = array(
+				'key'   => '_ild_category',
+				'value' => $category,
 			);
 		}
 
@@ -785,11 +868,15 @@ class ILD_Library {
 	/**
 	 * Stop a save that would create a second entry with an existing INCI name.
 	 *
-	 * Runs just before the post is written. If another ingredient already holds
-	 * this exact INCI name, the entry being saved is forced down to a draft (so a
-	 * duplicate can never go live) and a message is queued naming the entry that
-	 * already has the name. The importer and status changes are unaffected: they
-	 * always pass the entry's own ID, which is excluded from the check.
+	 * Runs just before the post is written, on every route that inserts or updates
+	 * an ingredient (the editor, Quick Edit, the CSV importer, the AI drafter, any
+	 * wp_insert_post). Matching is on the normalised key, never the raw title. If
+	 * another ingredient already owns this key, the entry being saved is forced
+	 * down to a draft (so a duplicate can never go live) and a message is queued
+	 * naming the entry that already has the name. Renames are covered too, since
+	 * an update runs through here just as a creation does; the entry's own ID is
+	 * excluded from the check. The database's unique index is the final backstop
+	 * for two saves that race past this PHP check at once.
 	 *
 	 * @param array $data    The sanitised post fields about to be written.
 	 * @param array $postarr The raw submitted post array (holds the ID, if any).
@@ -815,9 +902,16 @@ class ILD_Library {
 			return $data;
 		}
 
-		// Look for another entry with the same name, ignoring this one.
+		// Match on the normalised key, never the raw string, so a difference of
+		// case, spacing, stray punctuation or dash style is still a duplicate.
+		$key = ILD_Ingredient_Keys::key( $title );
+		if ( '' === $key ) {
+			return $data;
+		}
+
+		// Look for another entry that already owns this key, ignoring this one.
 		$exclude  = isset( $postarr['ID'] ) ? (int) $postarr['ID'] : 0;
-		$existing = ild_find_ingredient_by_title( $title, $exclude );
+		$existing = ILD_Ingredient_Keys::owner_of_key( $key, $exclude );
 
 		if ( $existing ) {
 			// Never let the duplicate reach a live or review state.

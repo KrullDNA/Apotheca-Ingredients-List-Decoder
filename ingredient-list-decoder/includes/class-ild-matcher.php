@@ -89,9 +89,9 @@ class ILD_Matcher {
 	 */
 	public static function match( $raw ) {
 		// Parsing may reject the input (too long); pass that straight back.
-		$tokens = ILD_Parser::parse( $raw );
-		if ( is_wp_error( $tokens ) ) {
-			return $tokens;
+		$parsed = ILD_Parser::parse( $raw );
+		if ( is_wp_error( $parsed ) ) {
+			return $parsed;
 		}
 
 		// Build the lookup once for the whole list.
@@ -102,47 +102,19 @@ class ILD_Matcher {
 		$suggestions = array();
 		$unmatched   = array();
 
-		foreach ( $tokens as $token ) {
-			$norm = $token['normalised'];
+		foreach ( $parsed['items'] as $token ) {
+			// Classify the token, then keep its place in the ordered list.
+			$item             = self::classify( $token['original'], $token['normalised'], $index );
+			$item['position'] = $token['position'];
 
-			// The parts every outcome shares.
-			$item = array(
-				'position' => $token['position'],
-				'original' => $token['original'],
-			);
-
-			if ( isset( $index['inci'][ $norm ] ) ) {
-				// A direct hit on an INCI name.
-				$id                 = $index['inci'][ $norm ];
-				$item['status']     = 'matched';
-				$item['matched_by'] = 'inci';
-				$item['post_id']    = $id;
-				$item['inci_name']  = $index['names'][ $id ];
-				$matched[]          = $item;
-
-			} elseif ( isset( $index['alias'][ $norm ] ) ) {
-				// A hit on one of an ingredient's "also known as" aliases.
-				$id                 = $index['alias'][ $norm ];
-				$item['status']     = 'matched';
-				$item['matched_by'] = 'alias';
-				$item['post_id']    = $id;
-				$item['inci_name']  = $index['names'][ $id ];
-				$matched[]          = $item;
-
+			if ( 'matched' === $item['status'] ) {
+				$matched[] = $item;
+			} elseif ( 'suggestion' === $item['status'] ) {
+				$suggestions[] = $item;
 			} else {
-				// No exact match: try a fuzzy one and offer a single suggestion.
-				$best = self::fuzzy_best( $norm, $index['candidates'] );
-				if ( $best ) {
-					$item['status']     = 'suggestion';
-					$item['suggestion'] = $best;
-					$suggestions[]      = $item;
-				} else {
-					$item['status'] = 'unmatched';
-					$unmatched[]    = $token['original'];
-				}
+				$unmatched[] = $token['original'];
 			}
 
-			// Whatever the outcome, it keeps its place in the ordered list.
 			$items[] = $item;
 		}
 
@@ -157,6 +129,113 @@ class ILD_Matcher {
 				'suggestions' => count( $suggestions ),
 				'unmatched'   => count( $unmatched ),
 			),
+			// The shade declaration, matched but held apart from the ordered list.
+			'shade'       => self::match_shade( $parsed['shade'], $index ),
+		);
+	}
+
+	/**
+	 * Classify one token against the library.
+	 *
+	 * Returns an item carrying its outcome: a match (INCI or alias, with the post
+	 * ID and name), a single fuzzy suggestion, or unmatched. Shared by the ordered
+	 * list and the shade block so both are read the same way.
+	 *
+	 * @param string $original The token as shown to a human.
+	 * @param string $norm     The normalised token to look up.
+	 * @param array  $index    The library index from build_index().
+	 * @return array The item { original, status, ... }.
+	 */
+	private static function classify( $original, $norm, $index ) {
+		$item = array( 'original' => $original );
+
+		$hit = self::lookup( $norm, $index );
+		if ( $hit ) {
+			$item['status']     = 'matched';
+			$item['matched_by'] = $hit['by'];
+			$item['post_id']    = $hit['id'];
+			$item['inci_name']  = $index['names'][ $hit['id'] ];
+			return $item;
+		}
+
+		// No exact hit: offer a single fuzzy suggestion if one is close enough.
+		$best = self::fuzzy_best( $norm, $index['candidates'] );
+		if ( $best ) {
+			$item['status']     = 'suggestion';
+			$item['suggestion'] = $best;
+			return $item;
+		}
+
+		$item['status'] = 'unmatched';
+		return $item;
+	}
+
+	/**
+	 * Look a normalised token up against the INCI names and aliases.
+	 *
+	 * Tries the token as-is first, so a name whose stored INCI includes a
+	 * parenthetical (Butyrospermum Parkii (Shea) Butter) matches directly. If that
+	 * misses, it tries again with parentheticals removed, so a token that carries
+	 * only a common name in brackets (Aqua (Water)) still finds its entry.
+	 *
+	 * @param string $norm  The normalised token.
+	 * @param array  $index The library index.
+	 * @return array{id:int,by:string}|null The hit, or null.
+	 */
+	private static function lookup( $norm, $index ) {
+		if ( isset( $index['inci'][ $norm ] ) ) {
+			return array( 'id' => $index['inci'][ $norm ], 'by' => 'inci' );
+		}
+		if ( isset( $index['alias'][ $norm ] ) ) {
+			return array( 'id' => $index['alias'][ $norm ], 'by' => 'alias' );
+		}
+
+		$bare = self::strip_parentheticals( $norm );
+		if ( $bare !== $norm && '' !== $bare ) {
+			if ( isset( $index['inci'][ $bare ] ) ) {
+				return array( 'id' => $index['inci'][ $bare ], 'by' => 'inci' );
+			}
+			if ( isset( $index['alias'][ $bare ] ) ) {
+				return array( 'id' => $index['alias'][ $bare ], 'by' => 'alias' );
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Remove bracketed groups from a normalised token, collapsing the gap.
+	 *
+	 * @param string $norm The normalised token.
+	 * @return string The token with any ( ), [ ] or { } groups removed.
+	 */
+	private static function strip_parentheticals( $norm ) {
+		$bare = preg_replace( '/\([^()]*\)|\[[^\[\]]*\]|\{[^{}]*\}/u', ' ', $norm );
+		$bare = preg_replace( '/\s+/u', ' ', $bare );
+		return trim( $bare );
+	}
+
+	/**
+	 * Match the shade block's kept exceptions, carrying its flags through.
+	 *
+	 * The shade block is never ranked, so its items carry no position. Titanium
+	 * Dioxide and Zinc Oxide are looked up like any other token; the collapsed
+	 * colourant flag is passed straight through from the parser.
+	 *
+	 * @param array $shade The parser's shade block { present, colourants, items }.
+	 * @param array $index The library index.
+	 * @return array The matched shade block { present, colourants, items }.
+	 */
+	private static function match_shade( $shade, $index ) {
+		$items = array();
+		foreach ( (array) $shade['items'] as $token ) {
+			$items[] = self::classify( $token['original'], $token['normalised'], $index );
+		}
+
+		return array(
+			'present'    => ! empty( $shade['present'] ),
+			'colourants' => ! empty( $shade['colourants'] ),
+			'items'      => $items,
 		);
 	}
 
@@ -236,6 +315,46 @@ class ILD_Matcher {
 			'names'      => $names,
 			'candidates' => $candidates,
 		);
+	}
+
+	/**
+	 * Find the nearest existing entry to a name, for a near-match warning.
+	 *
+	 * Reuses the same fuzzy matcher the front-end analysis uses, so "close enough"
+	 * means the same thing everywhere. It never blocks a save — Ceramide NP and
+	 * Ceramide AP resemble each other but are different ingredients — it only names
+	 * the entry a curator may want to glance at.
+	 *
+	 * @param string $name       The raw name being typed or saved.
+	 * @param int    $exclude_id An entry to leave out (the one being edited).
+	 * @return array|null A suggestion { post_id, inci_name, distance }, or null.
+	 */
+	public static function nearest( $name, $exclude_id = 0 ) {
+		$norm = ILD_Parser::normalise( $name );
+		if ( '' === $norm ) {
+			return null;
+		}
+
+		$exclude_id = (int) $exclude_id;
+		$index      = self::build_index();
+
+		// Drop the entry being edited so it never resembles itself.
+		$candidates = array();
+		foreach ( $index['candidates'] as $candidate ) {
+			if ( (int) $candidate['id'] !== $exclude_id ) {
+				$candidates[] = $candidate;
+			}
+		}
+
+		$best = self::fuzzy_best( $norm, $candidates );
+
+		// An exact normalised hit is a collision, handled elsewhere; only report a
+		// genuine near-miss here.
+		if ( $best && isset( $best['distance'] ) && 0 === (int) $best['distance'] ) {
+			return null;
+		}
+
+		return $best;
 	}
 
 	/**
@@ -442,6 +561,41 @@ class ILD_Matcher {
 		}
 
 		echo '</tbody></table>';
+
+		$this->render_shade( $result );
+	}
+
+	/**
+	 * Draw the shade declaration, held apart from the ordered list.
+	 *
+	 * @param array $result The structured result from match().
+	 * @return void
+	 */
+	private function render_shade( $result ) {
+		$shade = isset( $result['shade'] ) ? $result['shade'] : array();
+		if ( empty( $shade['present'] ) ) {
+			return;
+		}
+
+		echo '<h2>' . esc_html__( 'Shade declaration', 'ingredient-list-decoder' ) . '</h2>';
+		printf(
+			'<p class="description">%s</p>',
+			esc_html__( 'A “may contain” / “+/-” shade range, held apart from the concentration-ordered list and never ranked.', 'ingredient-list-decoder' )
+		);
+
+		if ( ! empty( $shade['colourants'] ) ) {
+			printf( '<p>%s</p>', esc_html__( 'This product contains colourants (individual CI numbers are not listed).', 'ingredient-list-decoder' ) );
+		}
+
+		if ( ! empty( $shade['items'] ) ) {
+			printf( '<p>%s</p>', esc_html__( 'Kept from the shade block (they also work as UV filters / opacifiers):', 'ingredient-list-decoder' ) );
+			echo '<ul style="list-style:disc;margin-left:1.5em;">';
+			foreach ( $shade['items'] as $item ) {
+				$name = ( 'matched' === $item['status'] && ! empty( $item['inci_name'] ) ) ? $item['inci_name'] : $item['original'];
+				printf( '<li>%s</li>', esc_html( $name ) );
+			}
+			echo '</ul>';
+		}
 	}
 
 	/**
