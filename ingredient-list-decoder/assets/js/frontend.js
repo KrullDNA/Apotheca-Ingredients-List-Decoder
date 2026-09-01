@@ -16,6 +16,64 @@
 
 	var settings = window.ILD_Frontend || {};
 
+	/* -------------------------------------------------------------------
+	 * Fresh nonces for cached pages.
+	 *
+	 * The tool's page HTML is frequently served from a full-page cache
+	 * (LiteSpeed, WP Rocket, Cloudflare), so the nonce baked into the form can
+	 * be long expired by the time someone uses it — which the server rejects.
+	 * We fetch a live nonce from an uncached endpoint on load and write it into
+	 * the form fields, and make sure that fetch has resolved before we submit.
+	 * ----------------------------------------------------------------- */
+	var freshNonces = {};
+	var noncePromise = null;
+
+	function setNonceFields( selector, value ) {
+		if ( ! value ) {
+			return;
+		}
+		var fields = document.querySelectorAll( selector );
+		Array.prototype.forEach.call( fields, function ( field ) {
+			field.value = value;
+		} );
+	}
+
+	function applyNonces() {
+		setNonceFields( 'input[name="ild_nonce"]', freshNonces.analyse );
+		setNonceFields( 'input[name="ild_transcribe_nonce"]', freshNonces.transcribe );
+		setNonceFields( 'input[name="ild_gate_nonce"]', freshNonces.gate );
+	}
+
+	function ensureNonces() {
+		if ( noncePromise ) {
+			return noncePromise;
+		}
+		if ( ! settings.ajaxUrl || ! settings.refreshAction ) {
+			noncePromise = Promise.resolve();
+			return noncePromise;
+		}
+
+		var body = new URLSearchParams();
+		body.append( 'action', settings.refreshAction );
+
+		noncePromise = fetch( settings.ajaxUrl, {
+			method: 'POST',
+			credentials: 'same-origin',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+			body: body.toString()
+		} )
+			.then( function ( response ) { return response.json(); } )
+			.then( function ( payload ) {
+				if ( payload && payload.success && payload.data ) {
+					freshNonces = payload.data;
+					applyNonces();
+				}
+			} )
+			.catch( function () { /* Fall back to the embedded nonce. */ } );
+
+		return noncePromise;
+	}
+
 	/**
 	 * Find the tool wrapper a given element belongs to.
 	 *
@@ -93,10 +151,15 @@
 		}
 	} );
 
-	// Prime the count for every tool already on the page.
+	// Prime the count for every tool already on the page, and fetch a live nonce
+	// straight away so a cached page can still submit.
 	document.addEventListener( 'DOMContentLoaded', function () {
 		var boxes = document.querySelectorAll( '.ild-tool .ild-textarea' );
 		Array.prototype.forEach.call( boxes, updateCount );
+
+		if ( document.querySelector( '.ild-tool' ) ) {
+			ensureNonces();
+		}
 	} );
 
 	// "Start again" clears the tool. The button only exists inside a result.
@@ -458,8 +521,10 @@
 
 		var data = new FormData();
 		data.append( 'action', settings.transcribeAction );
-		if ( nonceField ) {
-			data.append( 'ild_transcribe_nonce', nonceField.value );
+		// Prefer the freshly fetched nonce over the (possibly cached) form one.
+		var transcribeNonce = freshNonces.transcribe || ( nonceField ? nonceField.value : '' );
+		if ( transcribeNonce ) {
+			data.append( 'ild_transcribe_nonce', transcribeNonce );
 		}
 		data.append( 'ild_image', blob, 'ingredients.jpg' );
 
@@ -763,6 +828,14 @@
 			button.disabled = true;
 		}
 
+		// The gate form was injected after the page loaded, so refresh its nonce
+		// from the live one before sending (the fetch has long since resolved by
+		// the time the gate is on screen).
+		var gateNonce = form.querySelector( 'input[name="ild_gate_nonce"]' );
+		if ( gateNonce && freshNonces.gate ) {
+			gateNonce.value = freshNonces.gate;
+		}
+
 		var data = new FormData( form );
 		data.append( 'action', settings.gateAction );
 
@@ -845,6 +918,16 @@
 		}
 		tool.setAttribute( 'aria-busy', 'true' );
 
+		// Make sure a live nonce is in place before sending — this is the first
+		// submit, so the page-load fetch may not have resolved yet.
+		ensureNonces().then( function () {
+			if ( freshNonces.analyse ) {
+				var nf = form.querySelector( 'input[name="ild_nonce"]' );
+				if ( nf ) {
+					nf.value = freshNonces.analyse;
+				}
+			}
+
 		// Send the whole form (list, product name, nonce, honeypot) plus the action.
 		var data = new FormData( form );
 		data.append( 'action', 'ild_analyse' );
@@ -891,5 +974,6 @@
 					netError.hidden = false;
 				}
 			} );
+		} );
 	} );
 } )();

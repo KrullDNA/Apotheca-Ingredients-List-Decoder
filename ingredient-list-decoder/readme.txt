@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.4.2
+Stable tag: 1.4.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.4.3 =
+* The front-end tool is now cache-proof. On a site with full-page caching (LiteSpeed, WP Rocket, Cloudflare) the security nonce baked into the cached page could be hours or months stale, so every submission failed with "something went wrong". The script now fetches a live nonce from a tiny never-cached endpoint on load and uses it for the reading, the email gate and the photo upload, so the tool works regardless of how long the page was cached. (If a page must still be excluded from cache, the stale-nonce message from 1.4.2 makes that obvious.)
 
 = 1.4.2 =
 * The Elementor widget now styles the two photo-upload buttons ("Choose a photo" and "Take a photo") — a full button control set under B · Photo upload, which had been missing.

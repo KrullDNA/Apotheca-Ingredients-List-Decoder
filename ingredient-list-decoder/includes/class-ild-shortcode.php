@@ -32,6 +32,13 @@ class ILD_Shortcode {
 	const ACTION = 'ild_analyse';
 
 	/**
+	 * The AJAX action that hands back fresh nonces for a cached page.
+	 *
+	 * @var string
+	 */
+	const REFRESH_ACTION = 'ild_refresh_nonce';
+
+	/**
 	 * The script handle for the front-end JavaScript.
 	 *
 	 * @var string
@@ -61,6 +68,32 @@ class ILD_Shortcode {
 		// The endpoint is open to logged-out visitors, because the tool is public.
 		add_action( 'wp_ajax_' . self::ACTION, array( $this, 'ajax_analyse' ) );
 		add_action( 'wp_ajax_nopriv_' . self::ACTION, array( $this, 'ajax_analyse' ) );
+
+		// A tiny, never-cached endpoint that hands back fresh nonces. The tool's
+		// page HTML is often served from a full-page cache (LiteSpeed, WP Rocket,
+		// Cloudflare), so the nonce baked into it can be hours or months stale.
+		// The script fetches a live nonce from here before it submits.
+		add_action( 'wp_ajax_' . self::REFRESH_ACTION, array( $this, 'ajax_refresh_nonce' ) );
+		add_action( 'wp_ajax_nopriv_' . self::REFRESH_ACTION, array( $this, 'ajax_refresh_nonce' ) );
+	}
+
+	/**
+	 * Hand back fresh nonces for the tool's endpoints.
+	 *
+	 * Read-only and safe to call anonymously: it only issues tokens, it does not
+	 * act on anything. admin-ajax is never page-cached, so the nonces it returns
+	 * are always current — the fix for a stale nonce on a cached page.
+	 *
+	 * @return void
+	 */
+	public function ajax_refresh_nonce() {
+		wp_send_json_success(
+			array(
+				'analyse'    => wp_create_nonce( self::ACTION ),
+				'gate'       => wp_create_nonce( ILD_Gate::ACTION ),
+				'transcribe' => wp_create_nonce( ILD_Transcription::ACTION ),
+			)
+		);
 	}
 
 	/**
@@ -103,6 +136,8 @@ class ILD_Shortcode {
 			array(
 				'ajaxUrl'         => admin_url( 'admin-ajax.php' ),
 				'charCount'       => ILD_Phrases::char_count_template(),
+				// The fresh-nonce endpoint, so a cached page still submits.
+				'refreshAction'   => self::REFRESH_ACTION,
 				// Photo transcription (Stage 8).
 				'transcribeAction' => ILD_Transcription::ACTION,
 				// Free, in-browser reading is the default and needs no key.
