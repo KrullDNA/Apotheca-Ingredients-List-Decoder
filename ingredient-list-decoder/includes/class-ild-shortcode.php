@@ -460,13 +460,14 @@ class ILD_Shortcode {
 					$this->record_submission( $match, $view, $product_name );
 				}
 
-				// Gate the breakdown when this is a real result and the device has
-				// no access cookie yet. The summary always shows; the breakdown
-				// does not.
+				// The full reading — summary, every ingredient in order, and the
+				// read-next block — always shows on screen. The email form is an
+				// optional way to keep a copy, offered beneath the reading until the
+				// visitor has given an address (its cookie).
 				$vars = array();
 				if ( 'result' === $view['state'] && ! ILD_Gate::has_access() ) {
 					$vars = array(
-						'gated'         => true,
+						'email_offer'   => true,
 						'carry'         => array( 'list' => $raw, 'page_id' => $exclude_id, 'product' => $product_name ),
 						'consent_text'  => $consent_text,
 						'exchange_text' => $exchange_text,

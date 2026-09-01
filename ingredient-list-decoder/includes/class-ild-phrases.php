@@ -151,9 +151,14 @@ class ILD_Phrases {
 		return __( 'Yes — email me my result and send me skincare thinking and news from Apotheca®.', 'ingredient-list-decoder' );
 	}
 
-	/** @return string The heading over the email gate. */
+	/** @return string The heading over the optional "email me a copy" form. */
 	public static function gate_heading() {
-		return __( 'See your full breakdown', 'ingredient-list-decoder' );
+		return __( 'Want to keep this reading?', 'ingredient-list-decoder' );
+	}
+
+	/** @return string Shown after the reading has been emailed. */
+	public static function gate_sent() {
+		return __( 'Done — your reading is on its way to your inbox.', 'ingredient-list-decoder' );
 	}
 
 	/** @return string The label for the email field. */

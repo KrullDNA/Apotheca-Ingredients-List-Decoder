@@ -1,17 +1,17 @@
 <?php
 /**
- * The result view: the summary (always shown), then the breakdown — either
- * inline, or behind the email gate.
+ * The result view: the summary and the full breakdown, both always on screen,
+ * with an optional email form beneath so the visitor can keep a copy.
  *
- * The summary appears immediately. The full ingredient list and the read-next
- * block (the "breakdown") are shown straight away when the visitor already has
- * access, or held behind the email gate when they don't. When gated, the
- * breakdown markup is not in the page at all — it is delivered only after the
- * gate is completed, so it can't simply be read from the source.
+ * The summary and the breakdown (every ingredient in order, and the read-next
+ * block) are shown straight away. The email form is not a gate — the reading is
+ * already visible; it is only an offer to send the reading to an inbox, shown
+ * until the visitor has given an address.
  *
  * Expects: $view (array) the result view model.
- * Optional: $gated (bool), $carry (array), $consent_text (string),
- *           $exchange_text (string) — passed when the breakdown is gated.
+ * Optional: $email_offer (bool) whether to show the email form; $carry (array),
+ *           $consent_text (string), $exchange_text (string) — for that form.
+ *           ($gated is accepted as an alias of $email_offer for editor previews.)
  *
  * @package IngredientListDecoder
  */
@@ -21,10 +21,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$view    = isset( $view ) ? $view : array();
-$summary = isset( $view['summary'] ) ? $view['summary'] : array();
-$caveat  = isset( $view['summary_caveat'] ) ? $view['summary_caveat'] : '';
-$gated   = isset( $gated ) ? (bool) $gated : false;
+$view        = isset( $view ) ? $view : array();
+$summary     = isset( $view['summary'] ) ? $view['summary'] : array();
+$caveat      = isset( $view['summary_caveat'] ) ? $view['summary_caveat'] : '';
+$email_offer = isset( $email_offer ) ? (bool) $email_offer : ( isset( $gated ) ? (bool) $gated : false );
 ?>
 <div class="ild-result">
 
@@ -55,11 +55,14 @@ $gated   = isset( $gated ) ? (bool) $gated : false;
 	</section>
 
 	<?php
-	// The breakdown: gated behind the email form, or shown inline.
-	if ( $gated ) {
+	// The full breakdown — every ingredient in order, and the read-next block —
+	// always on screen.
+	include ILD_PLUGIN_DIR . 'templates/breakdown.php';
+
+	// Beneath it, the optional "email me a copy" form, until the visitor has
+	// given an address. It no longer hides anything; the reading is above it.
+	if ( $email_offer ) {
 		include ILD_PLUGIN_DIR . 'templates/gate.php';
-	} else {
-		include ILD_PLUGIN_DIR . 'templates/breakdown.php';
 	}
 	?>
 
