@@ -384,21 +384,13 @@ class ILD_Shortcode {
 	 * @return void
 	 */
 	public function ajax_analyse() {
-		// A stale nonce is nearly always a cached page serving an old token, not a
-		// real fault — so it gets its own "refresh the page" message rather than
-		// the generic one, which also makes the cause obvious in testing.
-		if ( ! check_ajax_referer( self::ACTION, 'ild_nonce', false ) ) {
-			wp_send_json_success(
-				array(
-					'html' => self::render_view(
-						array(
-							'state'   => 'error',
-							'message' => ILD_Phrases::error_expired(),
-						)
-					),
-				)
-			);
-		}
+		// Reading a list is public and read-only, so a stale or missing nonce must
+		// never block it. Full-page caches (WP Rocket, LiteSpeed) and JavaScript
+		// optimisers can leave the token stale or stop the fresh-nonce fetch from
+		// running, and none of that should stop a visitor getting their reading.
+		// The nonce is still verified when present (defence in depth), but the
+		// honeypot and the per-IP rate limit are what actually guard this endpoint.
+		check_ajax_referer( self::ACTION, 'ild_nonce', false );
 
 		// The honeypot must be empty; a filled one is a bot, sent away quietly.
 		if ( ! empty( $_POST['ild_hp'] ) ) {
