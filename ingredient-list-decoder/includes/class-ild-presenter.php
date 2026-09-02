@@ -431,16 +431,19 @@ class ILD_Presenter {
 			);
 		}
 
-		// Roles, as human labels.
+		// Roles, as human labels. Blank slugs (a stray empty value on an entry
+		// still being built) are dropped so the row shows a dash, not "Role:".
 		$roles       = get_post_meta( $id, '_ild_role', true );
 		$roles       = is_array( $roles ) ? $roles : array();
 		$role_labels = array_map( array( 'ILD_Roles', 'get_label' ), $roles );
+		$role_labels = array_values( array_filter( array_map( 'trim', $role_labels ), 'strlen' ) );
 
-		// Families, as term names.
+		// Families, as term names, with any blank name dropped likewise.
 		$families = wp_get_object_terms( $id, ILD_Post_Types::TAX_FAMILY, array( 'fields' => 'names' ) );
 		if ( is_wp_error( $families ) ) {
 			$families = array();
 		}
+		$families = array_values( array_filter( array_map( 'trim', $families ), 'strlen' ) );
 
 		// The description, if any.
 		$description = get_post_meta( $id, '_ild_description', true );
