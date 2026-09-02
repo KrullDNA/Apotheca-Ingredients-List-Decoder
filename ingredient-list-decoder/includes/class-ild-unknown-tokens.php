@@ -146,6 +146,34 @@ class ILD_Unknown_Tokens {
 	}
 
 	/**
+	 * Open tokens seen at least a given number of times, most frequent first.
+	 *
+	 * Used by automatic drafting so only tokens with real, repeated demand are
+	 * drafted, keeping one-off typos and noise out.
+	 *
+	 * @param int $threshold The minimum appearance count.
+	 * @param int $limit     How many to return.
+	 * @return array<int,array> Each row as an associative array.
+	 */
+	public static function get_open_over( $threshold = 3, $limit = 5 ) {
+		global $wpdb;
+
+		$table     = self::table();
+		$threshold = max( 1, (int) $threshold );
+		$limit     = max( 1, (int) $limit );
+
+		return (array) $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->prepare(
+				"SELECT * FROM $table WHERE status = %s AND appearances >= %d ORDER BY appearances DESC, first_seen ASC LIMIT %d",
+				self::STATUS_OPEN,
+				$threshold,
+				$limit
+			),
+			ARRAY_A
+		);
+	}
+
+	/**
 	 * Fetch one token row.
 	 *
 	 * @param int $id The row id.

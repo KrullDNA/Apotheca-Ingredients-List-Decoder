@@ -84,6 +84,13 @@ class ILD_Plugin {
 	private $transcription;
 
 	/**
+	 * The AI drafting component (settings and the scheduled batch).
+	 *
+	 * @var ILD_AI_Drafter
+	 */
+	private $ai_drafter;
+
+	/**
 	 * The read-next block component (its cache-busting hooks).
 	 *
 	 * @var ILD_Read_Next
@@ -180,6 +187,7 @@ class ILD_Plugin {
 		$this->matcher     = new ILD_Matcher();
 		$this->shortcode     = new ILD_Shortcode();
 		$this->transcription = new ILD_Transcription();
+		$this->ai_drafter    = new ILD_AI_Drafter();
 		$this->read_next     = new ILD_Read_Next();
 		$this->submissions   = new ILD_Submissions();
 		$this->leads         = new ILD_Leads();
@@ -216,6 +224,7 @@ class ILD_Plugin {
 		$this->matcher->register_hooks();
 		$this->shortcode->register_hooks();
 		$this->transcription->register_hooks();
+		$this->ai_drafter->register_hooks();
 		$this->read_next->register_hooks();
 		$this->submissions->register_hooks();
 		$this->leads->register_hooks();

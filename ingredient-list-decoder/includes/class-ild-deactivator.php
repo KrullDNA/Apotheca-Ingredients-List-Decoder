@@ -29,6 +29,12 @@ class ILD_Deactivator {
 	 * @return void
 	 */
 	public static function deactivate() {
+		// Stop the scheduled auto-draft job; it is re-created on demand when the
+		// setting is on and the plugin is active again.
+		if ( class_exists( 'ILD_AI_Drafter' ) ) {
+			ILD_AI_Drafter::clear_schedule();
+		}
+
 		flush_rewrite_rules();
 	}
 }
