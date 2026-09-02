@@ -60,11 +60,19 @@ class ILD_Cache {
 	/**
 	 * The transient key for a normalised list.
 	 *
+	 * The plugin version is part of the key so that a plugin update retires every
+	 * cached result at once. A cached result is a pre-built view model; when the
+	 * presenter or a template changes shape between versions, an old payload must
+	 * never be replayed through the new templates, or it renders with missing
+	 * pieces (an empty detail panel, an invisible action). Keying on the version
+	 * makes a code change invalidate the cache exactly as a library edit does.
+	 *
 	 * @param string $normalised The normalised ingredient list.
 	 * @return string
 	 */
 	private static function key( $normalised ) {
-		return 'ild_res_' . self::generation() . '_' . md5( (string) $normalised );
+		$version = defined( 'ILD_VERSION' ) ? ILD_VERSION : '0';
+		return 'ild_res_' . $version . '_' . self::generation() . '_' . md5( (string) $normalised );
 	}
 
 	/**

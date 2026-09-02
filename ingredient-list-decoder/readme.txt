@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.5.2
+Stable tag: 1.5.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.5.3 =
+* Fixed the real cause of a "did you mean…?" row showing empty role and family, an empty Detail panel, and no "Apply to ingredient list" link even after updating: a decoded result is cached as a pre-built view, and the cache key did not include the plugin version, so a result cached by an earlier version was replayed through the new templates with its new pieces missing. The plugin version is now part of the cache key, so every update retires all cached results at once — the same way saving an ingredient already does. The breakdown template also renders defensively now, so a mismatched cache can never again show an empty panel or an invisible link.
 
 = 1.5.2 =
 * Hardened a suggestion's role and family display: an entry still being built, with a stray blank role slug, now shows a dash rather than an empty "Role:". (Version bumped so the front-end script and stylesheet are re-fetched past any page or browser cache.)
