@@ -305,11 +305,15 @@ class ILD_Presenter {
 	 * @return array The display rows.
 	 */
 	private static function build_ingredients( $items ) {
-		// Prime the meta cache for all matched entries in one query.
+		// Prime the meta cache for every entry we will show in full — the matched
+		// ones, and the library entry behind each "did you mean…" suggestion.
 		$ids = array();
 		foreach ( $items as $item ) {
-			if ( isset( $item['status'] ) && 'matched' === $item['status'] && ! empty( $item['post_id'] ) ) {
+			$status = isset( $item['status'] ) ? $item['status'] : '';
+			if ( 'matched' === $status && ! empty( $item['post_id'] ) ) {
 				$ids[] = (int) $item['post_id'];
+			} elseif ( 'suggestion' === $status && ! empty( $item['suggestion']['post_id'] ) ) {
+				$ids[] = (int) $item['suggestion']['post_id'];
 			}
 		}
 		if ( ! empty( $ids ) ) {
@@ -327,13 +331,7 @@ class ILD_Presenter {
 			if ( 'matched' === $status && ! empty( $item['post_id'] ) ) {
 				$rows[] = self::matched_row( $position, $item );
 			} elseif ( 'suggestion' === $status ) {
-				$suggested = isset( $item['suggestion']['inci_name'] ) ? $item['suggestion']['inci_name'] : '';
-				$rows[]    = array(
-					'kind'        => 'suggestion',
-					'position'    => $position,
-					'label'       => $original,
-					'status_text' => ILD_Phrases::did_you_mean( $suggested ),
-				);
+				$rows[] = self::suggestion_row( $position, $item );
 			} else {
 				// Unmatched: is it a plausible ingredient we simply lack, or noise?
 				$kind        = self::classify_unmatched( $original );
@@ -358,7 +356,80 @@ class ILD_Presenter {
 	 * @return array The row.
 	 */
 	private static function matched_row( $position, $item ) {
-		$id = (int) $item['post_id'];
+		$id      = (int) $item['post_id'];
+		$details = self::entry_details( $id );
+
+		$label = ( isset( $item['inci_name'] ) && '' !== $item['inci_name'] ) ? $item['inci_name'] : ( isset( $item['original'] ) ? $item['original'] : '' );
+
+		return array_merge(
+			array(
+				'kind'        => 'matched',
+				'position'    => $position,
+				'label'       => $label,
+				'status_text' => '',
+			),
+			$details
+		);
+	}
+
+	/**
+	 * Build a "did you mean…" suggestion row from the entry it points at.
+	 *
+	 * The token as typed did not match, but one library entry is a believable
+	 * near-miss. The row shows that entry in full — its roles, family and
+	 * description, exactly as a matched row would — beneath a "Did you mean X?"
+	 * line, and carries the two strings the front end needs to swap the mistyped
+	 * token for the suggested INCI name in the textarea and read the list again.
+	 *
+	 * @param int   $position The 1-based position in the list.
+	 * @param array $item     The suggestion item { original, suggestion }.
+	 * @return array The row.
+	 */
+	private static function suggestion_row( $position, $item ) {
+		$suggestion = isset( $item['suggestion'] ) ? $item['suggestion'] : array();
+		$id         = isset( $suggestion['post_id'] ) ? (int) $suggestion['post_id'] : 0;
+		$sug_name   = isset( $suggestion['inci_name'] ) ? $suggestion['inci_name'] : '';
+		$original   = isset( $item['original'] ) ? $item['original'] : '';
+
+		$details = self::entry_details( $id );
+
+		return array_merge(
+			array(
+				'kind'              => 'suggestion',
+				'position'          => $position,
+				'label'             => $original,
+				'status_text'       => ILD_Phrases::did_you_mean( $sug_name ),
+				'suggested_name'    => $sug_name,
+				'apply_original'    => $original,
+				'apply_replacement' => $sug_name,
+				'apply_label'       => ILD_Phrases::apply_suggestion(),
+			),
+			$details
+		);
+	}
+
+	/**
+	 * Gather the displayable details of one library entry.
+	 *
+	 * Shared by matched rows and suggestion rows so both show an entry the same
+	 * way: its roles and family as readable text, its description, and the optional
+	 * evidence note and founder take shown inside the expander.
+	 *
+	 * @param int $id The ingredient's post ID.
+	 * @return array { roles_text, family_text, description, evidence, founder }.
+	 */
+	private static function entry_details( $id ) {
+		$id = (int) $id;
+
+		if ( $id <= 0 ) {
+			return array(
+				'roles_text'  => ILD_Phrases::row_none(),
+				'family_text' => ILD_Phrases::row_none(),
+				'description' => '',
+				'evidence'    => '',
+				'founder'     => '',
+			);
+		}
 
 		// Roles, as human labels.
 		$roles       = get_post_meta( $id, '_ild_role', true );
@@ -383,18 +454,12 @@ class ILD_Presenter {
 		$founder = get_post_meta( $id, '_ild_founder_take', true );
 		$founder = is_string( $founder ) ? $founder : '';
 
-		$label = ( isset( $item['inci_name'] ) && '' !== $item['inci_name'] ) ? $item['inci_name'] : ( isset( $item['original'] ) ? $item['original'] : '' );
-
 		return array(
-			'kind'        => 'matched',
-			'position'    => $position,
-			'label'       => $label,
 			'roles_text'  => ! empty( $role_labels ) ? implode( ', ', $role_labels ) : ILD_Phrases::row_none(),
 			'family_text' => ! empty( $families ) ? implode( ', ', $families ) : ILD_Phrases::row_none(),
 			'description' => $description,
 			'evidence'    => $evidence,
 			'founder'     => $founder,
-			'status_text' => '',
 		);
 	}
 

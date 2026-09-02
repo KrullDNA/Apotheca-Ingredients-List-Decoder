@@ -559,6 +559,32 @@
 	transform: rotate(-135deg);
 }
 
+/* The one-line status shown on unmatched rows and above a suggestion's detail. */
+.ild-ingredient__status {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.4rem;
+	margin: 0.4rem 0 0;
+}
+
+/* "Apply to ingredient list": a quiet text link, not a button in appearance. */
+.ild-ingredient__apply {
+	font: inherit;
+	color: inherit;
+	background: none;
+	border: 0;
+	padding: 0;
+	cursor: pointer;
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+}
+
+.ild-ingredient__apply:hover,
+.ild-ingredient__apply:focus-visible {
+	text-decoration: none;
+}
+
 .ild-ingredient__detail-panel {
 	margin-top: 0.5rem;
 }

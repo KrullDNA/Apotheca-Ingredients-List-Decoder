@@ -172,8 +172,69 @@
 		if ( button ) {
 			event.preventDefault();
 			restart( toolOf( button ) );
+			return;
+		}
+
+		// "Apply to ingredient list" on a "did you mean…" row: swap the mistyped
+		// token for the suggested INCI name in the textarea, then read again.
+		var apply = target.closest( '[data-ild-apply]' );
+		if ( apply ) {
+			event.preventDefault();
+			applySuggestion( apply );
 		}
 	} );
+
+	/**
+	 * Escape a string for safe use inside a regular expression.
+	 *
+	 * @param {string} str The literal string.
+	 * @return {string}
+	 */
+	function escapeRegExp( str ) {
+		return String( str ).replace( /[.*+?^${}()|[\]\\]/g, '\\$&' );
+	}
+
+	/**
+	 * Replace a mistyped token with a suggested name and re-read the list.
+	 *
+	 * The suggestion row carries the token as it was typed and the INCI name to
+	 * put in its place. We swap the first case-insensitive occurrence in the
+	 * textarea, refresh the count, and submit the form so the corrected list is
+	 * read straight away.
+	 *
+	 * @param {Element} apply The clicked apply control.
+	 */
+	function applySuggestion( apply ) {
+		var tool = toolOf( apply );
+		if ( ! tool ) {
+			return;
+		}
+
+		var original = apply.getAttribute( 'data-original' ) || '';
+		var replacement = apply.getAttribute( 'data-replacement' ) || '';
+		var textarea = tool.querySelector( '.ild-textarea' );
+		if ( ! textarea || '' === original || '' === replacement ) {
+			return;
+		}
+
+		// Swap only the first occurrence, matched without regard to case so a
+		// lower-cased paste is corrected too. A word boundary is avoided on purpose
+		// — INCI tokens can carry brackets, hyphens and digits.
+		var pattern = new RegExp( escapeRegExp( original ), 'i' );
+		if ( pattern.test( textarea.value ) ) {
+			textarea.value = textarea.value.replace( pattern, replacement );
+		}
+		updateCount( textarea );
+
+		var form = tool.querySelector( '.ild-form' );
+		if ( form ) {
+			if ( form.requestSubmit ) {
+				form.requestSubmit();
+			} else {
+				form.dispatchEvent( new Event( 'submit', { cancelable: true, bubbles: true } ) );
+			}
+		}
+	}
 
 	/* -------------------------------------------------------------------
 	 * Photo route: upload/camera → convert & resize → transcribe → verify.
