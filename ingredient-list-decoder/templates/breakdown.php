@@ -34,7 +34,27 @@ $readnext    = isset( $view['readnext'] ) && is_array( $view['readnext'] ) ? $vi
 						<span class="ild-ingredient__name"><?php echo esc_html( $row['label'] ); ?></span>
 					</div>
 
-					<?php if ( 'matched' === $row['kind'] ) : ?>
+					<?php
+					$is_matched    = ( 'matched' === $row['kind'] );
+					$is_suggestion = ( 'suggestion' === $row['kind'] );
+					?>
+
+					<?php // A near-miss: name the match, and offer to swap it in. ?>
+					<?php if ( $is_suggestion ) : ?>
+						<p class="ild-ingredient__status ild-ingredient__status--suggestion">
+							<span class="ild-ingredient__status-icon" aria-hidden="true"></span>
+							<span class="ild-ingredient__status-text"><?php echo esc_html( $row['status_text'] ); ?></span>
+							<button
+								type="button"
+								class="ild-ingredient__apply"
+								data-ild-apply
+								data-original="<?php echo esc_attr( $row['apply_original'] ); ?>"
+								data-replacement="<?php echo esc_attr( $row['apply_replacement'] ); ?>"
+							><?php echo esc_html( $row['apply_label'] ); ?></button>
+						</p>
+					<?php endif; ?>
+
+					<?php if ( $is_matched || $is_suggestion ) : ?>
 						<div class="ild-ingredient__meta">
 							<span class="ild-ingredient__badge ild-ingredient__role">
 								<span class="ild-ingredient__meta-label"><?php echo esc_html( ILD_Phrases::row_role_label() ); ?>:</span>
@@ -84,6 +104,7 @@ $readnext    = isset( $view['readnext'] ) && is_array( $view['readnext'] ) ? $vi
 							<span class="ild-ingredient__status-text"><?php echo esc_html( $row['status_text'] ); ?></span>
 						</p>
 					<?php endif; ?>
+					<?php unset( $is_matched, $is_suggestion ); ?>
 				</li>
 			<?php endforeach; ?>
 		</ol>

@@ -1871,13 +1871,62 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 		$this->add_control(
 			'suggestion_colour',
 			array(
-				'label'     => __( 'Link colour', 'ingredient-list-decoder' ),
+				'label'     => __( 'Message colour', 'ingredient-list-decoder' ),
 				'type'      => Controls_Manager::COLOR,
 				'selectors' => array(
 					'{{WRAPPER}} .ild-ingredient--suggestion .ild-ingredient__status-text' => 'color: {{VALUE}};',
 				),
 			)
 		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'suggestion_apply_typography',
+				'label'    => __( '“Apply” link', 'ingredient-list-decoder' ),
+				'selector' => '{{WRAPPER}} .ild-ingredient__apply',
+			)
+		);
+
+		$this->start_controls_tabs( 'suggestion_apply_tabs' );
+
+		$this->start_controls_tab(
+			'suggestion_apply_normal',
+			array( 'label' => __( 'Normal', 'ingredient-list-decoder' ) )
+		);
+
+		$this->add_control(
+			'suggestion_apply_colour',
+			array(
+				'label'     => __( '“Apply” link colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-ingredient__apply' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->end_controls_tab();
+
+		$this->start_controls_tab(
+			'suggestion_apply_hover',
+			array( 'label' => __( 'Hover', 'ingredient-list-decoder' ) )
+		);
+
+		$this->add_control(
+			'suggestion_apply_colour_hover',
+			array(
+				'label'     => __( '“Apply” link colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-ingredient__apply:hover, {{WRAPPER}} .ild-ingredient__apply:focus-visible' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->end_controls_tab();
+
+		$this->end_controls_tabs();
 
 		// Unmatched: not in library.
 		$this->add_control(

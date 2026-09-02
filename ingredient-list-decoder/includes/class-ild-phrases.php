@@ -571,6 +571,11 @@ class ILD_Phrases {
 		return sprintf( __( 'Did you mean %s?', 'ingredient-list-decoder' ), $suggested );
 	}
 
+	/** @return string The link that swaps a mistyped token for the suggested name. */
+	public static function apply_suggestion() {
+		return __( 'Apply to ingredient list', 'ingredient-list-decoder' );
+	}
+
 	/** @return string State two: a plausible ingredient not in the library yet. */
 	public static function not_in_library() {
 		return __( 'We don\'t have this one in the library yet.', 'ingredient-list-decoder' );
