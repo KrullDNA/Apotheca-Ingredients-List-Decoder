@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.5.1
+Stable tag: 1.5.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.5.2 =
+* Hardened a suggestion's role and family display: an entry still being built, with a stray blank role slug, now shows a dash rather than an empty "Role:". (Version bumped so the front-end script and stylesheet are re-fetched past any page or browser cache.)
 
 = 1.5.1 =
 * A "Did you mean…?" suggestion now shows the matched library entry in full — its role, family and the Detail expander — exactly as a recognised ingredient does, so a near-miss is as useful as a hit. Beneath the suggestion sits an "Apply to ingredient list" link: one tap swaps the mistyped name for the suggested INCI name in the box and reads the formula again, so a typo is corrected without retyping the list.
