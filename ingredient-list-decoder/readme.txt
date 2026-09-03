@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.5.2
+Stable tag: 1.6.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,18 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.1 =
+* Slash-joined ingredient names now match. A single ingredient printed with all its names slashed together — Aqua/Water/Eau, Parfum/Fragrance, Water/Aqua — used to come back as "not in the library" because the matcher only tried the whole string. It now also tries each name in turn, so the token resolves to whichever one the library holds and the row shows your entry. It stays one ingredient (one lot of water is still one line), matching is order-independent, and bracketed forms like "Aqua (Water)" keep working.
+
+= 1.6.0 =
+* Automatic drafting of unknown ingredients. A new "Automatic drafting" settings section lets Claude fill the library on its own: a scheduled background job drafts the most-requested unknown ingredients (those pasted at least a set number of times — three by default) into entries, then clears them from the Unknown ingredients queue. You choose how many are drafted per run and the daily paid-request cap in "Limits & cost" still applies, so cost stays predictable.
+* Confident entries can publish straight away. With the status set to "Publish", the drafter asks Claude to identify the ingredient, double-check every field, and report its confidence; only high-confidence entries go live, while anything shakier is held in needs-review for you to check, and anything Claude does not recognise as a real ingredient is never created (the token is dismissed instead). Each drafted entry records the model's confidence and whether it was auto-published.
+* The Anthropic API key is now shared. Drafting uses the same "Anthropic API key" setting as photo transcription (the wp-config ILD_ANTHROPIC_API_KEY constant still wins when defined), so one key serves both.
+* The two paid features switch on independently. A new "Use the paid AI reading for photos" toggle turns the image-transcription API call on or off on its own — so you can leave automatic drafting running while turning off token spend on hard-to-read photo uploads, or vice versa.
+
+= 1.5.3 =
+* Fixed the real cause of a "did you mean…?" row showing empty role and family, an empty Detail panel, and no "Apply to ingredient list" link even after updating: a decoded result is cached as a pre-built view, and the cache key did not include the plugin version, so a result cached by an earlier version was replayed through the new templates with its new pieces missing. The plugin version is now part of the cache key, so every update retires all cached results at once — the same way saving an ingredient already does. The breakdown template also renders defensively now, so a mismatched cache can never again show an empty panel or an invisible link.
 
 = 1.5.2 =
 * Hardened a suggestion's role and family display: an entry still being built, with a stray blank role slug, now shows a dash rather than an empty "Role:". (Version bumped so the front-end script and stylesheet are re-fetched past any page or browser cache.)

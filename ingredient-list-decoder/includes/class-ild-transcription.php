@@ -105,8 +105,15 @@ class ILD_Transcription {
 						'label'       => __( 'Anthropic API key', 'ingredient-list-decoder' ),
 						'type'        => 'text',
 						'default'     => '',
-						'description' => __( 'Optional. When set, the tool also offers a more accurate AI reading of the photo. Stored on your site and never shown in the tool. Leave blank to use free browser reading only.', 'ingredient-list-decoder' ),
+						'description' => __( 'Optional. Shared with automatic drafting. When set, the tool can also offer a more accurate AI reading of the photo (see the switch below). Stored on your site and never shown in the tool. Leave blank to use free browser reading only.', 'ingredient-list-decoder' ),
 						'sanitize'    => array( __CLASS__, 'sanitize_key_field' ),
+					),
+					array(
+						'id'          => 'enable_photo_ai',
+						'label'       => __( 'Use the paid AI reading for photos', 'ingredient-list-decoder' ),
+						'type'        => 'checkbox',
+						'default'     => 1,
+						'description' => __( 'When on, a hard-to-read photo can be sent to the Anthropic API for a more accurate reading (this costs tokens). Turn it off to keep free in-browser reading only — the shared API key stays available for automatic drafting.', 'ingredient-list-decoder' ),
 					),
 					array(
 						'id'          => 'transcription_model',
@@ -177,12 +184,15 @@ class ILD_Transcription {
 	 * Whether the paid, more-accurate AI reading is available (a key is present).
 	 *
 	 * The free browser reading is always the default; this only decides whether
-	 * the "read it more accurately" option is offered on top of it.
+	 * the "read it more accurately" option is offered on top of it. It needs both
+	 * a key and the "use the paid AI reading" switch, so the key can stay set for
+	 * automatic drafting while the paid photo call is off.
 	 *
 	 * @return bool
 	 */
 	public static function is_enabled() {
-		return '' !== trim( self::api_key() );
+		$switch_on = 1 === (int) ild_get_setting( 'enable_photo_ai', 1 );
+		return $switch_on && '' !== trim( self::api_key() );
 	}
 
 	/**

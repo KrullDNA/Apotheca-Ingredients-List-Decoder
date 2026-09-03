@@ -158,7 +158,11 @@ class ILD_Unknown_Admin {
 
 			<?php if ( ! ILD_AI_Drafter::is_available() ) : ?>
 				<div class="notice notice-warning"><p>
-					<?php esc_html_e( 'Drafting is off. Define ILD_ANTHROPIC_API_KEY in wp-config.php to enable the draft-entry button.', 'ingredient-list-decoder' ); ?>
+					<?php esc_html_e( 'Drafting is off. Add an Anthropic API key in Settings (or define ILD_ANTHROPIC_API_KEY in wp-config.php) to enable the draft-entry button.', 'ingredient-list-decoder' ); ?>
+				</p></div>
+			<?php elseif ( ILD_AI_Drafter::auto_on() ) : ?>
+				<div class="notice notice-info"><p>
+					<?php esc_html_e( 'Automatic drafting is on. The most-requested unknown ingredients are drafted on a schedule and drop off this list once added. You can still draft any one now with the button.', 'ingredient-list-decoder' ); ?>
 				</p></div>
 			<?php endif; ?>
 

@@ -41,35 +41,48 @@ $readnext    = isset( $view['readnext'] ) && is_array( $view['readnext'] ) ? $vi
 
 					<?php // A near-miss: name the match, and offer to swap it in. ?>
 					<?php if ( $is_suggestion ) : ?>
+						<?php
+						$apply_original    = isset( $row['apply_original'] ) ? $row['apply_original'] : '';
+						$apply_replacement = isset( $row['apply_replacement'] ) ? $row['apply_replacement'] : '';
+						$apply_label       = ! empty( $row['apply_label'] ) ? $row['apply_label'] : ILD_Phrases::apply_suggestion();
+						$can_apply         = ( '' !== $apply_original && '' !== $apply_replacement );
+						?>
 						<p class="ild-ingredient__status ild-ingredient__status--suggestion">
 							<span class="ild-ingredient__status-icon" aria-hidden="true"></span>
-							<span class="ild-ingredient__status-text"><?php echo esc_html( $row['status_text'] ); ?></span>
-							<button
-								type="button"
-								class="ild-ingredient__apply"
-								data-ild-apply
-								data-original="<?php echo esc_attr( $row['apply_original'] ); ?>"
-								data-replacement="<?php echo esc_attr( $row['apply_replacement'] ); ?>"
-							><?php echo esc_html( $row['apply_label'] ); ?></button>
+							<span class="ild-ingredient__status-text"><?php echo esc_html( isset( $row['status_text'] ) ? $row['status_text'] : '' ); ?></span>
+							<?php if ( $can_apply ) : ?>
+								<button
+									type="button"
+									class="ild-ingredient__apply"
+									data-ild-apply
+									data-original="<?php echo esc_attr( $apply_original ); ?>"
+									data-replacement="<?php echo esc_attr( $apply_replacement ); ?>"
+								><?php echo esc_html( $apply_label ); ?></button>
+							<?php endif; ?>
 						</p>
 					<?php endif; ?>
 
 					<?php if ( $is_matched || $is_suggestion ) : ?>
+						<?php
+						$roles_text  = ! empty( $row['roles_text'] ) ? $row['roles_text'] : ILD_Phrases::row_none();
+						$family_text = ! empty( $row['family_text'] ) ? $row['family_text'] : ILD_Phrases::row_none();
+						$description = isset( $row['description'] ) ? trim( (string) $row['description'] ) : '';
+						$has_evidence = ! empty( $row['evidence'] );
+						$has_founder  = ! empty( $row['founder'] );
+						?>
 						<div class="ild-ingredient__meta">
 							<span class="ild-ingredient__badge ild-ingredient__role">
 								<span class="ild-ingredient__meta-label"><?php echo esc_html( ILD_Phrases::row_role_label() ); ?>:</span>
-								<?php echo esc_html( $row['roles_text'] ); ?>
+								<?php echo esc_html( $roles_text ); ?>
 							</span>
 							<span class="ild-ingredient__badge ild-ingredient__family">
 								<span class="ild-ingredient__meta-label"><?php echo esc_html( ILD_Phrases::row_family_label() ); ?>:</span>
-								<?php echo esc_html( $row['family_text'] ); ?>
+								<?php echo esc_html( $family_text ); ?>
 							</span>
 						</div>
 
 						<?php
-						$has_evidence = ! empty( $row['evidence'] );
-						$has_founder  = ! empty( $row['founder'] );
-						if ( '' !== $row['description'] || $has_evidence || $has_founder ) :
+						if ( '' !== $description || $has_evidence || $has_founder ) :
 							?>
 							<details class="ild-ingredient__detail">
 								<summary class="ild-ingredient__detail-toggle">
@@ -77,8 +90,8 @@ $readnext    = isset( $view['readnext'] ) && is_array( $view['readnext'] ) ? $vi
 									<span class="ild-ingredient__expand-icon" aria-hidden="true"></span>
 								</summary>
 								<div class="ild-ingredient__detail-panel">
-									<?php if ( '' !== $row['description'] ) : ?>
-										<p class="ild-ingredient__description"><?php echo nl2br( esc_html( $row['description'] ) ); ?></p>
+									<?php if ( '' !== $description ) : ?>
+										<p class="ild-ingredient__description"><?php echo nl2br( esc_html( $description ) ); ?></p>
 									<?php endif; ?>
 
 									<?php if ( $has_evidence ) : ?>

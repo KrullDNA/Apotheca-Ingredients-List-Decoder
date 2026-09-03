@@ -3,7 +3,7 @@
  * Plugin Name:       Ingredient List Decoder
  * Plugin URI:        https://apotheca.com.au/
  * Description:        Reads a skincare ingredient list as a whole and explains how the formula is built. Stage 1: foundation, data layer and the settings framework every later stage registers into.
- * Version:           1.5.2
+ * Version:           1.6.1
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            KDNA for Apotheca
@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 
 // The plugin's own version number. Bumped each release; used to bust caches later.
-define( 'ILD_VERSION', '1.5.2' );
+define( 'ILD_VERSION', '1.6.1' );
 
 // The custom-table schema version. Bumped when a table's structure changes, so
 // the tables are (re)built via dbDelta on the next admin request.

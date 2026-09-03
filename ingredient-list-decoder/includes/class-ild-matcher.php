@@ -176,13 +176,48 @@ class ILD_Matcher {
 	 * Tries the token as-is first, so a name whose stored INCI includes a
 	 * parenthetical (Butyrospermum Parkii (Shea) Butter) matches directly. If that
 	 * misses, it tries again with parentheticals removed, so a token that carries
-	 * only a common name in brackets (Aqua (Water)) still finds its entry.
+	 * only a common name in brackets (Aqua (Water)) still finds its entry. Failing
+	 * that, and when the token is a slash-joined multi-name form (Aqua/Water/Eau,
+	 * Parfum/Fragrance), each name in turn is tried, so the token resolves to
+	 * whichever one the library holds.
 	 *
 	 * @param string $norm  The normalised token.
 	 * @param array  $index The library index.
 	 * @return array{id:int,by:string}|null The hit, or null.
 	 */
 	private static function lookup( $norm, $index ) {
+		// The whole token, then the same token with any brackets removed.
+		$hit = self::lookup_direct( $norm, $index );
+		if ( $hit ) {
+			return $hit;
+		}
+
+		// A slash-joined synonym form: try each name on its own. Aqua/Water/Eau is
+		// one ingredient printed with all three names, so any one matching is the
+		// same entry — it stays a single token, resolved to the stored name.
+		if ( false !== strpos( $norm, '/' ) ) {
+			foreach ( self::slash_parts( $norm ) as $part ) {
+				$hit = self::lookup_direct( $part, $index );
+				if ( $hit ) {
+					return $hit;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Look one normalised name up directly: as-is, then bracket-stripped.
+	 *
+	 * @param string $norm  The normalised name.
+	 * @param array  $index The library index.
+	 * @return array{id:int,by:string}|null The hit, or null.
+	 */
+	private static function lookup_direct( $norm, $index ) {
+		if ( '' === $norm ) {
+			return null;
+		}
 		if ( isset( $index['inci'][ $norm ] ) ) {
 			return array( 'id' => $index['inci'][ $norm ], 'by' => 'inci' );
 		}
@@ -201,6 +236,26 @@ class ILD_Matcher {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Split a slash-joined token into its individual normalised names.
+	 *
+	 * "aqua/water/eau" becomes [ 'aqua', 'water', 'eau' ]. Each part is normalised
+	 * again so surrounding spaces and punctuation around the slashes are trimmed.
+	 *
+	 * @param string $norm The normalised token containing one or more slashes.
+	 * @return string[] The non-empty parts, in order.
+	 */
+	private static function slash_parts( $norm ) {
+		$parts = array();
+		foreach ( preg_split( '#\s*/\s*#u', $norm ) as $part ) {
+			$part = ILD_Parser::normalise( $part );
+			if ( '' !== $part ) {
+				$parts[] = $part;
+			}
+		}
+		return $parts;
 	}
 
 	/**
