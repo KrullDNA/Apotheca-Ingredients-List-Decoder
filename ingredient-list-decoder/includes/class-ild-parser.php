@@ -111,13 +111,18 @@ class ILD_Parser {
 		//    Other brackets are left in place.
 		$main_text = preg_replace( '/\(\s*and\s*\)/iu', ',', $main_text );
 
-		// 3. Split into tokens on commas, semicolons and line breaks, keeping order.
+		// 3. Protect a comma that sits between two digits — it is part of a chemical
+		//    name's numbering (1,2-Hexanediol, 1,3-Propanediol), not a separator — so
+		//    the name is not torn into "1" and "2-Hexanediol".
+		$main_text = self::protect_numeric_commas( $main_text );
+
+		// 4. Split into tokens on commas, semicolons and line breaks, keeping order.
 		$parts = preg_split( '/[;,\r\n]+/u', $main_text );
 
 		$tokens   = array();
 		$position = 0;
 		foreach ( (array) $parts as $part ) {
-			$original = self::clean_token( $part );
+			$original = self::clean_token( self::restore_numeric_commas( $part ) );
 			if ( '' === $original ) {
 				continue;
 			}
@@ -200,10 +205,11 @@ class ILD_Parser {
 
 		// Drop the leading marker and any "may contain:" label before the list.
 		$body  = preg_replace( '/^\s*(may\s+contain|\+\/-|±)\s*:?\s*/iu', '', $shade_text );
-		$parts = preg_split( '/[;,\r\n]+/u', (string) $body );
+		$body  = self::protect_numeric_commas( (string) $body );
+		$parts = preg_split( '/[;,\r\n]+/u', $body );
 
 		foreach ( (array) $parts as $part ) {
-			$original = self::clean_token( $part );
+			$original = self::clean_token( self::restore_numeric_commas( $part ) );
 			if ( '' === $original ) {
 				continue;
 			}
@@ -246,6 +252,38 @@ class ILD_Parser {
 		}
 
 		return '';
+	}
+
+	/**
+	 * The placeholder standing in for a protected numeric comma while splitting.
+	 *
+	 * A control character (unit separator) that will never appear in a pasted
+	 * ingredient list, so it can be swapped in and back out without collision.
+	 *
+	 * @var string
+	 */
+	const COMMA_PLACEHOLDER = "\x1f";
+
+	/**
+	 * Replace a comma between two digits with the placeholder, so it survives the
+	 * split. Matches "1,2" but never "Glycerin, Water", whose comma is a real
+	 * separator followed by a space.
+	 *
+	 * @param string $text The text about to be split.
+	 * @return string
+	 */
+	private static function protect_numeric_commas( $text ) {
+		return preg_replace( '/(?<=\d),(?=\d)/u', self::COMMA_PLACEHOLDER, (string) $text );
+	}
+
+	/**
+	 * Put any protected numeric commas back, once splitting is done.
+	 *
+	 * @param string $text A token that may hold the placeholder.
+	 * @return string
+	 */
+	private static function restore_numeric_commas( $text ) {
+		return str_replace( self::COMMA_PLACEHOLDER, ',', (string) $text );
 	}
 
 	/**

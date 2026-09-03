@@ -90,6 +90,12 @@ $readnext    = isset( $view['readnext'] ) && is_array( $view['readnext'] ) ? $vi
 									<span class="ild-ingredient__expand-icon" aria-hidden="true"></span>
 								</summary>
 								<div class="ild-ingredient__detail-panel">
+									<?php // On a suggestion, name the entry these details describe, so it ?>
+									<?php // is clear they belong to the suggested name, not the typed one. ?>
+									<?php if ( $is_suggestion && ! empty( $row['suggested_name'] ) ) : ?>
+										<p class="ild-ingredient__detail-heading"><?php echo esc_html( $row['suggested_name'] ); ?></p>
+									<?php endif; ?>
+
 									<?php if ( '' !== $description ) : ?>
 										<p class="ild-ingredient__description"><?php echo nl2br( esc_html( $description ) ); ?></p>
 									<?php endif; ?>
