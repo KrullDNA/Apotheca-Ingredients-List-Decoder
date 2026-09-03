@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.0
+Stable tag: 1.6.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.1 =
+* Slash-joined ingredient names now match. A single ingredient printed with all its names slashed together — Aqua/Water/Eau, Parfum/Fragrance, Water/Aqua — used to come back as "not in the library" because the matcher only tried the whole string. It now also tries each name in turn, so the token resolves to whichever one the library holds and the row shows your entry. It stays one ingredient (one lot of water is still one line), matching is order-independent, and bracketed forms like "Aqua (Water)" keep working.
 
 = 1.6.0 =
 * Automatic drafting of unknown ingredients. A new "Automatic drafting" settings section lets Claude fill the library on its own: a scheduled background job drafts the most-requested unknown ingredients (those pasted at least a set number of times — three by default) into entries, then clears them from the Unknown ingredients queue. You choose how many are drafted per run and the daily paid-request cap in "Limits & cost" still applies, so cost stays predictable.
