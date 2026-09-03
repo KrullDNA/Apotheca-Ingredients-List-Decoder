@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.1
+Stable tag: 1.6.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,10 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.2 =
+* Chemical names with a comma in their numbering are no longer split in two. A name like 1,2-Hexanediol or 1,3-Propanediol used to break at its comma into "1" ("we couldn't read this one") and "2-Hexanediol" ("did you mean 1,2-Hexanediol?"). A comma sitting directly between two digits is now kept as part of the name, so it reads as one ingredient and matches. Ordinary separators (a comma followed by a space, as in "Glycerin, Water") are unaffected.
+* A "did you mean…?" row now names the suggested ingredient at the top of its Detail panel, so it is clear the role, family and description shown belong to the suggested name rather than the one that was typed.
 
 = 1.6.1 =
 * Slash-joined ingredient names now match. A single ingredient printed with all its names slashed together — Aqua/Water/Eau, Parfum/Fragrance, Water/Aqua — used to come back as "not in the library" because the matcher only tried the whole string. It now also tries each name in turn, so the token resolves to whichever one the library holds and the row shows your entry. It stays one ingredient (one lot of water is still one line), matching is order-independent, and bracketed forms like "Aqua (Water)" keep working.

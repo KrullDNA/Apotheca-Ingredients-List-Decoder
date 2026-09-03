@@ -1928,6 +1928,26 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 
 		$this->end_controls_tabs();
 
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'suggestion_detail_heading_typography',
+				'label'    => __( 'Detail heading (suggested name)', 'ingredient-list-decoder' ),
+				'selector' => '{{WRAPPER}} .ild-ingredient__detail-heading',
+			)
+		);
+
+		$this->add_control(
+			'suggestion_detail_heading_colour',
+			array(
+				'label'     => __( 'Detail heading colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-ingredient__detail-heading' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
 		// Unmatched: not in library.
 		$this->add_control(
 			'notinlibrary_heading',

@@ -589,6 +589,13 @@
 	margin-top: 0.5rem;
 }
 
+/* The suggested ingredient's name, heading the detail panel of a "did you
+ * mean…?" row, so the description below clearly belongs to it. */
+.ild-ingredient__detail-heading {
+	margin: 0 0 0.4rem;
+	font-weight: 600;
+}
+
 .ild-ingredient__founder {
 	border-left: 3px solid currentColor;
 	padding-left: 0.75rem;
