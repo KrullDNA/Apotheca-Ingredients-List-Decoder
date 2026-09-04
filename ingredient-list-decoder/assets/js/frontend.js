@@ -843,6 +843,88 @@
 	 * gate, and reveal the breakdown in place.
 	 * ----------------------------------------------------------------- */
 
+	/* -------------------------------------------------------------------
+	 * Remembered email.
+	 *
+	 * The address is kept only in this browser (localStorage), never in a
+	 * cookie, so a returning visitor is shown the email their copy will go to
+	 * with a link to change it — but nothing about them travels with the page.
+	 * ----------------------------------------------------------------- */
+	var EMAIL_STORE_KEY = 'ild_email';
+
+	function rememberedEmail() {
+		try {
+			return window.localStorage.getItem( EMAIL_STORE_KEY ) || '';
+		} catch ( e ) {
+			return '';
+		}
+	}
+
+	function rememberEmail( email ) {
+		try {
+			if ( email ) {
+				window.localStorage.setItem( EMAIL_STORE_KEY, email );
+			}
+		} catch ( e ) { /* Storage unavailable — carry on without it. */ }
+	}
+
+	/**
+	 * Put a gate form into "remembered email" mode when this device knows an
+	 * address: fill the field, hide it, and show "we'll send it to X" with the
+	 * change link. Leaves the form untouched when no address is remembered.
+	 *
+	 * @param {HTMLFormElement} form The gate form.
+	 */
+	function initGateForm( form ) {
+		if ( ! form ) {
+			return;
+		}
+		var stored = rememberedEmail();
+		var known = form.querySelector( '[data-ild-gate-known]' );
+		var knownEmail = form.querySelector( '[data-ild-gate-known-email]' );
+		var field = form.querySelector( '.ild-gate__field' );
+		var input = form.querySelector( '.ild-gate__email' );
+
+		if ( ! stored || ! known || ! knownEmail || ! field || ! input ) {
+			return;
+		}
+
+		input.value = stored;
+		knownEmail.textContent = stored;
+		known.hidden = false;
+		field.hidden = true;
+	}
+
+	// "Use a different email": reveal the field, clear it, and hide the summary.
+	document.addEventListener( 'click', function ( event ) {
+		var target = event.target;
+		if ( ! target || ! target.closest ) {
+			return;
+		}
+		var change = target.closest( '[data-ild-gate-change]' );
+		if ( ! change ) {
+			return;
+		}
+		event.preventDefault();
+		var form = change.closest( '.ild-gate__form' );
+		if ( ! form ) {
+			return;
+		}
+		var known = form.querySelector( '[data-ild-gate-known]' );
+		var field = form.querySelector( '.ild-gate__field' );
+		var input = form.querySelector( '.ild-gate__email' );
+		if ( known ) {
+			known.hidden = true;
+		}
+		if ( field ) {
+			field.hidden = false;
+		}
+		if ( input ) {
+			input.value = '';
+			input.focus();
+		}
+	} );
+
 	// Enable the submit button only while the consent box is ticked, and show
 	// the reason it is disabled rather than failing silently.
 	document.addEventListener( 'change', function ( event ) {
@@ -897,6 +979,11 @@
 			gateNonce.value = freshNonces.gate;
 		}
 
+		// The address being sent to, so it can be remembered on this device once
+		// the send succeeds.
+		var emailField = form.querySelector( '.ild-gate__email' );
+		var sentTo = emailField ? emailField.value : '';
+
 		var data = new FormData( form );
 		data.append( 'action', settings.gateAction );
 
@@ -908,6 +995,8 @@
 			.then( function ( response ) { return response.json(); } )
 			.then( function ( payload ) {
 				if ( payload && payload.success && payload.data && typeof payload.data.html === 'string' && gate && gate.parentNode ) {
+					// Remember the address for next time (this browser only).
+					rememberEmail( sentTo );
 					// Replace the gate with the now-unlocked breakdown, and move
 					// focus to it so it is announced.
 					var holder = document.createElement( 'div' );
@@ -1011,6 +1100,10 @@
 				if ( payload && payload.data && typeof payload.data.html === 'string' ) {
 					if ( results ) {
 						results.innerHTML = payload.data.html;
+
+						// If the reading carries the email form, show the remembered
+						// address (this device) with a link to change it.
+						initGateForm( results.querySelector( '.ild-gate__form' ) );
 
 						// Move focus to the result so keyboard users land on it and
 						// screen readers announce it (the region is aria-live too).

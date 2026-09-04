@@ -228,6 +228,42 @@
 	margin-bottom: 0.75rem;
 }
 
+/* Remembered-email row: "We'll send it to name@email.com  Use a different email". */
+.ild-gate__known {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.4rem 0.6rem;
+	margin: 0 0 0.75rem;
+}
+
+.ild-gate__change {
+	font: inherit;
+	color: inherit;
+	background: none;
+	border: 0;
+	padding: 0;
+	cursor: pointer;
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+}
+
+.ild-gate__change:hover,
+.ild-gate__change:focus-visible {
+	text-decoration: none;
+}
+
+/* The send button: a clear, solid, bold button that is easy to spot. */
+.ild-gate__submit {
+	font-weight: 600;
+	padding: 0.7rem 1.4rem;
+}
+
+.ild-gate__submit:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
 .ild-gate__label {
 	display: block;
 	font-weight: 600;

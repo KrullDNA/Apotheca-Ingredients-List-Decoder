@@ -54,6 +54,14 @@ $privacy_url  = function_exists( 'get_privacy_policy_url' ) ? get_privacy_policy
 			<input type="text" id="<?php echo esc_attr( $guid ); ?>-hp" name="ild_gate_hp" tabindex="-1" autocomplete="off" value="" />
 		</div>
 
+		<?php // Shown by the script for a returning visitor whose address this device ?>
+		<?php // remembers: the email it will send to, and a link to change it. It stays ?>
+		<?php // hidden (and the field below shown) until the script fills it in. ?>
+		<p class="ild-gate__known" data-ild-gate-known hidden>
+			<span class="ild-gate__known-text"><?php echo esc_html( ILD_Phrases::gate_known_prefix() ); ?> <strong class="ild-gate__known-email" data-ild-gate-known-email></strong>.</span>
+			<button type="button" class="ild-gate__change" data-ild-gate-change><?php echo esc_html( ILD_Phrases::gate_change_email() ); ?></button>
+		</p>
+
 		<div class="ild-gate__field">
 			<label class="ild-gate__label" for="<?php echo esc_attr( $guid ); ?>-email"><?php echo esc_html( ILD_Phrases::gate_email_label() ); ?></label>
 			<input

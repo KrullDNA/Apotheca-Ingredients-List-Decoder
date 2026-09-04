@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.10
+Stable tag: 1.6.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,10 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.11 =
+* A returning visitor now sees which address their copy will go to. When this browser remembers an email (from a previous send), the form shows "We'll send it to name@email.com" with a "Use a different email" text link that reveals the field to change it. The address is kept only in the browser (localStorage), never in a cookie, so nothing about the visitor travels with the page.
+* The send button is now a clear, bold, solid button so it's easy to spot, with a distinct disabled state until consent is ticked.
 
 = 1.6.10 =
 * The email form is now shown beneath every reading by default, so a visitor can always send the current reading to their inbox — even one who has emailed themselves before. Previously the form was hidden for anyone who had already given an address on that device (a first-party cookie), which also removed their ability to email a later reading. A new "Always offer the email form" setting (General, on by default) controls this; turn it off to restore the old "hide after first submission" behaviour.

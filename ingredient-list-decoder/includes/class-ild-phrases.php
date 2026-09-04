@@ -176,6 +176,16 @@ class ILD_Phrases {
 		return __( 'Email me my result', 'ingredient-list-decoder' );
 	}
 
+	/** @return string The lead-in shown before a remembered email address. */
+	public static function gate_known_prefix() {
+		return __( 'We\'ll send it to', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The link that reveals the field to enter another address. */
+	public static function gate_change_email() {
+		return __( 'Use a different email', 'ingredient-list-decoder' );
+	}
+
 	/**
 	 * The line explaining why the button is disabled until the box is ticked.
 	 *
