@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.6
+Stable tag: 1.6.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.7 =
+* The "Transcribed ingredients" label in the photo verification step is now styleable. It had no controls of its own; it now has typography, colour, margin and padding, added to the "C · Verification" section (between the notice and the transcription field controls).
 
 = 1.6.6 =
 * The "Every ingredient, in order" heading is now styleable. It had no controls of its own; it now has typography, colour, margin and padding controls, added at the top of the "F · Ingredient rows" section in the Elementor widget.

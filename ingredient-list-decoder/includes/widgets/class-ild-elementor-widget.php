@@ -1001,6 +1001,59 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 			)
 		);
 
+		// The "Transcribed ingredients" label above the transcription field.
+		$this->add_control(
+			'verify_label_heading',
+			array(
+				'label'     => __( '“Transcribed ingredients” label', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'verify_label_typography',
+				'selector' => '{{WRAPPER}} .ild-verify__label',
+			)
+		);
+
+		$this->add_control(
+			'verify_label_colour',
+			array(
+				'label'     => __( 'Label colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-verify__label' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'verify_label_margin',
+			array(
+				'label'      => __( 'Label margin', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-verify__label' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'verify_label_padding',
+			array(
+				'label'      => __( 'Label padding', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-verify__label' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
 		$this->add_control(
 			'verify_field_heading',
 			array(
