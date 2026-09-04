@@ -385,6 +385,117 @@
 	}
 
 	/**
+	 * Whether one token is OCR noise rather than an ingredient name.
+	 *
+	 * @param {string} t A single token.
+	 * @return {boolean}
+	 */
+	function isNoiseToken( t ) {
+		if ( /\bci\s*\d/i.test( t ) ) {
+			return false; // A colour-index code (CI 77491) is real.
+		}
+		var letters = ( t.match( /[A-Za-zÀ-ɏ]/g ) || [] ).length;
+		var solid = t.replace( /\s+/g, '' );
+		if ( 0 === letters ) {
+			return true; // No letters at all: "4 : |", "|", "N)".
+		}
+		if ( solid.length <= 2 ) {
+			return true; // Tiny fragment: "nr", "on", "o".
+		}
+		if ( letters < 2 ) {
+			return true;
+		}
+		if ( ( letters / solid.length ) < 0.4 && ! /\d{3,}/.test( t ) ) {
+			return true; // Mostly symbols/digits and not a colour code.
+		}
+		return false;
+	}
+
+	/**
+	 * Strip runs of noise words from the start and end of one token — the stray
+	 * "N)", "4", ":", "|" an OCR read leaves glued to a name — while keeping the
+	 * real words in the middle. Colour-index codes (CI 77491) are left alone.
+	 *
+	 * @param {string} t A single token.
+	 * @return {string}
+	 */
+	function trimEdgeJunkWords( t ) {
+		if ( /\bci\s*\d/i.test( t ) ) {
+			return t;
+		}
+		function junk( w ) {
+			var bare = w.replace( /[^0-9A-Za-zÀ-ɏ]/g, '' );
+			if ( '' === bare ) {
+				return true; // Pure punctuation: ":", "|".
+			}
+			if ( /^\d{1,2}$/.test( bare ) ) {
+				return true; // A stray one- or two-digit number.
+			}
+			if ( 1 === ( bare.match( /[A-Za-zÀ-ɏ]/g ) || [] ).length && bare.length <= 2 ) {
+				return true; // A single letter, e.g. "N)", "o".
+			}
+			return false;
+		}
+		var words = t.split( ' ' );
+		while ( words.length && junk( words[ 0 ] ) ) {
+			words.shift();
+		}
+		while ( words.length && junk( words[ words.length - 1 ] ) ) {
+			words.pop();
+		}
+		return words.join( ' ' );
+	}
+
+	/**
+	 * Tidy a read (from a photo, or pasted) for the verification box: drop a
+	 * leading "ingredients" label and anything before it, rejoin names split
+	 * across lines when commas separate the list, remove descriptive brackets
+	 * that follow a name — "Coco-Glucoside (Plant based surfactant)" — while
+	 * keeping a leading common name like "(Jojoba) Seed Oil", trim stray edge
+	 * punctuation, and drop obvious OCR noise. The visitor still checks the
+	 * result before it is read.
+	 *
+	 * @param {string} text The raw text.
+	 * @return {string}
+	 */
+	function cleanReadText( text ) {
+		var s = String( text || '' );
+
+		// Drop a leading label and everything before it (matches the parser).
+		s = s.replace( /^[\s\S]*\bingredients?\b\s*:?\s*/i, '' );
+
+		// When commas or semicolons separate items, a line break is a wrap inside
+		// one name, so join it into a space.
+		if ( /[;,]/.test( s ) ) {
+			s = s.replace( /[ \t]*[\r\n]+[ \t]*/g, ' ' );
+		}
+
+		var parts = s.split( /[;,\n]+/ );
+		var out = [];
+		for ( var i = 0; i < parts.length; i++ ) {
+			var t = parts[ i ].replace( /\s+/g, ' ' ).trim();
+
+			// Remove a bracketed group that follows a name (a common name or a
+			// description), but keep one at the very start (it carries the name).
+			t = t.replace( /(\S)\s*\([^()]*\)/g, '$1' ).replace( /\s+/g, ' ' ).trim();
+
+			// Drop noise words glued to the front or back of the name.
+			t = trimEdgeJunkWords( t );
+
+			// Trim stray leading/trailing punctuation (keep a leading "(" and a
+			// trailing ")", "%", ".", digits and letters).
+			t = t.replace( /^[^0-9A-Za-zÀ-ɏ(]+/, '' ).replace( /[^0-9A-Za-zÀ-ɏ)%.+-]+$/, '' ).trim();
+
+			if ( '' === t || isNoiseToken( t ) ) {
+				continue;
+			}
+			out.push( t );
+		}
+
+		return out.join( ', ' );
+	}
+
+	/**
 	 * Read the text off a prepared image in the browser with Tesseract.js.
 	 *
 	 * @param {Blob} blob The prepared JPEG.
@@ -528,7 +639,8 @@
 			p.enhance.disabled = false;
 		}
 		if ( p.text ) {
-			p.text.value = text;
+			// Tidy the read before showing it, so the box is clean to check.
+			p.text.value = cleanReadText( text );
 		}
 		if ( p.thumb && thumbUrl ) {
 			var old = thumbUrls.get( tool );
@@ -809,7 +921,7 @@
 			setVerifyStatus( etool, settings.photoEnhancing || '' );
 			serverTranscribe( etool, eblob )
 				.then( function ( text ) {
-					text = ( text || '' ).trim();
+					text = cleanReadText( text );
 					if ( text && eparts.text ) {
 						eparts.text.value = text;
 					}

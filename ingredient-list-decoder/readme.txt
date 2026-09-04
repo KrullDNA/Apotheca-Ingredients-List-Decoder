@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.13
+Stable tag: 1.6.14
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.14 =
+* The photo transcription box is now tidied before you check it. On top of the label-strip and line-join from 1.6.13, a read from a photo now also: drops obvious OCR noise ("N)", "4 : |", "| on" and stray fragments glued to a name), removes a bracketed common name or description that follows an ingredient — "Coco-Glucoside (Plant based surfactant)" becomes "Coco-Glucoside", "Aqua (Water)" becomes "Aqua" — while keeping a leading common name like "(Jojoba) Seed Oil", and preserves colour-index codes (CI 77491). The cleaned list is shown in the verification box for you to confirm or correct.
 
 = 1.6.13 =
 * Cleaner reading of pasted and photographed lists. A leading "INGREDIENTS:" (or "Active/Inactive Ingredients:") label — and any heading or OCR noise before it — is now removed, so the list starts at the first real ingredient. And when commas or semicolons separate the ingredients, a name split across two lines (common when a tall label is photographed) is rejoined into one ingredient instead of being read as two. Lists that are genuinely one-per-line (no commas) are left as they are.
