@@ -135,6 +135,65 @@ class ILD_Matcher {
 	}
 
 	/**
+	 * Tidy a raw list against the library, ready to show for checking.
+	 *
+	 * Each token is looked up: an exact match becomes the library's stored INCI
+	 * name (so "aqua (water)" tidies to "Aqua"); a close fuzzy match becomes the
+	 * name it resembles (so a misread "Cocamidopropy Betaine" becomes
+	 * "Cocamidopropyl Betaine"); anything with no confident match is kept exactly
+	 * as written. Any "may contain" shade declaration is kept verbatim at the end.
+	 * Nothing is saved — this only rewrites the text for the person to confirm.
+	 *
+	 * @param string $raw The raw pasted or transcribed list.
+	 * @return array{list:string,changed:int} The tidied list and how many tokens changed.
+	 */
+	public static function tidy( $raw ) {
+		$raw = (string) $raw;
+
+		// Keep any shade declaration ("may contain", "+/-", "±") aside, verbatim.
+		$shade_tail = '';
+		$main       = $raw;
+		if ( preg_match( '/\bmay\s+contain\b|\+\/-|±/iu', $raw, $mm, PREG_OFFSET_CAPTURE ) ) {
+			$offset     = (int) $mm[0][1];
+			$main       = substr( $raw, 0, $offset );
+			$shade_tail = trim( substr( $raw, $offset ) );
+		}
+
+		$parsed = ILD_Parser::parse( $main );
+		if ( is_wp_error( $parsed ) ) {
+			return array( 'list' => $raw, 'changed' => 0 );
+		}
+
+		$index   = self::build_index();
+		$names   = array();
+		$changed = 0;
+
+		foreach ( $parsed['items'] as $token ) {
+			$item = self::classify( $token['original'], $token['normalised'], $index );
+
+			if ( 'matched' === $item['status'] && isset( $item['inci_name'] ) ) {
+				$name = $item['inci_name'];
+			} elseif ( 'suggestion' === $item['status'] && isset( $item['suggestion']['inci_name'] ) ) {
+				$name = $item['suggestion']['inci_name'];
+			} else {
+				$name = $token['original'];
+			}
+
+			if ( ILD_Parser::normalise( $name ) !== $token['normalised'] ) {
+				$changed++;
+			}
+			$names[] = $name;
+		}
+
+		$list = implode( ', ', $names );
+		if ( '' !== $shade_tail ) {
+			$list = ( '' !== $list ) ? $list . '. ' . $shade_tail : $shade_tail;
+		}
+
+		return array( 'list' => $list, 'changed' => $changed );
+	}
+
+	/**
 	 * Classify one token against the library.
 	 *
 	 * Returns an item carrying its outcome: a match (INCI or alias, with the post

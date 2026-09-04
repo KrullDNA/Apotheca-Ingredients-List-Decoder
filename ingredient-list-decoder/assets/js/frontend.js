@@ -655,6 +655,55 @@
 		}
 	}
 
+	/**
+	 * Check a read list against the library and correct close names in place.
+	 *
+	 * No AI: the server runs the same fuzzy match the reader uses against the
+	 * ingredient database and hands back the list with confident names snapped to
+	 * their stored INCI form. The box is only updated if the person has not begun
+	 * editing it in the meantime.
+	 *
+	 * @param {Element}             tool     The tool wrapper.
+	 * @param {HTMLTextAreaElement} textarea The verify textarea.
+	 * @param {string}              current  The text just placed in the textarea.
+	 */
+	function tidyAgainstLibrary( tool, textarea, current ) {
+		if ( ! settings.tidyAction || ! settings.ajaxUrl || ! current ) {
+			return;
+		}
+
+		var form = tool.querySelector( '.ild-form' );
+		var nonceField = form ? form.querySelector( 'input[name="ild_nonce"]' ) : null;
+		var nonce = freshNonces.analyse || ( nonceField ? nonceField.value : '' );
+
+		var body = new URLSearchParams();
+		body.append( 'action', settings.tidyAction );
+		body.append( 'ild_list', current );
+		if ( nonce ) {
+			body.append( 'ild_nonce', nonce );
+		}
+
+		setVerifyStatus( tool, settings.photoMatching || '' );
+
+		fetch( settings.ajaxUrl, {
+			method: 'POST',
+			credentials: 'same-origin',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+			body: body.toString()
+		} )
+			.then( function ( response ) { return response.json(); } )
+			.then( function ( payload ) {
+				setVerifyStatus( tool, '' );
+				if ( payload && payload.success && payload.data && typeof payload.data.list === 'string' && payload.data.list ) {
+					// Only replace if the person has not edited the box since.
+					if ( textarea.value === current ) {
+						textarea.value = payload.data.list;
+					}
+				}
+			} )
+			.catch( function () { setVerifyStatus( tool, '' ); } );
+	}
+
 	function showVerify( tool, text, thumbUrl ) {
 		var p = photoParts( tool );
 		setVerifyStatus( tool, '' );
@@ -662,8 +711,12 @@
 			p.enhance.disabled = false;
 		}
 		if ( p.text ) {
-			// Tidy the read before showing it, so the box is clean to check.
-			p.text.value = cleanReadText( text );
+			// Tidy the read before showing it, so the box is clean to check…
+			var cleaned = cleanReadText( text );
+			p.text.value = cleaned;
+			// …then check the names against the library (no AI — a fuzzy match on
+			// the database) and correct close reads in place.
+			tidyAgainstLibrary( tool, p.text, cleaned );
 		}
 		if ( p.thumb && thumbUrl ) {
 			var old = thumbUrls.get( tool );

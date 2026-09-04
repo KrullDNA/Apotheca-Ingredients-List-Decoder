@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.15
+Stable tag: 1.6.16
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.16 =
+* A photo read is now checked against the library before you confirm it — no AI, no API cost. Each name is matched against the ingredient database (exactly, or by the same fuzzy match the reader uses), and a close read is corrected to the stored INCI name in place: a misread "Cocamidopropy Betaine" becomes "Cocamidopropyl Betaine", "aqua (water)" becomes "Aqua". Names with no confident match are left exactly as read, and any "may contain" shade line is kept as-is. It all happens on your own database via a new lightweight, read-only endpoint; nothing is saved.
 
 = 1.6.15 =
 * Fixed "Water" not being recognised. On a "Water (Aqua)" label the INCI name is the one in the brackets, so the matcher now also tries the bracketed name — "Water (Aqua)" and "Aqua (Water)" both resolve to Aqua. This applies to pasted lists and photo reads alike.

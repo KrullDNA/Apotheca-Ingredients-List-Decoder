@@ -274,6 +274,11 @@ class ILD_Phrases {
 		return __( 'Reading the text from your photo…', 'ingredient-list-decoder' );
 	}
 
+	/** @return string Shown while the read list is checked against the library. */
+	public static function photo_matching() {
+		return __( 'Checking the names against our library…', 'ingredient-list-decoder' );
+	}
+
 	/** @return string The heading over the verification area. */
 	public static function verify_heading() {
 		return __( 'Check the transcription', 'ingredient-list-decoder' );
