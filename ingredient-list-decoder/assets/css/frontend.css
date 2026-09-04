@@ -87,6 +87,56 @@
 }
 
 /* ---------------------------------------------------------------------------
+ * Two-column form layout (desktop only)
+ *
+ * When the tool carries the two-column class, the paste box sits on the left
+ * and the photo upload and product-name fields stack on the right, with the
+ * verify step, the exchange line and the submit button spanning the full width
+ * beneath. It applies at desktop width only — tablet and mobile always stay a
+ * single column, so the layout never cramps on a narrow screen.
+ * ------------------------------------------------------------------------- */
+@media ( min-width: 1025px ) {
+	.ild-tool--two-col .ild-form {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		column-gap: 2rem;
+		align-items: start;
+	}
+
+	/* Hidden inputs must not take a grid cell and push the visible fields around. */
+	.ild-tool--two-col .ild-form > input[type="hidden"] {
+		display: none;
+	}
+
+	.ild-tool--two-col .ild-field--list {
+		grid-column: 1;
+		grid-row: 1 / span 2;
+		margin-bottom: 0;
+	}
+
+	.ild-tool--two-col .ild-field--photo {
+		grid-column: 2;
+		grid-row: 1;
+	}
+
+	.ild-tool--two-col .ild-field--product {
+		grid-column: 2;
+		grid-row: 2;
+	}
+
+	/* Everything below the two columns runs the full width. */
+	.ild-tool--two-col .ild-verify,
+	.ild-tool--two-col .ild-exchange,
+	.ild-tool--two-col .ild-actions {
+		grid-column: 1 / -1;
+	}
+
+	.ild-tool--two-col .ild-actions {
+		text-align: center;
+	}
+}
+
+/* ---------------------------------------------------------------------------
  * Buttons
  * ------------------------------------------------------------------------- */
 .ild-submit,

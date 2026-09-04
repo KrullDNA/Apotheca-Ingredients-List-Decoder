@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.2
+Stable tag: 1.6.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,10 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.3 =
+* A desktop two-column form layout. A new "Desktop layout" control in the Elementor widget (A · Input & form) places the paste box on the left with the photo upload and product-name fields stacked on the right, the verify step and the button running full width beneath — or keeps the single stacked column. Tablet and mobile are always a single column, so it never cramps on a narrow screen. The shortcode takes a matching layout="one|two" attribute.
+* Each field heading can now be styled on its own. Alongside the shared "Field labels — all" controls, there are per-heading typography and colour overrides for the "Ingredient list", "Or read it from a photo" and "Product name" headings — so, for example, the Product name heading can be made smaller than the others.
 
 = 1.6.2 =
 * Chemical names with a comma in their numbering are no longer split in two. A name like 1,2-Hexanediol or 1,3-Propanediol used to break at its comma into "1" ("we couldn't read this one") and "2-Hexanediol" ("did you mean 1,2-Hexanediol?"). A comma sitting directly between two digits is now kept as part of the name, so it reads as one ingredient and matches. Ordinary separators (a comma followed by a space, as in "Glycerin, Water") are unaffected.

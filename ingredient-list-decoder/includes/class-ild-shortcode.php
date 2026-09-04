@@ -163,11 +163,17 @@ class ILD_Shortcode {
 	/**
 	 * Render the shortcode: the form and an empty results region.
 	 *
-	 * @param array $atts Shortcode attributes (none used yet).
+	 * @param array $atts Shortcode attributes. Supports 'layout' => one|two, which
+	 *                    on desktop stacks the fields or places the paste box beside
+	 *                    the photo/product fields (tablet and mobile stay one column).
 	 * @return string The tool's HTML.
 	 */
 	public function render_shortcode( $atts = array() ) {
-		return self::render_tool();
+		$atts = shortcode_atts( array( 'layout' => 'two' ), (array) $atts, 'ingredient_decoder' );
+
+		$class = ( 'one' === $atts['layout'] ) ? '' : 'ild-tool--two-col';
+
+		return self::render_tool( array( 'class' => $class ) );
 	}
 
 	/**
