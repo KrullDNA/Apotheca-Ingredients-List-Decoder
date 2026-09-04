@@ -82,6 +82,17 @@ class ILD_Phrases {
 		return __( 'Your ingredient reading', 'ingredient-list-decoder' );
 	}
 
+	/**
+	 * The subject line when a product name was given.
+	 *
+	 * @param string $product The product name.
+	 * @return string
+	 */
+	public static function email_subject_for( $product ) {
+		/* translators: %s: the product name the visitor entered. */
+		return sprintf( __( 'Your ingredient reading for %s', 'ingredient-list-decoder' ), $product );
+	}
+
 	/** @return string The default editable intro line in the email. */
 	public static function email_intro_default() {
 		return __( 'Here\'s your reading. Below is how this formula looks to be built, then every ingredient in order — no expanding needed, it\'s all laid out.', 'ingredient-list-decoder' );

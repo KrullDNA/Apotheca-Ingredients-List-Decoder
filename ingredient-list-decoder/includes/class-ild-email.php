@@ -215,11 +215,16 @@ class ILD_Email {
 	public function build( $view, $context = array() ) {
 		$overrides = isset( $context['overrides'] ) && is_array( $context['overrides'] ) ? $context['overrides'] : array();
 		$lead_id   = isset( $context['lead_id'] ) ? (int) $context['lead_id'] : 0;
+		$product   = isset( $context['product'] ) ? trim( (string) $context['product'] ) : '';
 
 		$opts = $this->options( $overrides, $lead_id );
 
+		// The product name (if given) titles the email and the subject line.
+		$opts['product'] = $product;
+		$subject = ( '' !== $product ) ? ILD_Phrases::email_subject_for( $product ) : ILD_Phrases::email_subject_default();
+
 		return array(
-			'subject' => ILD_Phrases::email_subject_default(),
+			'subject' => $subject,
 			'html'    => $this->render_html( $view, $opts ),
 			'text'    => $this->render_text( $view, $opts ),
 		);
@@ -298,8 +303,11 @@ class ILD_Email {
 			'ild-e-container' => 'background-color:' . $s['container_bg'] . '; border-radius:' . $s['radius'] . 'px; overflow:hidden;',
 			'ild-e-header'   => 'background-color:' . $s['header_bg'] . '; padding:24px; text-align:center;',
 			'ild-e-content'  => 'padding:28px 28px 8px 28px;',
-			'ild-e-h1'       => 'font-family:' . $font . '; color:' . $s['heading'] . '; font-size:' . $s['heading_size'] . 'px; line-height:1.3; margin:0 0 12px 0;',
-			'ild-e-h2'       => 'font-family:' . $font . '; color:' . $s['heading'] . '; font-size:' . ( $s['heading_size'] - 4 ) . 'px; line-height:1.3; margin:24px 0 10px 0;',
+			// The product title above the first section: the full heading size, but
+			// medium weight so the section headings below read as the headings.
+			'ild-e-h1'       => 'font-family:' . $font . '; color:' . $s['heading'] . '; font-size:' . $s['heading_size'] . 'px; font-weight:500; line-height:1.3; margin:22px 0 4px 0;',
+			// Section headings ("How this formula is built", "Every ingredient…").
+			'ild-e-h2'       => 'font-family:' . $font . '; color:' . $s['heading'] . '; font-size:' . ( $s['heading_size'] - 4 ) . 'px; font-weight:bold; line-height:1.3; margin:24px 0 10px 0;',
 			'ild-e-p'        => $body . ' margin:0 0 14px 0;',
 			'ild-e-intro'    => $body . ' margin:0 0 18px 0;',
 			'ild-e-caveat'   => 'font-family:' . $font . '; color:' . $s['body'] . '; font-size:' . ( $s['body_size'] - 2 ) . 'px; line-height:1.5; margin:0 0 8px 0; opacity:0.85;',

@@ -27,6 +27,10 @@ $lines[] = $opts['brand'];
 $lines[] = '';
 $lines[] = $opts['intro'];
 $lines[] = '';
+if ( ! empty( $opts['product'] ) ) {
+	$lines[] = $opts['product'];
+	$lines[] = '';
+}
 $lines[] = strtoupper( ILD_Phrases::heading_summary() );
 
 foreach ( $summary as $point ) {
