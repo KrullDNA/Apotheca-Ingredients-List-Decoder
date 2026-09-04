@@ -155,6 +155,13 @@ class ILD_Settings {
 						'sanitize'    => 'absint',
 					),
 					array(
+						'id'          => 'email_form_always',
+						'label'       => __( 'Always offer the email form', 'ingredient-list-decoder' ),
+						'type'        => 'checkbox',
+						'default'     => 1,
+						'description' => __( 'On by default. The "email me a copy" form is shown beneath every reading, so a visitor can always send the current reading to their inbox. Turn this off to hide the form once a visitor has given their address on that device (they will not be asked again, but also cannot email a later reading).', 'ingredient-list-decoder' ),
+					),
+					array(
 						'id'          => 'delete_data_on_uninstall',
 						'label'       => __( 'Delete all plugin data when the plugin is deleted', 'ingredient-list-decoder' ),
 						'type'        => 'checkbox',

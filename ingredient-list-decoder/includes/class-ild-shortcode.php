@@ -468,10 +468,13 @@ class ILD_Shortcode {
 
 				// The full reading — summary, every ingredient in order, and the
 				// read-next block — always shows on screen. The email form is an
-				// optional way to keep a copy, offered beneath the reading until the
-				// visitor has given an address (its cookie).
-				$vars = array();
-				if ( 'result' === $view['state'] && ! ILD_Gate::has_access() ) {
+				// optional way to keep a copy. By default it is offered beneath every
+				// reading, so a visitor can always send the current reading to their
+				// inbox; when the "always offer" setting is off, it is hidden once the
+				// visitor has given an address on this device (its cookie).
+				$always  = 0 !== (int) ild_get_setting( 'email_form_always', 1 );
+				$vars    = array();
+				if ( 'result' === $view['state'] && ( $always || ! ILD_Gate::has_access() ) ) {
 					$vars = array(
 						'email_offer'   => true,
 						'carry'         => array( 'list' => $raw, 'page_id' => $exclude_id, 'product' => $product_name ),

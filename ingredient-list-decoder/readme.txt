@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.9
+Stable tag: 1.6.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.10 =
+* The email form is now shown beneath every reading by default, so a visitor can always send the current reading to their inbox — even one who has emailed themselves before. Previously the form was hidden for anyone who had already given an address on that device (a first-party cookie), which also removed their ability to email a later reading. A new "Always offer the email form" setting (General, on by default) controls this; turn it off to restore the old "hide after first submission" behaviour.
 
 = 1.6.9 =
 * Fixed the "How this formula is built" heading sitting slightly indented from the "Every ingredient, in order" heading below it. The heading's empty (optional) icon slot left a stray space in front of the text; the markup is now on one line so the heading lines up with the rest of the reading.
