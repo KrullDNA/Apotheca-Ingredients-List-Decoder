@@ -101,6 +101,18 @@ class ILD_Parser {
 			return self::empty_result();
 		}
 
+		// 0a. Drop a leading label. If the text carries the word "ingredients"
+		//     (as in "INGREDIENTS: Water (Aqua)"), remove it and everything before
+		//     it, so any heading — or OCR noise above the label — is discarded and
+		//     the list starts at the first real ingredient.
+		$raw = self::strip_label( $raw );
+
+		// 0b. Rejoin names split across lines. When commas or semicolons separate
+		//     the ingredients, a line break is a wrap inside one name (a photo of a
+		//     narrow label), not a separator — so join those lines back together
+		//     rather than reading one ingredient as two.
+		$raw = self::join_wrapped_lines( $raw );
+
 		// 1. Separate the shade declaration. Everything from a "may contain",
 		//    "+/-" or "±" marker to the end is a shade range, not a concentration-
 		//    ordered list, so it is held apart and never ranked.
@@ -144,6 +156,44 @@ class ILD_Parser {
 			'items' => $tokens,
 			'shade' => self::parse_shade( $shade_text ),
 		);
+	}
+
+	/**
+	 * Remove a leading "ingredients" label and everything before it.
+	 *
+	 * Product labels and OCR reads often begin with a heading — "INGREDIENTS:",
+	 * "Active Ingredients:", or a line of noise above it. Everything up to and
+	 * including the word "ingredient(s)" (and a colon straight after it) is
+	 * dropped, so the list starts at the first real ingredient. The match is
+	 * greedy, so where two labels appear ("Active… Inactive Ingredients:") the
+	 * list starts after the last one. If the word never appears, nothing changes.
+	 *
+	 * @param string $text The raw text.
+	 * @return string
+	 */
+	private static function strip_label( $text ) {
+		$stripped = preg_replace( '/^.*\bingredients?\b\s*:?\s*/isu', '', (string) $text, 1 );
+		return ( null === $stripped || '' === $stripped ) ? $text : $stripped;
+	}
+
+	/**
+	 * Join lines that are wraps inside one ingredient name, not separators.
+	 *
+	 * When the text uses commas or semicolons to separate ingredients, a bare line
+	 * break is a wrap inside a single name (common when a tall, narrow label is
+	 * photographed), so every run of line breaks becomes a single space. When
+	 * there are no commas or semicolons, line breaks are the separators and are
+	 * left untouched.
+	 *
+	 * @param string $text The raw text.
+	 * @return string
+	 */
+	private static function join_wrapped_lines( $text ) {
+		$text = (string) $text;
+		if ( preg_match( '/[;,]/u', $text ) ) {
+			$text = preg_replace( '/[ \t]*[\r\n]+[ \t]*/u', ' ', $text );
+		}
+		return $text;
 	}
 
 	/**
