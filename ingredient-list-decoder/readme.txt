@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.8
+Stable tag: 1.6.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,10 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.9 =
+* Fixed the "How this formula is built" heading sitting slightly indented from the "Every ingredient, in order" heading below it. The heading's empty (optional) icon slot left a stray space in front of the text; the markup is now on one line so the heading lines up with the rest of the reading.
+* Added a "Point spacing (margin)" control to the summary body (E · Summary block), so the gap around each summary line can be set.
 
 = 1.6.8 =
 * The "How this formula is built" summary heading gains margin and padding controls, alongside its existing typography and colour, in the "E · Summary block" section.

@@ -1512,6 +1512,19 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 			)
 		);
 
+		$this->add_responsive_control(
+			'summary_body_margin',
+			array(
+				'label'       => __( 'Point spacing (margin)', 'ingredient-list-decoder' ),
+				'type'        => Controls_Manager::DIMENSIONS,
+				'size_units'  => array( 'px', 'em', 'rem' ),
+				'description' => __( 'The margin around each summary line, so the gap between points can be set.', 'ingredient-list-decoder' ),
+				'selectors'   => array(
+					'{{WRAPPER}} .ild-summary__point' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
 		$this->add_control(
 			'summary_accent_colour',
 			array(
