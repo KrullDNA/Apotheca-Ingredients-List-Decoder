@@ -1481,6 +1481,59 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 			)
 		);
 
+		// The "Every ingredient, in order" heading above the list.
+		$this->add_control(
+			'ingredients_heading_heading',
+			array(
+				'label' => __( '“Every ingredient, in order” heading', 'ingredient-list-decoder' ),
+				'type'  => Controls_Manager::HEADING,
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'ingredients_heading_typography',
+				'selector' => '{{WRAPPER}} .ild-ingredients__heading',
+			)
+		);
+
+		$this->add_control(
+			'ingredients_heading_colour',
+			array(
+				'label'     => __( 'Heading colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-ingredients__heading' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'ingredients_heading_margin',
+			array(
+				'label'      => __( 'Heading margin', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-ingredients__heading' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'ingredients_heading_padding',
+			array(
+				'label'      => __( 'Heading padding', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-ingredients__heading' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+				'separator'  => 'after',
+			)
+		);
+
 		$this->add_control(
 			'row_bg',
 			array(
