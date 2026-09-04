@@ -47,6 +47,13 @@
 	margin-bottom: 1.25rem;
 }
 
+/* The reading drops in here. Centred, so a chosen max width sits in the middle
+ * of the tool rather than off to the left. With no max width it fills the tool. */
+.ild-results {
+	margin-left: auto;
+	margin-right: auto;
+}
+
 .ild-label {
 	display: block;
 	font-weight: 600;

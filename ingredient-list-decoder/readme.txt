@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.3
+Stable tag: 1.6.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.4 =
+* The reading now has its own width. A new "Reading width (results)" control (K · Global) sets the width of the summary, ingredients and read-next block and centres it beneath the form — so the form can stay wide while the reading is kept to a comfortable measure. The overall "Maximum width (whole tool)" control is clearer about being the reason a full-width container can still look narrow (set it to 100% for true full width), and its pixel range now goes up to 1920.
 
 = 1.6.3 =
 * A desktop two-column form layout. A new "Desktop layout" control in the Elementor widget (A · Input & form) places the paste box on the left with the photo upload and product-name fields stacked on the right, the verify step and the button running full width beneath — or keeps the single stacked column. Tablet and mobile are always a single column, so it never cramps on a narrow screen. The shortcode takes a matching layout="one|two" attribute.

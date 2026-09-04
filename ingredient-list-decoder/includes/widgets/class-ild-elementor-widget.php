@@ -2875,15 +2875,33 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 		$this->add_responsive_control(
 			'global_max_width',
 			array(
-				'label'      => __( 'Maximum width', 'ingredient-list-decoder' ),
-				'type'       => Controls_Manager::SLIDER,
-				'size_units' => array( 'px', '%', 'rem', 'vw' ),
-				'range'      => array(
-					'px' => array( 'min' => 280, 'max' => 1200 ),
+				'label'       => __( 'Maximum width (whole tool)', 'ingredient-list-decoder' ),
+				'type'        => Controls_Manager::SLIDER,
+				'size_units'  => array( 'px', '%', 'rem', 'vw' ),
+				'range'       => array(
+					'px' => array( 'min' => 280, 'max' => 1920 ),
 					'%'  => array( 'min' => 10, 'max' => 100 ),
 				),
-				'selectors'  => array(
+				'description' => __( 'The overall cap for the whole tool, centred on the page. This is why a full-width Elementor container can still look narrow — set this to 100% for true full width. The reading below has its own width control.', 'ingredient-list-decoder' ),
+				'selectors'   => array(
 					'{{WRAPPER}} .ild-tool' => 'max-width: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'results_max_width',
+			array(
+				'label'       => __( 'Reading width (results)', 'ingredient-list-decoder' ),
+				'type'        => Controls_Manager::SLIDER,
+				'size_units'  => array( 'px', '%', 'rem', 'vw' ),
+				'range'       => array(
+					'px' => array( 'min' => 280, 'max' => 1600 ),
+					'%'  => array( 'min' => 10, 'max' => 100 ),
+				),
+				'description' => __( 'The width of the reading (summary, ingredients and read-next), centred beneath the form. Leave blank to fill the tool width; set it narrower to keep the reading comfortable to read while the form stays wide.', 'ingredient-list-decoder' ),
+				'selectors'   => array(
+					'{{WRAPPER}} .ild-results' => 'max-width: {{SIZE}}{{UNIT}}; margin-left: auto; margin-right: auto;',
 				),
 			)
 		);
