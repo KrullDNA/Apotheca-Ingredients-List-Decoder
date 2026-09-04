@@ -851,6 +851,7 @@
 	 * with a link to change it — but nothing about them travels with the page.
 	 * ----------------------------------------------------------------- */
 	var EMAIL_STORE_KEY = 'ild_email';
+	var CONSENT_STORE_KEY = 'ild_consent';
 
 	function rememberedEmail() {
 		try {
@@ -865,6 +866,21 @@
 			if ( email ) {
 				window.localStorage.setItem( EMAIL_STORE_KEY, email );
 			}
+		} catch ( e ) { /* Storage unavailable — carry on without it. */ }
+	}
+
+	// Whether this browser has a record of the visitor ticking consent before.
+	function rememberedConsent() {
+		try {
+			return 'yes' === window.localStorage.getItem( CONSENT_STORE_KEY );
+		} catch ( e ) {
+			return false;
+		}
+	}
+
+	function rememberConsent() {
+		try {
+			window.localStorage.setItem( CONSENT_STORE_KEY, 'yes' );
 		} catch ( e ) { /* Storage unavailable — carry on without it. */ }
 	}
 
@@ -893,6 +909,45 @@
 		knownEmail.textContent = stored;
 		known.hidden = false;
 		field.hidden = true;
+
+		// If this device also remembers a prior opt-in, drop the consent box: the
+		// visitor has ticked it before, so a resend they asked for does not re-ask.
+		// Consent is still sent and recorded server-side. Changing the address
+		// brings the box back (handled by the change link).
+		if ( rememberedConsent() ) {
+			applyRememberedConsent( form, true );
+		}
+	}
+
+	/**
+	 * Toggle a gate form between "already opted in" and "needs consent".
+	 *
+	 * @param {HTMLFormElement} form The gate form.
+	 * @param {boolean}         on   True to drop the consent box, false to restore it.
+	 */
+	function applyRememberedConsent( form, on ) {
+		var consentBlock = form.querySelector( '.ild-gate__consent' );
+		var checkbox = form.querySelector( '[data-ild-gate-consent]' );
+		var note = form.querySelector( '[data-ild-gate-note]' );
+		var submit = form.querySelector( '[data-ild-gate-submit]' );
+		var optedin = form.querySelector( '[data-ild-gate-optedin]' );
+
+		if ( consentBlock ) {
+			consentBlock.hidden = on;
+		}
+		if ( checkbox ) {
+			// Carry the consent through on send (the record is kept server-side).
+			checkbox.checked = on;
+		}
+		if ( note ) {
+			note.hidden = on;
+		}
+		if ( submit ) {
+			submit.disabled = on ? false : ! ( checkbox && checkbox.checked );
+		}
+		if ( optedin ) {
+			optedin.hidden = ! on;
+		}
 	}
 
 	// "Use a different email": reveal the field, clear it, and hide the summary.
@@ -923,6 +978,8 @@
 			input.value = '';
 			input.focus();
 		}
+		// A new address is a fresh opt-in: bring the consent box back.
+		applyRememberedConsent( form, false );
 	} );
 
 	// Enable the submit button only while the consent box is ticked, and show
@@ -995,8 +1052,10 @@
 			.then( function ( response ) { return response.json(); } )
 			.then( function ( payload ) {
 				if ( payload && payload.success && payload.data && typeof payload.data.html === 'string' && gate && gate.parentNode ) {
-					// Remember the address for next time (this browser only).
+					// Remember the address and the opt-in for next time (this browser
+					// only), so a returning visitor is not asked to consent again.
 					rememberEmail( sentTo );
+					rememberConsent();
 					// Replace the gate with the now-unlocked breakdown, and move
 					// focus to it so it is announced.
 					var holder = document.createElement( 'div' );

@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.11
+Stable tag: 1.6.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.12 =
+* A returning visitor who has already given consent on this device is no longer asked to tick the box again. When this browser remembers both the email and a prior opt-in, the consent box is replaced by a short "You're opted in — unsubscribe any time" line and the send button is ready to use. Consent is still sent and recorded server-side on every send, so the audit trail continues. Entering a different address is treated as a fresh opt-in and brings the consent box back. The opt-in is remembered only in the browser (localStorage), never in a cookie.
 
 = 1.6.11 =
 * A returning visitor now sees which address their copy will go to. When this browser remembers an email (from a previous send), the form shows "We'll send it to name@email.com" with a "Use a different email" text link that reveals the field to change it. The address is kept only in the browser (localStorage), never in a cookie, so nothing about the visitor travels with the page.

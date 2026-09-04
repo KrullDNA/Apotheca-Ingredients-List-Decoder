@@ -186,6 +186,11 @@ class ILD_Phrases {
 		return __( 'Use a different email', 'ingredient-list-decoder' );
 	}
 
+	/** @return string The reassurance shown to a returning, already-opted-in visitor. */
+	public static function gate_opted_in() {
+		return __( 'You\'re opted in — unsubscribe any time from any email.', 'ingredient-list-decoder' );
+	}
+
 	/**
 	 * The line explaining why the button is disabled until the box is ticked.
 	 *

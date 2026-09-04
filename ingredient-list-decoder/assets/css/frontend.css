@@ -253,6 +253,13 @@
 	text-decoration: none;
 }
 
+/* The opted-in reassurance shown in place of the consent box on a repeat send. */
+.ild-gate__optedin {
+	margin: 0 0 0.75rem;
+	font-size: 0.9em;
+	opacity: 0.8;
+}
+
 /* The send button: a clear, solid, bold button that is easy to spot. */
 .ild-gate__submit {
 	font-weight: 600;

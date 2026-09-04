@@ -62,6 +62,10 @@ $privacy_url  = function_exists( 'get_privacy_policy_url' ) ? get_privacy_policy
 			<button type="button" class="ild-gate__change" data-ild-gate-change><?php echo esc_html( ILD_Phrases::gate_change_email() ); ?></button>
 		</p>
 
+		<?php // Shown by the script only when this device remembers a prior opt-in, in ?>
+		<?php // place of the consent box. Consent is still recorded server-side on send. ?>
+		<p class="ild-gate__optedin" data-ild-gate-optedin hidden><?php echo esc_html( ILD_Phrases::gate_opted_in() ); ?></p>
+
 		<div class="ild-gate__field">
 			<label class="ild-gate__label" for="<?php echo esc_attr( $guid ); ?>-email"><?php echo esc_html( ILD_Phrases::gate_email_label() ); ?></label>
 			<input
