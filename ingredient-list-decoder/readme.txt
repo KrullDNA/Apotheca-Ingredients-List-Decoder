@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.4
+Stable tag: 1.6.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,11 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.5 =
+* The photo route now matches the paste box. The "Drag a photo… / choose one below" instruction and the file-size hint sit beneath the "Or read it from a photo" heading, outside the dashed drop box (which now holds just the buttons), mirroring the paste box's heading-and-intro. In the two-column desktop layout the drop box and the paste box line up along their tops.
+* The up-front "Add your email…" line has been removed from the form. The reading always appears first, and the optional "email me a copy" form (with that wording) sits beneath it — so the email ask is only ever shown once, after the results.
+* Field headings gain margin and padding controls. Alongside the per-heading typography and colour from 1.6.3, the shared "Field labels — all" and each per-heading override now carry responsive margin and padding, so each heading's spacing can be set on its own.
 
 = 1.6.4 =
 * The reading now has its own width. A new "Reading width (results)" control (K · Global) sets the width of the summary, ingredients and read-next block and centres it beneath the form — so the form can stay wide while the reading is kept to a comfortable measure. The overall "Maximum width (whole tool)" control is clearer about being the reason a full-width container can still look narrow (set it to 100% for true full width), and its pixel range now goes up to 1920.

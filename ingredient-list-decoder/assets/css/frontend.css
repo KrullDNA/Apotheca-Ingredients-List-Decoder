@@ -126,6 +126,19 @@
 		grid-row: 1;
 	}
 
+	/* Line the two controls up: give both headings the same spacing and reserve
+	 * the same height for both intros, so the paste box and the drop box start on
+	 * the same line — their tops align. */
+	.ild-tool--two-col .ild-field--list .ild-label,
+	.ild-tool--two-col .ild-photo__heading {
+		margin-bottom: 0.5rem;
+	}
+
+	.ild-tool--two-col .ild-form__intro,
+	.ild-tool--two-col .ild-photo__intro {
+		min-height: 4.5em;
+	}
+
 	.ild-tool--two-col .ild-field--product {
 		grid-column: 2;
 		grid-row: 2;
@@ -316,6 +329,17 @@
 
 .ild-photo__heading {
 	margin-bottom: 0.5rem;
+}
+
+/* The instruction beneath the photo heading, mirroring the paste box's intro
+ * (same margins, so the drop box lines up with the textarea beside it). */
+.ild-photo__intro {
+	margin: 0.25rem 0 0.5rem;
+}
+
+.ild-photo__intro .ild-dropzone__prompt,
+.ild-photo__intro .ild-dropzone__hint {
+	text-align: left;
 }
 
 .ild-dropzone {
