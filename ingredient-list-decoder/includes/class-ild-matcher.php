@@ -235,7 +235,43 @@ class ILD_Matcher {
 			}
 		}
 
+		// Finally, the content of any bracketed group. On a "Water (Aqua)" label the
+		// INCI name is in the brackets, not outside them, so "Aqua" must be tried
+		// too — otherwise the common name alone ("Water") never resolves.
+		foreach ( self::bracket_contents( $norm ) as $inside ) {
+			if ( isset( $index['inci'][ $inside ] ) ) {
+				return array( 'id' => $index['inci'][ $inside ], 'by' => 'inci' );
+			}
+			if ( isset( $index['alias'][ $inside ] ) ) {
+				return array( 'id' => $index['alias'][ $inside ], 'by' => 'alias' );
+			}
+		}
+
 		return null;
+	}
+
+	/**
+	 * The normalised content of each bracketed group in a token.
+	 *
+	 * "water (aqua)" yields [ 'aqua' ]; "aqua (water)" yields [ 'water' ]. Each is
+	 * normalised again so it lines up with the index the same way a bare token
+	 * would. Nested brackets are not expected on an ingredient label.
+	 *
+	 * @param string $norm The normalised token.
+	 * @return string[] The non-empty bracket contents, in order.
+	 */
+	private static function bracket_contents( $norm ) {
+		$out = array();
+		if ( preg_match_all( '/\(([^()]+)\)|\[([^\[\]]+)\]|\{([^{}]+)\}/u', $norm, $matches ) ) {
+			$groups = array_merge( $matches[1], $matches[2], $matches[3] );
+			foreach ( $groups as $inside ) {
+				$inside = ILD_Parser::normalise( $inside );
+				if ( '' !== $inside ) {
+					$out[] = $inside;
+				}
+			}
+		}
+		return $out;
 	}
 
 	/**

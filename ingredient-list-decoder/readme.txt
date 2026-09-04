@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.14
+Stable tag: 1.6.15
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,10 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.15 =
+* Fixed "Water" not being recognised. On a "Water (Aqua)" label the INCI name is the one in the brackets, so the matcher now also tries the bracketed name — "Water (Aqua)" and "Aqua (Water)" both resolve to Aqua. This applies to pasted lists and photo reads alike.
+* The photo cleanup no longer strips a short common name in brackets. "(Aqua)", "(Shea)", "(Water)" are kept (they help the token match), while a longer description like "(Plant based surfactant)" or "(humectant)" is still removed. This corrects the 1.6.14 cleanup that had reduced "Water (Aqua)" to "Water".
 
 = 1.6.14 =
 * The photo transcription box is now tidied before you check it. On top of the label-strip and line-join from 1.6.13, a read from a photo now also: drops obvious OCR noise ("N)", "4 : |", "| on" and stray fragments glued to a name), removes a bracketed common name or description that follows an ingredient — "Coco-Glucoside (Plant based surfactant)" becomes "Coco-Glucoside", "Aqua (Water)" becomes "Aqua" — while keeping a leading common name like "(Jojoba) Seed Oil", and preserves colour-index codes (CI 77491). The cleaned list is shown in the verification box for you to confirm or correct.

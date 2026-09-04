@@ -447,6 +447,25 @@
 	}
 
 	/**
+	 * Whether a bracketed group is a description to drop, rather than a common
+	 * name to keep. "(Plant based surfactant)" is a description; "(Aqua)",
+	 * "(Shea)", "(Water)" are common names that help a token match, so are kept.
+	 *
+	 * @param {string} inner The text inside the brackets.
+	 * @return {boolean}
+	 */
+	function isDescriptiveBracket( inner ) {
+		var s = String( inner || '' ).trim();
+		if ( '' === s ) {
+			return false;
+		}
+		if ( s.split( /\s+/ ).length >= 3 ) {
+			return true; // Three or more words reads as a description.
+		}
+		return /\b(based|derived|natural|naturally|surfactant|emulsifier|humectant|preservative|plant|conditioner|conditioning|thickener|cleanser|from|origin|blend|complex|extract\s+of)\b/i.test( s );
+	}
+
+	/**
 	 * Tidy a read (from a photo, or pasted) for the verification box: drop a
 	 * leading "ingredients" label and anything before it, rejoin names split
 	 * across lines when commas separate the list, remove descriptive brackets
@@ -475,9 +494,13 @@
 		for ( var i = 0; i < parts.length; i++ ) {
 			var t = parts[ i ].replace( /\s+/g, ' ' ).trim();
 
-			// Remove a bracketed group that follows a name (a common name or a
-			// description), but keep one at the very start (it carries the name).
-			t = t.replace( /(\S)\s*\([^()]*\)/g, '$1' ).replace( /\s+/g, ' ' ).trim();
+			// Remove a bracketed group that follows a name only when it is a
+			// description ("(Plant based surfactant)"), never a short common name
+			// like "(Aqua)" or "(Shea)" — those help the token match. A leading
+			// bracket is always kept (it carries the name).
+			t = t.replace( /(\S)\s*\(([^()]*)\)/g, function ( whole, pre, inner ) {
+				return isDescriptiveBracket( inner ) ? pre : whole;
+			} ).replace( /\s+/g, ' ' ).trim();
 
 			// Drop noise words glued to the front or back of the name.
 			t = trimEdgeJunkWords( t );
