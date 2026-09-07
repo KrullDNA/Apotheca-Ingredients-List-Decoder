@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.17
+Stable tag: 1.6.18
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.18 =
+* Fixed aliases not being recognised when the "also known as" field held more than one name on a line. Matching does look in "also known as", but the aliases were only split on line breaks — so a value like "Fragrance; Aroma" (as an import produces) was treated as a single alias and never matched "Fragrance" or "Aroma". Aliases are now split on line breaks, commas, semicolons and pipes alike (a comma inside a name, as in 1,2-Hexanediol, is preserved), so every alias is indexed however it was entered or imported.
 
 = 1.6.17 =
 * The product name now carries into the emailed reading. When a visitor gives a product name, the email subject becomes "Your ingredient reading for [Product]" (and stays "Your ingredient reading" when the field is left blank), and the name is shown as a title just above "How this formula is built". The two section headings — "How this formula is built" and "Every ingredient, in order" — are now the same size, with the product title set at the larger heading size in a medium (500) weight so it reads as the title.

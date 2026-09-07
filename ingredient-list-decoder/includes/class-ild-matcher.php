@@ -446,12 +446,18 @@ class ILD_Matcher {
 				);
 			}
 
-			// The aliases, held one per line in the "also known as" meta.
+			// The aliases from the "also known as" meta. They are meant to be one
+			// per line, but be forgiving: split on line breaks and on comma,
+			// semicolon or pipe too, so aliases entered or imported as
+			// "Fragrance, Perfume" are each indexed. A comma between two digits
+			// (1,2-Hexanediol) is part of a name, so it is protected from the split.
 			$aka = get_post_meta( $id, '_ild_also_known_as', true );
 			if ( is_string( $aka ) && '' !== $aka ) {
-				$lines = preg_split( '/[\r\n]+/', $aka );
-				foreach ( (array) $lines as $line ) {
-					$alias_norm = ILD_Parser::normalise( $line );
+				$protected = preg_replace( '/(?<=\d),(?=\d)/u', "\x1f", $aka );
+				$parts     = preg_split( '/[\r\n;,|]+/u', (string) $protected );
+				foreach ( (array) $parts as $part ) {
+					$part       = str_replace( "\x1f", ',', $part );
+					$alias_norm = ILD_Parser::normalise( $part );
 					if ( '' !== $alias_norm && ! isset( $alias[ $alias_norm ] ) ) {
 						$alias[ $alias_norm ] = $id;
 					}
