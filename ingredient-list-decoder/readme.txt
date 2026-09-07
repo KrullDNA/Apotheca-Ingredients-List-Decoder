@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.19
+Stable tag: 1.6.20
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.20 =
+* A dangling, unclosed bracket left by an OCR read is now dropped. When a photo read truncates the closing bracket — "Panthenol (Pro-Vitamin" with no ")" — the fragment is removed, so the name matches (or is suggested) instead of being carried along and blocking the match. This applies both to the matcher (the reading and the library check) and to the photo cleanup that fills the verify box. Complete brackets behave as before.
 
 = 1.6.19 =
 * A misread name carrying a trailing bracket is now recognised. The fuzzy match now also tries the token with any brackets removed, so "Pantheno| (Pro-Vitamin B5)" — an OCR read of Panthenol — is matched on "Pantheno|" and offered as "Did you mean Panthenol?" (and corrected in place by the library check on the photo path). Previously the bracketed descriptor pushed the whole token too far from any name for the fuzzy match to fire.

@@ -502,6 +502,10 @@
 				return isDescriptiveBracket( inner ) ? pre : whole;
 			} ).replace( /\s+/g, ' ' ).trim();
 
+			// Drop a dangling, unclosed bracket at the end — an OCR read that lost
+			// the closing bracket, e.g. "Panthenol (Pro-Vitamin".
+			t = t.replace( /[([{][^)\]}]*$/, '' ).replace( /\s+/g, ' ' ).trim();
+
 			// Drop noise words glued to the front or back of the name.
 			t = trimEdgeJunkWords( t );
 

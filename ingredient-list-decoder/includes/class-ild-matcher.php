@@ -370,6 +370,9 @@ class ILD_Matcher {
 	 */
 	private static function strip_parentheticals( $norm ) {
 		$bare = preg_replace( '/\([^()]*\)|\[[^\[\]]*\]|\{[^{}]*\}/u', ' ', $norm );
+		// Also drop a dangling, unclosed bracket that runs to the end — an OCR read
+		// that truncated the closing bracket, e.g. "panthenol (pro-vitamin".
+		$bare = preg_replace( '/[\(\[\{][^\(\)\[\]\{\}]*$/u', ' ', $bare );
 		$bare = preg_replace( '/\s+/u', ' ', $bare );
 		return trim( $bare );
 	}
