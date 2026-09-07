@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.18
+Stable tag: 1.6.19
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,10 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.19 =
+* A misread name carrying a trailing bracket is now recognised. The fuzzy match now also tries the token with any brackets removed, so "Pantheno| (Pro-Vitamin B5)" — an OCR read of Panthenol — is matched on "Pantheno|" and offered as "Did you mean Panthenol?" (and corrected in place by the library check on the photo path). Previously the bracketed descriptor pushed the whole token too far from any name for the fuzzy match to fire.
+* A stray pipe that an OCR read leaves where an "l" or "I" belongs ("Pantheno|") is now trimmed as edge punctuation, so it never blocks a match.
 
 = 1.6.18 =
 * Fixed aliases not being recognised when the "also known as" field held more than one name on a line. Matching does look in "also known as", but the aliases were only split on line breaks — so a value like "Fragrance; Aroma" (as an import produces) was treated as a single alias and never matched "Fragrance" or "Aroma". Aliases are now split on line breaks, commas, semicolons and pipes alike (a comma inside a name, as in 1,2-Hexanediol, is preserved), so every alias is indexed however it was entered or imported.

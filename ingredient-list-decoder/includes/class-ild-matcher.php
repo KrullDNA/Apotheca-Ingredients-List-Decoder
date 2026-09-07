@@ -218,7 +218,16 @@ class ILD_Matcher {
 		}
 
 		// No exact hit: offer a single fuzzy suggestion if one is close enough.
+		// Try the whole token first, then the same token with any brackets removed,
+		// so a misread name carrying a trailing common name or description —
+		// "Pantheno| (Pro-Vitamin B5)" — is still matched on "Pantheno|".
 		$best = self::fuzzy_best( $norm, $index['candidates'] );
+		if ( ! $best ) {
+			$bare = self::strip_parentheticals( $norm );
+			if ( $bare !== $norm && '' !== $bare ) {
+				$best = self::fuzzy_best( $bare, $index['candidates'] );
+			}
+		}
 		if ( $best ) {
 			$item['status']     = 'suggestion';
 			$item['suggestion'] = $best;

@@ -369,7 +369,9 @@ class ILD_Parser {
 		$string = (string) $string;
 		$string = function_exists( 'mb_strtolower' ) ? mb_strtolower( $string, 'UTF-8' ) : strtolower( $string );
 		$string = preg_replace( '/\s+/u', ' ', $string );
-		$string = trim( $string, " \t\n\r\0\x0B.,;:*" );
+		// Trim surrounding punctuation, including a stray pipe an OCR read leaves
+		// where an "l" or "I" should be ("Pantheno|" → "pantheno").
+		$string = trim( $string, " \t\n\r\0\x0B.,;:*|" );
 
 		return $string;
 	}
