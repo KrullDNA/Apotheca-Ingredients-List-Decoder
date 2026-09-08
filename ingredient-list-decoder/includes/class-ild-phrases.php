@@ -82,6 +82,17 @@ class ILD_Phrases {
 		return __( 'Your ingredient reading', 'ingredient-list-decoder' );
 	}
 
+	/**
+	 * The subject line when a product name was given.
+	 *
+	 * @param string $product The product name.
+	 * @return string
+	 */
+	public static function email_subject_for( $product ) {
+		/* translators: %s: the product name the visitor entered. */
+		return sprintf( __( 'Your ingredient reading for %s', 'ingredient-list-decoder' ), $product );
+	}
+
 	/** @return string The default editable intro line in the email. */
 	public static function email_intro_default() {
 		return __( 'Here\'s your reading. Below is how this formula looks to be built, then every ingredient in order — no expanding needed, it\'s all laid out.', 'ingredient-list-decoder' );
@@ -176,6 +187,21 @@ class ILD_Phrases {
 		return __( 'Email me my result', 'ingredient-list-decoder' );
 	}
 
+	/** @return string The lead-in shown before a remembered email address. */
+	public static function gate_known_prefix() {
+		return __( 'We\'ll send it to', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The link that reveals the field to enter another address. */
+	public static function gate_change_email() {
+		return __( 'Use a different email', 'ingredient-list-decoder' );
+	}
+
+	/** @return string The reassurance shown to a returning, already-opted-in visitor. */
+	public static function gate_opted_in() {
+		return __( 'You\'re opted in — unsubscribe any time from any email.', 'ingredient-list-decoder' );
+	}
+
 	/**
 	 * The line explaining why the button is disabled until the box is ticked.
 	 *
@@ -257,6 +283,11 @@ class ILD_Phrases {
 	/** @return string Announced/shown while the photo is being read. */
 	public static function photo_reading() {
 		return __( 'Reading the text from your photo…', 'ingredient-list-decoder' );
+	}
+
+	/** @return string Shown while the read list is checked against the library. */
+	public static function photo_matching() {
+		return __( 'Checking the names against our library…', 'ingredient-list-decoder' );
 	}
 
 	/** @return string The heading over the verification area. */

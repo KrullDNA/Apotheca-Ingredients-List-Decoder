@@ -68,8 +68,13 @@ $header_bg   = isset( $s['header_bg'] ) ? $s['header_bg'] : '#1f3d2b';
 							<?php // Intro. ?>
 							<p class="ild-e-intro"><?php echo nl2br( esc_html( $opts['intro'] ) ); ?></p>
 
-							<?php // The summary. ?>
-							<h1 class="ild-e-h1"><?php echo esc_html( ILD_Phrases::heading_summary() ); ?></h1>
+							<?php // The product name, if one was given, titling the reading. ?>
+							<?php if ( ! empty( $opts['product'] ) ) : ?>
+								<h1 class="ild-e-h1"><?php echo esc_html( $opts['product'] ); ?></h1>
+							<?php endif; ?>
+
+							<?php // The summary. Same heading size as "Every ingredient" below. ?>
+							<h2 class="ild-e-h2"<?php echo ! empty( $opts['product'] ) ? ' style="margin-top:6px;"' : ''; ?>><?php echo esc_html( ILD_Phrases::heading_summary() ); ?></h2>
 							<?php foreach ( $summary as $point ) : ?>
 								<?php $text = is_array( $point ) ? ( isset( $point['text'] ) ? $point['text'] : '' ) : $point; ?>
 								<p class="ild-e-p"><?php echo esc_html( $text ); ?></p>

@@ -266,6 +266,22 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 			)
 		);
 
+		// Desktop layout: one or two columns.
+		$this->add_control(
+			'form_layout',
+			array(
+				'label'       => __( 'Desktop layout', 'ingredient-list-decoder' ),
+				'type'        => Controls_Manager::SELECT,
+				'default'     => 'two',
+				'options'     => array(
+					'one' => __( 'One column (stacked)', 'ingredient-list-decoder' ),
+					'two' => __( 'Two columns (paste box beside photo)', 'ingredient-list-decoder' ),
+				),
+				'description' => __( 'On desktop, place the paste box and the photo/product fields side by side, or stack them. Tablet and mobile are always a single column.', 'ingredient-list-decoder' ),
+				'separator'   => 'after',
+			)
+		);
+
 		// Input container.
 		$this->add_control(
 			'input_container_heading',
@@ -324,13 +340,17 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 			)
 		);
 
-		// Label.
+		// Labels — a shared base, then per-heading overrides. The base sets every
+		// field label together; each override below is more specific, so it wins
+		// where set and leaves the base to fill in the rest. This is what lets the
+		// "Product name" label be smaller than the others.
 		$this->add_control(
 			'label_heading',
 			array(
-				'label'     => __( 'Field label', 'ingredient-list-decoder' ),
-				'type'      => Controls_Manager::HEADING,
-				'separator' => 'before',
+				'label'       => __( 'Field labels — all', 'ingredient-list-decoder' ),
+				'type'        => Controls_Manager::HEADING,
+				'separator'   => 'before',
+				'description' => __( 'The shared look for every field heading. Use the per-heading overrides below to size or colour one on its own.', 'ingredient-list-decoder' ),
 			)
 		);
 
@@ -352,6 +372,35 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 				),
 			)
 		);
+
+		$this->add_responsive_control(
+			'label_margin',
+			array(
+				'label'      => __( 'Label margin', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-label' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'label_padding',
+			array(
+				'label'      => __( 'Label padding', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-label' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		// Per-heading overrides, each targeting one heading only.
+		$this->heading_override_controls( 'label_list', __( '“Ingredient list” heading', 'ingredient-list-decoder' ), '{{WRAPPER}} .ild-field--list .ild-label' );
+		$this->heading_override_controls( 'label_photo', __( '“Or read it from a photo” heading', 'ingredient-list-decoder' ), '{{WRAPPER}} .ild-field--photo .ild-photo__heading' );
+		$this->heading_override_controls( 'label_product', __( '“Product name” heading', 'ingredient-list-decoder' ), '{{WRAPPER}} .ild-field--product .ild-label' );
 
 		// Textarea.
 		$this->add_control(
@@ -952,6 +1001,59 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 			)
 		);
 
+		// The "Transcribed ingredients" label above the transcription field.
+		$this->add_control(
+			'verify_label_heading',
+			array(
+				'label'     => __( '“Transcribed ingredients” label', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'verify_label_typography',
+				'selector' => '{{WRAPPER}} .ild-verify__label',
+			)
+		);
+
+		$this->add_control(
+			'verify_label_colour',
+			array(
+				'label'     => __( 'Label colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-verify__label' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'verify_label_margin',
+			array(
+				'label'      => __( 'Label margin', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-verify__label' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'verify_label_padding',
+			array(
+				'label'      => __( 'Label padding', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-verify__label' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
 		$this->add_control(
 			'verify_field_heading',
 			array(
@@ -1018,6 +1120,72 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 		$this->button_controls( 'link', __( 'Text-link button', 'ingredient-list-decoder' ), '{{WRAPPER}} .ild-button--link' );
 
 		$this->end_controls_section();
+	}
+
+	/**
+	 * A per-heading typography and colour override for one field label.
+	 *
+	 * The base label control styles every heading together; this overrides one on
+	 * its own with a more specific selector, so — for example — the "Product name"
+	 * heading can be made smaller than the others.
+	 *
+	 * @param string $key      A short key, unique per heading.
+	 * @param string $label    The heading shown for this control group.
+	 * @param string $selector The CSS selector for this one heading.
+	 * @return void
+	 */
+	private function heading_override_controls( $key, $label, $selector ) {
+		$this->add_control(
+			$key . '_override_heading',
+			array(
+				'label'     => $label,
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => $key . '_override_typography',
+				'selector' => $selector,
+			)
+		);
+
+		$this->add_control(
+			$key . '_override_colour',
+			array(
+				'label'     => __( 'Colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					$selector => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			$key . '_override_margin',
+			array(
+				'label'      => __( 'Margin', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					$selector => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			$key . '_override_padding',
+			array(
+				'label'      => __( 'Padding', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					$selector => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
 	}
 
 	/**
@@ -1292,6 +1460,30 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 			)
 		);
 
+		$this->add_responsive_control(
+			'summary_heading_margin',
+			array(
+				'label'      => __( 'Heading margin', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-summary__heading' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'summary_heading_padding',
+			array(
+				'label'      => __( 'Heading padding', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-summary__heading' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
 		$this->add_control(
 			'summary_body_heading',
 			array(
@@ -1316,6 +1508,19 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 				'type'      => Controls_Manager::COLOR,
 				'selectors' => array(
 					'{{WRAPPER}} .ild-summary__point-text' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'summary_body_margin',
+			array(
+				'label'       => __( 'Point spacing (margin)', 'ingredient-list-decoder' ),
+				'type'        => Controls_Manager::DIMENSIONS,
+				'size_units'  => array( 'px', 'em', 'rem' ),
+				'description' => __( 'The margin around each summary line, so the gap between points can be set.', 'ingredient-list-decoder' ),
+				'selectors'   => array(
+					'{{WRAPPER}} .ild-summary__point' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
 				),
 			)
 		);
@@ -1363,6 +1568,59 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 			array(
 				'label' => __( 'F · Ingredient rows', 'ingredient-list-decoder' ),
 				'tab'   => Controls_Manager::TAB_STYLE,
+			)
+		);
+
+		// The "Every ingredient, in order" heading above the list.
+		$this->add_control(
+			'ingredients_heading_heading',
+			array(
+				'label' => __( '“Every ingredient, in order” heading', 'ingredient-list-decoder' ),
+				'type'  => Controls_Manager::HEADING,
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'ingredients_heading_typography',
+				'selector' => '{{WRAPPER}} .ild-ingredients__heading',
+			)
+		);
+
+		$this->add_control(
+			'ingredients_heading_colour',
+			array(
+				'label'     => __( 'Heading colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-ingredients__heading' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'ingredients_heading_margin',
+			array(
+				'label'      => __( 'Heading margin', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-ingredients__heading' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'ingredients_heading_padding',
+			array(
+				'label'      => __( 'Heading padding', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-ingredients__heading' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+				'separator'  => 'after',
 			)
 		);
 
@@ -2808,15 +3066,33 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 		$this->add_responsive_control(
 			'global_max_width',
 			array(
-				'label'      => __( 'Maximum width', 'ingredient-list-decoder' ),
-				'type'       => Controls_Manager::SLIDER,
-				'size_units' => array( 'px', '%', 'rem', 'vw' ),
-				'range'      => array(
-					'px' => array( 'min' => 280, 'max' => 1200 ),
+				'label'       => __( 'Maximum width (whole tool)', 'ingredient-list-decoder' ),
+				'type'        => Controls_Manager::SLIDER,
+				'size_units'  => array( 'px', '%', 'rem', 'vw' ),
+				'range'       => array(
+					'px' => array( 'min' => 280, 'max' => 1920 ),
 					'%'  => array( 'min' => 10, 'max' => 100 ),
 				),
-				'selectors'  => array(
+				'description' => __( 'The overall cap for the whole tool, centred on the page. This is why a full-width Elementor container can still look narrow — set this to 100% for true full width. The reading below has its own width control.', 'ingredient-list-decoder' ),
+				'selectors'   => array(
 					'{{WRAPPER}} .ild-tool' => 'max-width: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'results_max_width',
+			array(
+				'label'       => __( 'Reading width (results)', 'ingredient-list-decoder' ),
+				'type'        => Controls_Manager::SLIDER,
+				'size_units'  => array( 'px', '%', 'rem', 'vw' ),
+				'range'       => array(
+					'px' => array( 'min' => 280, 'max' => 1600 ),
+					'%'  => array( 'min' => 10, 'max' => 100 ),
+				),
+				'description' => __( 'The width of the reading (summary, ingredients and read-next), centred beneath the form. Leave blank to fill the tool width; set it narrower to keep the reading comfortable to read while the form stays wide.', 'ingredient-list-decoder' ),
+				'selectors'   => array(
+					'{{WRAPPER}} .ild-results' => 'max-width: {{SIZE}}{{UNIT}}; margin-left: auto; margin-right: auto;',
 				),
 			)
 		);
@@ -2931,6 +3207,13 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 
 		// Wrapper classes driven by the global and loading controls.
 		$classes = array();
+
+		// Desktop layout: two columns places the paste box beside the photo/product
+		// fields. Tablet and mobile stay one column (handled in CSS).
+		if ( ! isset( $settings['form_layout'] ) || 'two' === $settings['form_layout'] ) {
+			$classes[] = 'ild-tool--two-col';
+		}
+
 		if ( isset( $settings['loading_style'] ) && 'skeleton' === $settings['loading_style'] ) {
 			$classes[] = 'ild-tool--loading-skeleton';
 		}

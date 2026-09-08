@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.2
+Stable tag: 1.6.20
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,67 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.20 =
+* A dangling, unclosed bracket left by an OCR read is now dropped. When a photo read truncates the closing bracket — "Panthenol (Pro-Vitamin" with no ")" — the fragment is removed, so the name matches (or is suggested) instead of being carried along and blocking the match. This applies both to the matcher (the reading and the library check) and to the photo cleanup that fills the verify box. Complete brackets behave as before.
+
+= 1.6.19 =
+* A misread name carrying a trailing bracket is now recognised. The fuzzy match now also tries the token with any brackets removed, so "Pantheno| (Pro-Vitamin B5)" — an OCR read of Panthenol — is matched on "Pantheno|" and offered as "Did you mean Panthenol?" (and corrected in place by the library check on the photo path). Previously the bracketed descriptor pushed the whole token too far from any name for the fuzzy match to fire.
+* A stray pipe that an OCR read leaves where an "l" or "I" belongs ("Pantheno|") is now trimmed as edge punctuation, so it never blocks a match.
+
+= 1.6.18 =
+* Fixed aliases not being recognised when the "also known as" field held more than one name on a line. Matching does look in "also known as", but the aliases were only split on line breaks — so a value like "Fragrance; Aroma" (as an import produces) was treated as a single alias and never matched "Fragrance" or "Aroma". Aliases are now split on line breaks, commas, semicolons and pipes alike (a comma inside a name, as in 1,2-Hexanediol, is preserved), so every alias is indexed however it was entered or imported.
+
+= 1.6.17 =
+* The product name now carries into the emailed reading. When a visitor gives a product name, the email subject becomes "Your ingredient reading for [Product]" (and stays "Your ingredient reading" when the field is left blank), and the name is shown as a title just above "How this formula is built". The two section headings — "How this formula is built" and "Every ingredient, in order" — are now the same size, with the product title set at the larger heading size in a medium (500) weight so it reads as the title.
+
+= 1.6.16 =
+* A photo read is now checked against the library before you confirm it — no AI, no API cost. Each name is matched against the ingredient database (exactly, or by the same fuzzy match the reader uses), and a close read is corrected to the stored INCI name in place: a misread "Cocamidopropy Betaine" becomes "Cocamidopropyl Betaine", "aqua (water)" becomes "Aqua". Names with no confident match are left exactly as read, and any "may contain" shade line is kept as-is. It all happens on your own database via a new lightweight, read-only endpoint; nothing is saved.
+
+= 1.6.15 =
+* Fixed "Water" not being recognised. On a "Water (Aqua)" label the INCI name is the one in the brackets, so the matcher now also tries the bracketed name — "Water (Aqua)" and "Aqua (Water)" both resolve to Aqua. This applies to pasted lists and photo reads alike.
+* The photo cleanup no longer strips a short common name in brackets. "(Aqua)", "(Shea)", "(Water)" are kept (they help the token match), while a longer description like "(Plant based surfactant)" or "(humectant)" is still removed. This corrects the 1.6.14 cleanup that had reduced "Water (Aqua)" to "Water".
+
+= 1.6.14 =
+* The photo transcription box is now tidied before you check it. On top of the label-strip and line-join from 1.6.13, a read from a photo now also: drops obvious OCR noise ("N)", "4 : |", "| on" and stray fragments glued to a name), removes a bracketed common name or description that follows an ingredient — "Coco-Glucoside (Plant based surfactant)" becomes "Coco-Glucoside", "Aqua (Water)" becomes "Aqua" — while keeping a leading common name like "(Jojoba) Seed Oil", and preserves colour-index codes (CI 77491). The cleaned list is shown in the verification box for you to confirm or correct.
+
+= 1.6.13 =
+* Cleaner reading of pasted and photographed lists. A leading "INGREDIENTS:" (or "Active/Inactive Ingredients:") label — and any heading or OCR noise before it — is now removed, so the list starts at the first real ingredient. And when commas or semicolons separate the ingredients, a name split across two lines (common when a tall label is photographed) is rejoined into one ingredient instead of being read as two. Lists that are genuinely one-per-line (no commas) are left as they are.
+
+= 1.6.12 =
+* A returning visitor who has already given consent on this device is no longer asked to tick the box again. When this browser remembers both the email and a prior opt-in, the consent box is replaced by a short "You're opted in — unsubscribe any time" line and the send button is ready to use. Consent is still sent and recorded server-side on every send, so the audit trail continues. Entering a different address is treated as a fresh opt-in and brings the consent box back. The opt-in is remembered only in the browser (localStorage), never in a cookie.
+
+= 1.6.11 =
+* A returning visitor now sees which address their copy will go to. When this browser remembers an email (from a previous send), the form shows "We'll send it to name@email.com" with a "Use a different email" text link that reveals the field to change it. The address is kept only in the browser (localStorage), never in a cookie, so nothing about the visitor travels with the page.
+* The send button is now a clear, bold, solid button so it's easy to spot, with a distinct disabled state until consent is ticked.
+
+= 1.6.10 =
+* The email form is now shown beneath every reading by default, so a visitor can always send the current reading to their inbox — even one who has emailed themselves before. Previously the form was hidden for anyone who had already given an address on that device (a first-party cookie), which also removed their ability to email a later reading. A new "Always offer the email form" setting (General, on by default) controls this; turn it off to restore the old "hide after first submission" behaviour.
+
+= 1.6.9 =
+* Fixed the "How this formula is built" heading sitting slightly indented from the "Every ingredient, in order" heading below it. The heading's empty (optional) icon slot left a stray space in front of the text; the markup is now on one line so the heading lines up with the rest of the reading.
+* Added a "Point spacing (margin)" control to the summary body (E · Summary block), so the gap around each summary line can be set.
+
+= 1.6.8 =
+* The "How this formula is built" summary heading gains margin and padding controls, alongside its existing typography and colour, in the "E · Summary block" section.
+
+= 1.6.7 =
+* The "Transcribed ingredients" label in the photo verification step is now styleable. It had no controls of its own; it now has typography, colour, margin and padding, added to the "C · Verification" section (between the notice and the transcription field controls).
+
+= 1.6.6 =
+* The "Every ingredient, in order" heading is now styleable. It had no controls of its own; it now has typography, colour, margin and padding controls, added at the top of the "F · Ingredient rows" section in the Elementor widget.
+
+= 1.6.5 =
+* The photo route now matches the paste box. The "Drag a photo… / choose one below" instruction and the file-size hint sit beneath the "Or read it from a photo" heading, outside the dashed drop box (which now holds just the buttons), mirroring the paste box's heading-and-intro. In the two-column desktop layout the drop box and the paste box line up along their tops.
+* The up-front "Add your email…" line has been removed from the form. The reading always appears first, and the optional "email me a copy" form (with that wording) sits beneath it — so the email ask is only ever shown once, after the results.
+* Field headings gain margin and padding controls. Alongside the per-heading typography and colour from 1.6.3, the shared "Field labels — all" and each per-heading override now carry responsive margin and padding, so each heading's spacing can be set on its own.
+
+= 1.6.4 =
+* The reading now has its own width. A new "Reading width (results)" control (K · Global) sets the width of the summary, ingredients and read-next block and centres it beneath the form — so the form can stay wide while the reading is kept to a comfortable measure. The overall "Maximum width (whole tool)" control is clearer about being the reason a full-width container can still look narrow (set it to 100% for true full width), and its pixel range now goes up to 1920.
+
+= 1.6.3 =
+* A desktop two-column form layout. A new "Desktop layout" control in the Elementor widget (A · Input & form) places the paste box on the left with the photo upload and product-name fields stacked on the right, the verify step and the button running full width beneath — or keeps the single stacked column. Tablet and mobile are always a single column, so it never cramps on a narrow screen. The shortcode takes a matching layout="one|two" attribute.
+* Each field heading can now be styled on its own. Alongside the shared "Field labels — all" controls, there are per-heading typography and colour overrides for the "Ingredient list", "Or read it from a photo" and "Product name" headings — so, for example, the Product name heading can be made smaller than the others.
 
 = 1.6.2 =
 * Chemical names with a comma in their numbering are no longer split in two. A name like 1,2-Hexanediol or 1,3-Propanediol used to break at its comma into "1" ("we couldn't read this one") and "2-Hexanediol" ("did you mean 1,2-Hexanediol?"). A comma sitting directly between two digits is now kept as part of the name, so it reads as one ingredient and matches. Ordinary separators (a comma followed by a space, as in "Glycerin, Water") are unaffected.

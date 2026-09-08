@@ -385,6 +385,144 @@
 	}
 
 	/**
+	 * Whether one token is OCR noise rather than an ingredient name.
+	 *
+	 * @param {string} t A single token.
+	 * @return {boolean}
+	 */
+	function isNoiseToken( t ) {
+		if ( /\bci\s*\d/i.test( t ) ) {
+			return false; // A colour-index code (CI 77491) is real.
+		}
+		var letters = ( t.match( /[A-Za-zÀ-ɏ]/g ) || [] ).length;
+		var solid = t.replace( /\s+/g, '' );
+		if ( 0 === letters ) {
+			return true; // No letters at all: "4 : |", "|", "N)".
+		}
+		if ( solid.length <= 2 ) {
+			return true; // Tiny fragment: "nr", "on", "o".
+		}
+		if ( letters < 2 ) {
+			return true;
+		}
+		if ( ( letters / solid.length ) < 0.4 && ! /\d{3,}/.test( t ) ) {
+			return true; // Mostly symbols/digits and not a colour code.
+		}
+		return false;
+	}
+
+	/**
+	 * Strip runs of noise words from the start and end of one token — the stray
+	 * "N)", "4", ":", "|" an OCR read leaves glued to a name — while keeping the
+	 * real words in the middle. Colour-index codes (CI 77491) are left alone.
+	 *
+	 * @param {string} t A single token.
+	 * @return {string}
+	 */
+	function trimEdgeJunkWords( t ) {
+		if ( /\bci\s*\d/i.test( t ) ) {
+			return t;
+		}
+		function junk( w ) {
+			var bare = w.replace( /[^0-9A-Za-zÀ-ɏ]/g, '' );
+			if ( '' === bare ) {
+				return true; // Pure punctuation: ":", "|".
+			}
+			if ( /^\d{1,2}$/.test( bare ) ) {
+				return true; // A stray one- or two-digit number.
+			}
+			if ( 1 === ( bare.match( /[A-Za-zÀ-ɏ]/g ) || [] ).length && bare.length <= 2 ) {
+				return true; // A single letter, e.g. "N)", "o".
+			}
+			return false;
+		}
+		var words = t.split( ' ' );
+		while ( words.length && junk( words[ 0 ] ) ) {
+			words.shift();
+		}
+		while ( words.length && junk( words[ words.length - 1 ] ) ) {
+			words.pop();
+		}
+		return words.join( ' ' );
+	}
+
+	/**
+	 * Whether a bracketed group is a description to drop, rather than a common
+	 * name to keep. "(Plant based surfactant)" is a description; "(Aqua)",
+	 * "(Shea)", "(Water)" are common names that help a token match, so are kept.
+	 *
+	 * @param {string} inner The text inside the brackets.
+	 * @return {boolean}
+	 */
+	function isDescriptiveBracket( inner ) {
+		var s = String( inner || '' ).trim();
+		if ( '' === s ) {
+			return false;
+		}
+		if ( s.split( /\s+/ ).length >= 3 ) {
+			return true; // Three or more words reads as a description.
+		}
+		return /\b(based|derived|natural|naturally|surfactant|emulsifier|humectant|preservative|plant|conditioner|conditioning|thickener|cleanser|from|origin|blend|complex|extract\s+of)\b/i.test( s );
+	}
+
+	/**
+	 * Tidy a read (from a photo, or pasted) for the verification box: drop a
+	 * leading "ingredients" label and anything before it, rejoin names split
+	 * across lines when commas separate the list, remove descriptive brackets
+	 * that follow a name — "Coco-Glucoside (Plant based surfactant)" — while
+	 * keeping a leading common name like "(Jojoba) Seed Oil", trim stray edge
+	 * punctuation, and drop obvious OCR noise. The visitor still checks the
+	 * result before it is read.
+	 *
+	 * @param {string} text The raw text.
+	 * @return {string}
+	 */
+	function cleanReadText( text ) {
+		var s = String( text || '' );
+
+		// Drop a leading label and everything before it (matches the parser).
+		s = s.replace( /^[\s\S]*\bingredients?\b\s*:?\s*/i, '' );
+
+		// When commas or semicolons separate items, a line break is a wrap inside
+		// one name, so join it into a space.
+		if ( /[;,]/.test( s ) ) {
+			s = s.replace( /[ \t]*[\r\n]+[ \t]*/g, ' ' );
+		}
+
+		var parts = s.split( /[;,\n]+/ );
+		var out = [];
+		for ( var i = 0; i < parts.length; i++ ) {
+			var t = parts[ i ].replace( /\s+/g, ' ' ).trim();
+
+			// Remove a bracketed group that follows a name only when it is a
+			// description ("(Plant based surfactant)"), never a short common name
+			// like "(Aqua)" or "(Shea)" — those help the token match. A leading
+			// bracket is always kept (it carries the name).
+			t = t.replace( /(\S)\s*\(([^()]*)\)/g, function ( whole, pre, inner ) {
+				return isDescriptiveBracket( inner ) ? pre : whole;
+			} ).replace( /\s+/g, ' ' ).trim();
+
+			// Drop a dangling, unclosed bracket at the end — an OCR read that lost
+			// the closing bracket, e.g. "Panthenol (Pro-Vitamin".
+			t = t.replace( /[([{][^)\]}]*$/, '' ).replace( /\s+/g, ' ' ).trim();
+
+			// Drop noise words glued to the front or back of the name.
+			t = trimEdgeJunkWords( t );
+
+			// Trim stray leading/trailing punctuation (keep a leading "(" and a
+			// trailing ")", "%", ".", digits and letters).
+			t = t.replace( /^[^0-9A-Za-zÀ-ɏ(]+/, '' ).replace( /[^0-9A-Za-zÀ-ɏ)%.+-]+$/, '' ).trim();
+
+			if ( '' === t || isNoiseToken( t ) ) {
+				continue;
+			}
+			out.push( t );
+		}
+
+		return out.join( ', ' );
+	}
+
+	/**
 	 * Read the text off a prepared image in the browser with Tesseract.js.
 	 *
 	 * @param {Blob} blob The prepared JPEG.
@@ -521,6 +659,55 @@
 		}
 	}
 
+	/**
+	 * Check a read list against the library and correct close names in place.
+	 *
+	 * No AI: the server runs the same fuzzy match the reader uses against the
+	 * ingredient database and hands back the list with confident names snapped to
+	 * their stored INCI form. The box is only updated if the person has not begun
+	 * editing it in the meantime.
+	 *
+	 * @param {Element}             tool     The tool wrapper.
+	 * @param {HTMLTextAreaElement} textarea The verify textarea.
+	 * @param {string}              current  The text just placed in the textarea.
+	 */
+	function tidyAgainstLibrary( tool, textarea, current ) {
+		if ( ! settings.tidyAction || ! settings.ajaxUrl || ! current ) {
+			return;
+		}
+
+		var form = tool.querySelector( '.ild-form' );
+		var nonceField = form ? form.querySelector( 'input[name="ild_nonce"]' ) : null;
+		var nonce = freshNonces.analyse || ( nonceField ? nonceField.value : '' );
+
+		var body = new URLSearchParams();
+		body.append( 'action', settings.tidyAction );
+		body.append( 'ild_list', current );
+		if ( nonce ) {
+			body.append( 'ild_nonce', nonce );
+		}
+
+		setVerifyStatus( tool, settings.photoMatching || '' );
+
+		fetch( settings.ajaxUrl, {
+			method: 'POST',
+			credentials: 'same-origin',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+			body: body.toString()
+		} )
+			.then( function ( response ) { return response.json(); } )
+			.then( function ( payload ) {
+				setVerifyStatus( tool, '' );
+				if ( payload && payload.success && payload.data && typeof payload.data.list === 'string' && payload.data.list ) {
+					// Only replace if the person has not edited the box since.
+					if ( textarea.value === current ) {
+						textarea.value = payload.data.list;
+					}
+				}
+			} )
+			.catch( function () { setVerifyStatus( tool, '' ); } );
+	}
+
 	function showVerify( tool, text, thumbUrl ) {
 		var p = photoParts( tool );
 		setVerifyStatus( tool, '' );
@@ -528,7 +715,12 @@
 			p.enhance.disabled = false;
 		}
 		if ( p.text ) {
-			p.text.value = text;
+			// Tidy the read before showing it, so the box is clean to check…
+			var cleaned = cleanReadText( text );
+			p.text.value = cleaned;
+			// …then check the names against the library (no AI — a fuzzy match on
+			// the database) and correct close reads in place.
+			tidyAgainstLibrary( tool, p.text, cleaned );
 		}
 		if ( p.thumb && thumbUrl ) {
 			var old = thumbUrls.get( tool );
@@ -809,7 +1001,7 @@
 			setVerifyStatus( etool, settings.photoEnhancing || '' );
 			serverTranscribe( etool, eblob )
 				.then( function ( text ) {
-					text = ( text || '' ).trim();
+					text = cleanReadText( text );
 					if ( text && eparts.text ) {
 						eparts.text.value = text;
 					}
@@ -842,6 +1034,145 @@
 	 * Email gate: enable the button once consent is ticked, submit the
 	 * gate, and reveal the breakdown in place.
 	 * ----------------------------------------------------------------- */
+
+	/* -------------------------------------------------------------------
+	 * Remembered email.
+	 *
+	 * The address is kept only in this browser (localStorage), never in a
+	 * cookie, so a returning visitor is shown the email their copy will go to
+	 * with a link to change it — but nothing about them travels with the page.
+	 * ----------------------------------------------------------------- */
+	var EMAIL_STORE_KEY = 'ild_email';
+	var CONSENT_STORE_KEY = 'ild_consent';
+
+	function rememberedEmail() {
+		try {
+			return window.localStorage.getItem( EMAIL_STORE_KEY ) || '';
+		} catch ( e ) {
+			return '';
+		}
+	}
+
+	function rememberEmail( email ) {
+		try {
+			if ( email ) {
+				window.localStorage.setItem( EMAIL_STORE_KEY, email );
+			}
+		} catch ( e ) { /* Storage unavailable — carry on without it. */ }
+	}
+
+	// Whether this browser has a record of the visitor ticking consent before.
+	function rememberedConsent() {
+		try {
+			return 'yes' === window.localStorage.getItem( CONSENT_STORE_KEY );
+		} catch ( e ) {
+			return false;
+		}
+	}
+
+	function rememberConsent() {
+		try {
+			window.localStorage.setItem( CONSENT_STORE_KEY, 'yes' );
+		} catch ( e ) { /* Storage unavailable — carry on without it. */ }
+	}
+
+	/**
+	 * Put a gate form into "remembered email" mode when this device knows an
+	 * address: fill the field, hide it, and show "we'll send it to X" with the
+	 * change link. Leaves the form untouched when no address is remembered.
+	 *
+	 * @param {HTMLFormElement} form The gate form.
+	 */
+	function initGateForm( form ) {
+		if ( ! form ) {
+			return;
+		}
+		var stored = rememberedEmail();
+		var known = form.querySelector( '[data-ild-gate-known]' );
+		var knownEmail = form.querySelector( '[data-ild-gate-known-email]' );
+		var field = form.querySelector( '.ild-gate__field' );
+		var input = form.querySelector( '.ild-gate__email' );
+
+		if ( ! stored || ! known || ! knownEmail || ! field || ! input ) {
+			return;
+		}
+
+		input.value = stored;
+		knownEmail.textContent = stored;
+		known.hidden = false;
+		field.hidden = true;
+
+		// If this device also remembers a prior opt-in, drop the consent box: the
+		// visitor has ticked it before, so a resend they asked for does not re-ask.
+		// Consent is still sent and recorded server-side. Changing the address
+		// brings the box back (handled by the change link).
+		if ( rememberedConsent() ) {
+			applyRememberedConsent( form, true );
+		}
+	}
+
+	/**
+	 * Toggle a gate form between "already opted in" and "needs consent".
+	 *
+	 * @param {HTMLFormElement} form The gate form.
+	 * @param {boolean}         on   True to drop the consent box, false to restore it.
+	 */
+	function applyRememberedConsent( form, on ) {
+		var consentBlock = form.querySelector( '.ild-gate__consent' );
+		var checkbox = form.querySelector( '[data-ild-gate-consent]' );
+		var note = form.querySelector( '[data-ild-gate-note]' );
+		var submit = form.querySelector( '[data-ild-gate-submit]' );
+		var optedin = form.querySelector( '[data-ild-gate-optedin]' );
+
+		if ( consentBlock ) {
+			consentBlock.hidden = on;
+		}
+		if ( checkbox ) {
+			// Carry the consent through on send (the record is kept server-side).
+			checkbox.checked = on;
+		}
+		if ( note ) {
+			note.hidden = on;
+		}
+		if ( submit ) {
+			submit.disabled = on ? false : ! ( checkbox && checkbox.checked );
+		}
+		if ( optedin ) {
+			optedin.hidden = ! on;
+		}
+	}
+
+	// "Use a different email": reveal the field, clear it, and hide the summary.
+	document.addEventListener( 'click', function ( event ) {
+		var target = event.target;
+		if ( ! target || ! target.closest ) {
+			return;
+		}
+		var change = target.closest( '[data-ild-gate-change]' );
+		if ( ! change ) {
+			return;
+		}
+		event.preventDefault();
+		var form = change.closest( '.ild-gate__form' );
+		if ( ! form ) {
+			return;
+		}
+		var known = form.querySelector( '[data-ild-gate-known]' );
+		var field = form.querySelector( '.ild-gate__field' );
+		var input = form.querySelector( '.ild-gate__email' );
+		if ( known ) {
+			known.hidden = true;
+		}
+		if ( field ) {
+			field.hidden = false;
+		}
+		if ( input ) {
+			input.value = '';
+			input.focus();
+		}
+		// A new address is a fresh opt-in: bring the consent box back.
+		applyRememberedConsent( form, false );
+	} );
 
 	// Enable the submit button only while the consent box is ticked, and show
 	// the reason it is disabled rather than failing silently.
@@ -897,6 +1228,11 @@
 			gateNonce.value = freshNonces.gate;
 		}
 
+		// The address being sent to, so it can be remembered on this device once
+		// the send succeeds.
+		var emailField = form.querySelector( '.ild-gate__email' );
+		var sentTo = emailField ? emailField.value : '';
+
 		var data = new FormData( form );
 		data.append( 'action', settings.gateAction );
 
@@ -908,6 +1244,10 @@
 			.then( function ( response ) { return response.json(); } )
 			.then( function ( payload ) {
 				if ( payload && payload.success && payload.data && typeof payload.data.html === 'string' && gate && gate.parentNode ) {
+					// Remember the address and the opt-in for next time (this browser
+					// only), so a returning visitor is not asked to consent again.
+					rememberEmail( sentTo );
+					rememberConsent();
 					// Replace the gate with the now-unlocked breakdown, and move
 					// focus to it so it is announced.
 					var holder = document.createElement( 'div' );
@@ -1011,6 +1351,10 @@
 				if ( payload && payload.data && typeof payload.data.html === 'string' ) {
 					if ( results ) {
 						results.innerHTML = payload.data.html;
+
+						// If the reading carries the email form, show the remembered
+						// address (this device) with a link to change it.
+						initGateForm( results.querySelector( '.ild-gate__form' ) );
 
 						// Move focus to the result so keyboard users land on it and
 						// screen readers announce it (the region is aria-live too).

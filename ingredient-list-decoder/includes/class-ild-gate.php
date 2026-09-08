@@ -106,6 +106,7 @@ class ILD_Gate {
 		$source       = isset( $_POST['ild_source'] ) ? esc_url_raw( wp_unslash( $_POST['ild_source'] ) ) : '';
 		$raw          = isset( $_POST['ild_list'] ) ? sanitize_textarea_field( wp_unslash( $_POST['ild_list'] ) ) : '';
 		$exclude_id   = isset( $_POST['ild_page_id'] ) ? absint( wp_unslash( $_POST['ild_page_id'] ) ) : 0;
+		$product      = isset( $_POST['ild_product_name'] ) ? sanitize_text_field( wp_unslash( $_POST['ild_product_name'] ) ) : '';
 
 		// Store the lead: address, time, consent state, exact wording, source.
 		$lead_id = ILD_Leads::store(
@@ -148,9 +149,11 @@ class ILD_Gate {
 			$this->fail( 'network' );
 		}
 
-		// Email the result. A failed send never blocks the on-screen reading.
+		// Email the result. A failed send never blocks the on-screen reading. The
+		// product name (if the visitor gave one) is passed through for the subject
+		// line and a title in the email.
 		$mailer = new ILD_Email();
-		$mailer->send_result( $email, $view, array( 'lead_id' => $lead_id ) );
+		$mailer->send_result( $email, $view, array( 'lead_id' => $lead_id, 'product' => $product ) );
 
 		// The reading is already shown; replace the form with a short confirmation.
 		$confirmation = '<div class="ild-gate ild-gate--sent" tabindex="-1"><p class="ild-gate__sent">'

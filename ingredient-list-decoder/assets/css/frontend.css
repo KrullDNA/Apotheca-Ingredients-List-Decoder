@@ -47,6 +47,13 @@
 	margin-bottom: 1.25rem;
 }
 
+/* The reading drops in here. Centred, so a chosen max width sits in the middle
+ * of the tool rather than off to the left. With no max width it fills the tool. */
+.ild-results {
+	margin-left: auto;
+	margin-right: auto;
+}
+
 .ild-label {
 	display: block;
 	font-weight: 600;
@@ -84,6 +91,69 @@
 .ild-actions,
 .ild-result__actions {
 	margin-top: 1rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * Two-column form layout (desktop only)
+ *
+ * When the tool carries the two-column class, the paste box sits on the left
+ * and the photo upload and product-name fields stack on the right, with the
+ * verify step, the exchange line and the submit button spanning the full width
+ * beneath. It applies at desktop width only — tablet and mobile always stay a
+ * single column, so the layout never cramps on a narrow screen.
+ * ------------------------------------------------------------------------- */
+@media ( min-width: 1025px ) {
+	.ild-tool--two-col .ild-form {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		column-gap: 2rem;
+		align-items: start;
+	}
+
+	/* Hidden inputs must not take a grid cell and push the visible fields around. */
+	.ild-tool--two-col .ild-form > input[type="hidden"] {
+		display: none;
+	}
+
+	.ild-tool--two-col .ild-field--list {
+		grid-column: 1;
+		grid-row: 1 / span 2;
+		margin-bottom: 0;
+	}
+
+	.ild-tool--two-col .ild-field--photo {
+		grid-column: 2;
+		grid-row: 1;
+	}
+
+	/* Line the two controls up: give both headings the same spacing and reserve
+	 * the same height for both intros, so the paste box and the drop box start on
+	 * the same line — their tops align. */
+	.ild-tool--two-col .ild-field--list .ild-label,
+	.ild-tool--two-col .ild-photo__heading {
+		margin-bottom: 0.5rem;
+	}
+
+	.ild-tool--two-col .ild-form__intro,
+	.ild-tool--two-col .ild-photo__intro {
+		min-height: 4.5em;
+	}
+
+	.ild-tool--two-col .ild-field--product {
+		grid-column: 2;
+		grid-row: 2;
+	}
+
+	/* Everything below the two columns runs the full width. */
+	.ild-tool--two-col .ild-verify,
+	.ild-tool--two-col .ild-exchange,
+	.ild-tool--two-col .ild-actions {
+		grid-column: 1 / -1;
+	}
+
+	.ild-tool--two-col .ild-actions {
+		text-align: center;
+	}
 }
 
 /* ---------------------------------------------------------------------------
@@ -156,6 +226,49 @@
 
 .ild-gate__field {
 	margin-bottom: 0.75rem;
+}
+
+/* Remembered-email row: "We'll send it to name@email.com  Use a different email". */
+.ild-gate__known {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.4rem 0.6rem;
+	margin: 0 0 0.75rem;
+}
+
+.ild-gate__change {
+	font: inherit;
+	color: inherit;
+	background: none;
+	border: 0;
+	padding: 0;
+	cursor: pointer;
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+}
+
+.ild-gate__change:hover,
+.ild-gate__change:focus-visible {
+	text-decoration: none;
+}
+
+/* The opted-in reassurance shown in place of the consent box on a repeat send. */
+.ild-gate__optedin {
+	margin: 0 0 0.75rem;
+	font-size: 0.9em;
+	opacity: 0.8;
+}
+
+/* The send button: a clear, solid, bold button that is easy to spot. */
+.ild-gate__submit {
+	font-weight: 600;
+	padding: 0.7rem 1.4rem;
+}
+
+.ild-gate__submit:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
 }
 
 .ild-gate__label {
@@ -259,6 +372,17 @@
 
 .ild-photo__heading {
 	margin-bottom: 0.5rem;
+}
+
+/* The instruction beneath the photo heading, mirroring the paste box's intro
+ * (same margins, so the drop box lines up with the textarea beside it). */
+.ild-photo__intro {
+	margin: 0.25rem 0 0.5rem;
+}
+
+.ild-photo__intro .ild-dropzone__prompt,
+.ild-photo__intro .ild-dropzone__hint {
+	text-align: left;
 }
 
 .ild-dropzone {

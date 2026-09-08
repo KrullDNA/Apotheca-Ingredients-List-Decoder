@@ -135,6 +135,65 @@ class ILD_Matcher {
 	}
 
 	/**
+	 * Tidy a raw list against the library, ready to show for checking.
+	 *
+	 * Each token is looked up: an exact match becomes the library's stored INCI
+	 * name (so "aqua (water)" tidies to "Aqua"); a close fuzzy match becomes the
+	 * name it resembles (so a misread "Cocamidopropy Betaine" becomes
+	 * "Cocamidopropyl Betaine"); anything with no confident match is kept exactly
+	 * as written. Any "may contain" shade declaration is kept verbatim at the end.
+	 * Nothing is saved — this only rewrites the text for the person to confirm.
+	 *
+	 * @param string $raw The raw pasted or transcribed list.
+	 * @return array{list:string,changed:int} The tidied list and how many tokens changed.
+	 */
+	public static function tidy( $raw ) {
+		$raw = (string) $raw;
+
+		// Keep any shade declaration ("may contain", "+/-", "±") aside, verbatim.
+		$shade_tail = '';
+		$main       = $raw;
+		if ( preg_match( '/\bmay\s+contain\b|\+\/-|±/iu', $raw, $mm, PREG_OFFSET_CAPTURE ) ) {
+			$offset     = (int) $mm[0][1];
+			$main       = substr( $raw, 0, $offset );
+			$shade_tail = trim( substr( $raw, $offset ) );
+		}
+
+		$parsed = ILD_Parser::parse( $main );
+		if ( is_wp_error( $parsed ) ) {
+			return array( 'list' => $raw, 'changed' => 0 );
+		}
+
+		$index   = self::build_index();
+		$names   = array();
+		$changed = 0;
+
+		foreach ( $parsed['items'] as $token ) {
+			$item = self::classify( $token['original'], $token['normalised'], $index );
+
+			if ( 'matched' === $item['status'] && isset( $item['inci_name'] ) ) {
+				$name = $item['inci_name'];
+			} elseif ( 'suggestion' === $item['status'] && isset( $item['suggestion']['inci_name'] ) ) {
+				$name = $item['suggestion']['inci_name'];
+			} else {
+				$name = $token['original'];
+			}
+
+			if ( ILD_Parser::normalise( $name ) !== $token['normalised'] ) {
+				$changed++;
+			}
+			$names[] = $name;
+		}
+
+		$list = implode( ', ', $names );
+		if ( '' !== $shade_tail ) {
+			$list = ( '' !== $list ) ? $list . '. ' . $shade_tail : $shade_tail;
+		}
+
+		return array( 'list' => $list, 'changed' => $changed );
+	}
+
+	/**
 	 * Classify one token against the library.
 	 *
 	 * Returns an item carrying its outcome: a match (INCI or alias, with the post
@@ -159,7 +218,16 @@ class ILD_Matcher {
 		}
 
 		// No exact hit: offer a single fuzzy suggestion if one is close enough.
+		// Try the whole token first, then the same token with any brackets removed,
+		// so a misread name carrying a trailing common name or description —
+		// "Pantheno| (Pro-Vitamin B5)" — is still matched on "Pantheno|".
 		$best = self::fuzzy_best( $norm, $index['candidates'] );
+		if ( ! $best ) {
+			$bare = self::strip_parentheticals( $norm );
+			if ( $bare !== $norm && '' !== $bare ) {
+				$best = self::fuzzy_best( $bare, $index['candidates'] );
+			}
+		}
 		if ( $best ) {
 			$item['status']     = 'suggestion';
 			$item['suggestion'] = $best;
@@ -235,7 +303,43 @@ class ILD_Matcher {
 			}
 		}
 
+		// Finally, the content of any bracketed group. On a "Water (Aqua)" label the
+		// INCI name is in the brackets, not outside them, so "Aqua" must be tried
+		// too — otherwise the common name alone ("Water") never resolves.
+		foreach ( self::bracket_contents( $norm ) as $inside ) {
+			if ( isset( $index['inci'][ $inside ] ) ) {
+				return array( 'id' => $index['inci'][ $inside ], 'by' => 'inci' );
+			}
+			if ( isset( $index['alias'][ $inside ] ) ) {
+				return array( 'id' => $index['alias'][ $inside ], 'by' => 'alias' );
+			}
+		}
+
 		return null;
+	}
+
+	/**
+	 * The normalised content of each bracketed group in a token.
+	 *
+	 * "water (aqua)" yields [ 'aqua' ]; "aqua (water)" yields [ 'water' ]. Each is
+	 * normalised again so it lines up with the index the same way a bare token
+	 * would. Nested brackets are not expected on an ingredient label.
+	 *
+	 * @param string $norm The normalised token.
+	 * @return string[] The non-empty bracket contents, in order.
+	 */
+	private static function bracket_contents( $norm ) {
+		$out = array();
+		if ( preg_match_all( '/\(([^()]+)\)|\[([^\[\]]+)\]|\{([^{}]+)\}/u', $norm, $matches ) ) {
+			$groups = array_merge( $matches[1], $matches[2], $matches[3] );
+			foreach ( $groups as $inside ) {
+				$inside = ILD_Parser::normalise( $inside );
+				if ( '' !== $inside ) {
+					$out[] = $inside;
+				}
+			}
+		}
+		return $out;
 	}
 
 	/**
@@ -266,6 +370,9 @@ class ILD_Matcher {
 	 */
 	private static function strip_parentheticals( $norm ) {
 		$bare = preg_replace( '/\([^()]*\)|\[[^\[\]]*\]|\{[^{}]*\}/u', ' ', $norm );
+		// Also drop a dangling, unclosed bracket that runs to the end — an OCR read
+		// that truncated the closing bracket, e.g. "panthenol (pro-vitamin".
+		$bare = preg_replace( '/[\(\[\{][^\(\)\[\]\{\}]*$/u', ' ', $bare );
 		$bare = preg_replace( '/\s+/u', ' ', $bare );
 		return trim( $bare );
 	}
@@ -351,12 +458,18 @@ class ILD_Matcher {
 				);
 			}
 
-			// The aliases, held one per line in the "also known as" meta.
+			// The aliases from the "also known as" meta. They are meant to be one
+			// per line, but be forgiving: split on line breaks and on comma,
+			// semicolon or pipe too, so aliases entered or imported as
+			// "Fragrance, Perfume" are each indexed. A comma between two digits
+			// (1,2-Hexanediol) is part of a name, so it is protected from the split.
 			$aka = get_post_meta( $id, '_ild_also_known_as', true );
 			if ( is_string( $aka ) && '' !== $aka ) {
-				$lines = preg_split( '/[\r\n]+/', $aka );
-				foreach ( (array) $lines as $line ) {
-					$alias_norm = ILD_Parser::normalise( $line );
+				$protected = preg_replace( '/(?<=\d),(?=\d)/u', "\x1f", $aka );
+				$parts     = preg_split( '/[\r\n;,|]+/u', (string) $protected );
+				foreach ( (array) $parts as $part ) {
+					$part       = str_replace( "\x1f", ',', $part );
+					$alias_norm = ILD_Parser::normalise( $part );
 					if ( '' !== $alias_norm && ! isset( $alias[ $alias_norm ] ) ) {
 						$alias[ $alias_norm ] = $id;
 					}

@@ -30,10 +30,9 @@ $email_offer = isset( $email_offer ) ? (bool) $email_offer : ( isset( $gated ) ?
 
 	<?php // Part one: a short descriptive summary. Always shown, never gated. ?>
 	<section class="ild-summary">
-		<h2 class="ild-summary__heading">
-			<span class="ild-summary__icon" aria-hidden="true"></span>
-			<?php echo esc_html( ILD_Phrases::heading_summary() ); ?>
-		</h2>
+		<?php // Kept on one line so the empty icon slot leaves no stray space that ?>
+		<?php // would indent the heading past the ingredient heading below it. ?>
+		<h2 class="ild-summary__heading"><span class="ild-summary__icon" aria-hidden="true"></span><?php echo esc_html( ILD_Phrases::heading_summary() ); ?></h2>
 		<?php
 		foreach ( $summary as $point ) :
 			// Points arrive as { text, level }; tolerate a plain string too.

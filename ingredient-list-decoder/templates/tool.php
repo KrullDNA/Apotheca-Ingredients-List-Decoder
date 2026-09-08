@@ -70,10 +70,16 @@ $wrap_class    = 'ild-tool' . ( '' !== $extra_class ? ' ' . $extra_class : '' );
 				<?php wp_nonce_field( ILD_Transcription::ACTION, ILD_Transcription::NONCE ); ?>
 				<p class="ild-label ild-photo__heading"><?php echo esc_html( ILD_Phrases::photo_heading() ); ?></p>
 
-				<div class="ild-dropzone" data-ild-dropzone role="group" aria-describedby="<?php echo esc_attr( $uid ); ?>-photo-hint">
-					<span class="ild-dropzone__icon" aria-hidden="true"></span>
+				<?php // The instruction sits under the heading, outside the drop box, so ?>
+				<?php // it mirrors the paste box's intro and the box top lines up with the ?>
+				<?php // textarea beside it. ?>
+				<div class="ild-photo__intro">
 					<p class="ild-dropzone__prompt"><?php echo esc_html( ILD_Phrases::dropzone_prompt() ); ?></p>
 					<p class="ild-dropzone__hint" id="<?php echo esc_attr( $uid ); ?>-photo-hint"><?php echo esc_html( ILD_Phrases::dropzone_hint( ILD_Transcription::max_mb() ) ); ?></p>
+				</div>
+
+				<div class="ild-dropzone" data-ild-dropzone role="group" aria-describedby="<?php echo esc_attr( $uid ); ?>-photo-hint">
+					<span class="ild-dropzone__icon" aria-hidden="true"></span>
 
 					<?php // The file inputs are visually hidden but stay in the tab order, ?>
 					<?php // so the label reads as a button and keyboard users can reach it. ?>
@@ -148,9 +154,9 @@ $wrap_class    = 'ild-tool' . ( '' !== $extra_class ? ' ' . $extra_class : '' );
 			<input type="text" id="<?php echo esc_attr( $uid ); ?>-hp" name="ild_hp" tabindex="-1" autocomplete="off" value="" />
 		</div>
 
-		<?php // The exchange, shown up front so the terms are visible before she ?>
-		<?php // pastes anything — the same wording appears again at the gate. ?>
-		<p class="ild-exchange" data-ild-exchange><?php echo esc_html( $exchange_text ); ?></p>
+		<?php // The email exchange is not shown here: the reading appears first, and ?>
+		<?php // the optional "email me a copy" form (with this wording) sits beneath ?>
+		<?php // it. The wording still travels on the hidden field above for the gate. ?>
 
 		<div class="ild-actions">
 			<button type="submit" class="ild-submit">

@@ -39,6 +39,13 @@ class ILD_Shortcode {
 	const REFRESH_ACTION = 'ild_refresh_nonce';
 
 	/**
+	 * The AJAX action that tidies a list against the library before reading.
+	 *
+	 * @var string
+	 */
+	const TIDY_ACTION = 'ild_tidy';
+
+	/**
 	 * The script handle for the front-end JavaScript.
 	 *
 	 * @var string
@@ -75,6 +82,10 @@ class ILD_Shortcode {
 		// The script fetches a live nonce from here before it submits.
 		add_action( 'wp_ajax_' . self::REFRESH_ACTION, array( $this, 'ajax_refresh_nonce' ) );
 		add_action( 'wp_ajax_nopriv_' . self::REFRESH_ACTION, array( $this, 'ajax_refresh_nonce' ) );
+
+		// Tidy a list against the library (no AI — a fuzzy match on the database).
+		add_action( 'wp_ajax_' . self::TIDY_ACTION, array( $this, 'ajax_tidy' ) );
+		add_action( 'wp_ajax_nopriv_' . self::TIDY_ACTION, array( $this, 'ajax_tidy' ) );
 	}
 
 	/**
@@ -92,6 +103,41 @@ class ILD_Shortcode {
 				'analyse'    => wp_create_nonce( self::ACTION ),
 				'gate'       => wp_create_nonce( ILD_Gate::ACTION ),
 				'transcribe' => wp_create_nonce( ILD_Transcription::ACTION ),
+				'tidy'       => wp_create_nonce( self::TIDY_ACTION ),
+			)
+		);
+	}
+
+	/**
+	 * Tidy a list against the library and hand back the corrected text.
+	 *
+	 * A read-only convenience with no AI: each token is matched against the
+	 * library (exactly, or by the same fuzzy match the reader uses) and rewritten
+	 * to the stored INCI name where it is confident, so the person sees a clean
+	 * list to confirm before reading. Nothing is saved. Public and light, so the
+	 * nonce is checked but never hard-fails on a cached page; the per-IP analysis
+	 * limit still applies.
+	 *
+	 * @return void
+	 */
+	public function ajax_tidy() {
+		check_ajax_referer( self::ACTION, 'ild_nonce', false );
+
+		if ( ILD_Rate_Limit::too_many( 'analysis' ) ) {
+			wp_send_json_error( array( 'message' => ILD_Phrases::error_generic() ) );
+		}
+
+		$raw = isset( $_POST['ild_list'] ) ? sanitize_textarea_field( wp_unslash( $_POST['ild_list'] ) ) : '';
+		if ( '' === trim( $raw ) ) {
+			wp_send_json_success( array( 'list' => '', 'changed' => 0 ) );
+		}
+
+		$result = ILD_Matcher::tidy( $raw );
+
+		wp_send_json_success(
+			array(
+				'list'    => isset( $result['list'] ) ? $result['list'] : $raw,
+				'changed' => isset( $result['changed'] ) ? (int) $result['changed'] : 0,
 			)
 		);
 	}
@@ -138,6 +184,8 @@ class ILD_Shortcode {
 				'charCount'       => ILD_Phrases::char_count_template(),
 				// The fresh-nonce endpoint, so a cached page still submits.
 				'refreshAction'   => self::REFRESH_ACTION,
+				// Tidy a list against the library before reading (no AI).
+				'tidyAction'      => self::TIDY_ACTION,
 				// Photo transcription (Stage 8).
 				'transcribeAction' => ILD_Transcription::ACTION,
 				// Free, in-browser reading is the default and needs no key.
@@ -152,6 +200,7 @@ class ILD_Shortcode {
 				'ocrLang'         => (string) apply_filters( 'ild_ocr_language', 'eng' ),
 				'photoMessages'   => ILD_Phrases::photo_messages(),
 				'photoReading'    => ILD_Phrases::photo_reading(),
+				'photoMatching'   => ILD_Phrases::photo_matching(),
 				'photoEnhancing'  => ILD_Phrases::verify_enhancing(),
 				// The email gate (Stage 10).
 				'gateAction'      => ILD_Gate::ACTION,
@@ -163,11 +212,17 @@ class ILD_Shortcode {
 	/**
 	 * Render the shortcode: the form and an empty results region.
 	 *
-	 * @param array $atts Shortcode attributes (none used yet).
+	 * @param array $atts Shortcode attributes. Supports 'layout' => one|two, which
+	 *                    on desktop stacks the fields or places the paste box beside
+	 *                    the photo/product fields (tablet and mobile stay one column).
 	 * @return string The tool's HTML.
 	 */
 	public function render_shortcode( $atts = array() ) {
-		return self::render_tool();
+		$atts = shortcode_atts( array( 'layout' => 'two' ), (array) $atts, 'ingredient_decoder' );
+
+		$class = ( 'one' === $atts['layout'] ) ? '' : 'ild-tool--two-col';
+
+		return self::render_tool( array( 'class' => $class ) );
 	}
 
 	/**
@@ -462,10 +517,13 @@ class ILD_Shortcode {
 
 				// The full reading — summary, every ingredient in order, and the
 				// read-next block — always shows on screen. The email form is an
-				// optional way to keep a copy, offered beneath the reading until the
-				// visitor has given an address (its cookie).
-				$vars = array();
-				if ( 'result' === $view['state'] && ! ILD_Gate::has_access() ) {
+				// optional way to keep a copy. By default it is offered beneath every
+				// reading, so a visitor can always send the current reading to their
+				// inbox; when the "always offer" setting is off, it is hidden once the
+				// visitor has given an address on this device (its cookie).
+				$always  = 0 !== (int) ild_get_setting( 'email_form_always', 1 );
+				$vars    = array();
+				if ( 'result' === $view['state'] && ( $always || ! ILD_Gate::has_access() ) ) {
 					$vars = array(
 						'email_offer'   => true,
 						'carry'         => array( 'list' => $raw, 'page_id' => $exclude_id, 'product' => $product_name ),
