@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.20
+Stable tag: 1.6.21
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,10 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.21 =
+* Each ingredient's Detail now opens with its "Also known as" names, shown first, above the description. So when a label lists an ingredient by a synonym — Fragrance for Parfum, Aqua for Water — a reader can see the tool recognised that name rather than misread the ingredient. The names are cleaned for display the same way the reader indexes them (one per line, or run together with commas, semicolons or pipes), with a number pair like 1,2-Hexanediol kept whole and any repeat dropped. A Detail is shown for any entry that has an "also known as", a description, an evidence note or a founder take.
+* The "Also known as" line has its own typography, colour and label-colour controls in the Elementor panel, alongside the description, evidence and founder controls.
 
 = 1.6.20 =
 * A dangling, unclosed bracket left by an OCR read is now dropped. When a photo read truncates the closing bracket — "Panthenol (Pro-Vitamin" with no ")" — the fragment is removed, so the name matches (or is suggested) instead of being carried along and blocking the match. This applies both to the matcher (the reading and the library check) and to the photo cleanup that fills the verify box. Complete brackets behave as before.

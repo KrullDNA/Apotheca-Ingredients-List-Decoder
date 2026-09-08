@@ -1842,7 +1842,46 @@ class ILD_Elementor_Widget extends \Elementor\Widget_Base {
 			)
 		);
 
-		// Description, evidence note, founder take.
+		// Also known as, description, evidence note, founder take.
+		$this->add_control(
+			'aka_heading',
+			array(
+				'label'     => __( 'Also known as', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'aka_typography',
+				'selector' => '{{WRAPPER}} .ild-ingredient__aka-body',
+			)
+		);
+
+		$this->add_control(
+			'aka_colour',
+			array(
+				'label'     => __( 'Colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-ingredient__aka-body' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'aka_label_colour',
+			array(
+				'label'     => __( 'Label colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-ingredient__aka-label' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
 		$this->add_control(
 			'description_heading',
 			array(

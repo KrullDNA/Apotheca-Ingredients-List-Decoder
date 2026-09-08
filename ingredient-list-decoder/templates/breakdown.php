@@ -67,6 +67,8 @@ $readnext    = isset( $view['readnext'] ) && is_array( $view['readnext'] ) ? $vi
 						$roles_text  = ! empty( $row['roles_text'] ) ? $row['roles_text'] : ILD_Phrases::row_none();
 						$family_text = ! empty( $row['family_text'] ) ? $row['family_text'] : ILD_Phrases::row_none();
 						$description = isset( $row['description'] ) ? trim( (string) $row['description'] ) : '';
+						$aka_text     = isset( $row['aka_text'] ) ? trim( (string) $row['aka_text'] ) : '';
+						$has_aka      = ( '' !== $aka_text );
 						$has_evidence = ! empty( $row['evidence'] );
 						$has_founder  = ! empty( $row['founder'] );
 						?>
@@ -82,7 +84,7 @@ $readnext    = isset( $view['readnext'] ) && is_array( $view['readnext'] ) ? $vi
 						</div>
 
 						<?php
-						if ( '' !== $description || $has_evidence || $has_founder ) :
+						if ( $has_aka || '' !== $description || $has_evidence || $has_founder ) :
 							?>
 							<details class="ild-ingredient__detail">
 								<summary class="ild-ingredient__detail-toggle">
@@ -94,6 +96,15 @@ $readnext    = isset( $view['readnext'] ) && is_array( $view['readnext'] ) ? $vi
 									<?php // is clear they belong to the suggested name, not the typed one. ?>
 									<?php if ( $is_suggestion && ! empty( $row['suggested_name'] ) ) : ?>
 										<p class="ild-ingredient__detail-heading"><?php echo esc_html( $row['suggested_name'] ); ?></p>
+									<?php endif; ?>
+
+									<?php // The "also known as" names first, so a reader who spots a synonym ?>
+									<?php // elsewhere on the label knows the tool matched it, not misread it. ?>
+									<?php if ( $has_aka ) : ?>
+										<div class="ild-ingredient__aka">
+											<span class="ild-ingredient__aka-label"><?php echo esc_html( ILD_Phrases::label_aka() ); ?></span>
+											<p class="ild-ingredient__aka-body"><?php echo esc_html( $aka_text ); ?></p>
+										</div>
 									<?php endif; ?>
 
 									<?php if ( '' !== $description ) : ?>

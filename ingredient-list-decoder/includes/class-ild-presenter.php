@@ -416,13 +416,14 @@ class ILD_Presenter {
 	 * evidence note and founder take shown inside the expander.
 	 *
 	 * @param int $id The ingredient's post ID.
-	 * @return array { roles_text, family_text, description, evidence, founder }.
+	 * @return array { aka_text, roles_text, family_text, description, evidence, founder }.
 	 */
 	private static function entry_details( $id ) {
 		$id = (int) $id;
 
 		if ( $id <= 0 ) {
 			return array(
+				'aka_text'    => '',
 				'roles_text'  => ILD_Phrases::row_none(),
 				'family_text' => ILD_Phrases::row_none(),
 				'description' => '',
@@ -430,6 +431,14 @@ class ILD_Presenter {
 				'founder'     => '',
 			);
 		}
+
+		// The "also known as" names, cleaned for display. The field may hold them
+		// one per line or run together with the same separators the matcher indexes
+		// on (comma, semicolon, pipe); a comma between two digits (1,2-Hexanediol)
+		// is part of a name, so it is protected from the split. We keep the entry's
+		// own casing — this is shown, not matched — and join them with commas.
+		$aka = get_post_meta( $id, '_ild_also_known_as', true );
+		$aka = self::aka_to_text( is_string( $aka ) ? $aka : '' );
 
 		// Roles, as human labels. Blank slugs (a stray empty value on an entry
 		// still being built) are dropped so the row shows a dash, not "Role:".
@@ -458,12 +467,52 @@ class ILD_Presenter {
 		$founder = is_string( $founder ) ? $founder : '';
 
 		return array(
+			'aka_text'    => $aka,
 			'roles_text'  => ! empty( $role_labels ) ? implode( ', ', $role_labels ) : ILD_Phrases::row_none(),
 			'family_text' => ! empty( $families ) ? implode( ', ', $families ) : ILD_Phrases::row_none(),
 			'description' => $description,
 			'evidence'    => $evidence,
 			'founder'     => $founder,
 		);
+	}
+
+	/**
+	 * Clean an "also known as" field into a single comma-separated display line.
+	 *
+	 * Splits on the same separators the matcher indexes on (newline, semicolon,
+	 * comma, pipe), protecting a comma between two digits so a name like
+	 * "1,2-Hexanediol" survives whole. Trims each part, drops the blanks and any
+	 * duplicate (case-insensitively), keeps the entry's own casing, and rejoins
+	 * with commas. Returns '' when there is nothing to show.
+	 *
+	 * @param string $raw The stored field value.
+	 * @return string The cleaned, comma-separated names, or ''.
+	 */
+	private static function aka_to_text( $raw ) {
+		$raw = trim( (string) $raw );
+		if ( '' === $raw ) {
+			return '';
+		}
+
+		$protected = preg_replace( '/(?<=\d),(?=\d)/u', "\x1f", $raw );
+		$parts     = preg_split( '/[\r\n;,|]+/u', (string) $protected );
+
+		$names = array();
+		$seen  = array();
+		foreach ( (array) $parts as $part ) {
+			$part = trim( str_replace( "\x1f", ',', $part ) );
+			if ( '' === $part ) {
+				continue;
+			}
+			$key = function_exists( 'mb_strtolower' ) ? mb_strtolower( $part ) : strtolower( $part );
+			if ( isset( $seen[ $key ] ) ) {
+				continue;
+			}
+			$seen[ $key ] = true;
+			$names[]      = $part;
+		}
+
+		return implode( ', ', $names );
 	}
 
 	/**

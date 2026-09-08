@@ -581,6 +581,11 @@ class ILD_Phrases {
 		return __( 'Detail', 'ingredient-list-decoder' );
 	}
 
+	/** @return string The label above the "also known as" names in an expanded row. */
+	public static function label_aka() {
+		return __( 'Also known as', 'ingredient-list-decoder' );
+	}
+
 	/** @return string The label above the evidence note in an expanded row. */
 	public static function label_evidence() {
 		return __( 'The evidence', 'ingredient-list-decoder' );

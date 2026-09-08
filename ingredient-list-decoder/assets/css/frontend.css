@@ -726,6 +726,17 @@
 	margin-top: 0.5rem;
 }
 
+/* The "also known as" names, shown first in the panel so a reader who spots a
+ * synonym elsewhere on the label knows the tool matched it, not misread it. */
+.ild-ingredient__aka {
+	margin: 0 0 0.5rem;
+}
+
+.ild-ingredient__aka-body {
+	margin: 0.1rem 0 0;
+}
+
+.ild-ingredient__aka-label,
 .ild-ingredient__evidence-label,
 .ild-ingredient__founder-label {
 	display: block;
