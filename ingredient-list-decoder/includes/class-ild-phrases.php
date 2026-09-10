@@ -36,6 +36,17 @@ class ILD_Phrases {
 		return __( 'Paste or type a product\'s ingredient list and we\'ll read it the way a formulator would — as a whole, not a glossary.', 'ingredient-list-decoder' );
 	}
 
+	/**
+	 * A line shown above the input only when someone arrives from the Apotheca
+	 * Skin Quiz (the from=skin-quiz handshake), acknowledging why they're here.
+	 * Absent otherwise, so the tool reads exactly as it always has.
+	 *
+	 * @return string
+	 */
+	public static function from_skin_quiz_note() {
+		return __( "You mentioned you weren't sure what's in your products. Paste a list here and we'll tell you.", 'ingredient-list-decoder' );
+	}
+
 	/** @return string The label for the ingredient textarea. */
 	public static function label_list() {
 		return __( 'Ingredient list', 'ingredient-list-decoder' );

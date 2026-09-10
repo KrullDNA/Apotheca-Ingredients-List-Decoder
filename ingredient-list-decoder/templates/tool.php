@@ -27,11 +27,17 @@ $preview_html  = isset( $preview_html ) ? $preview_html : '';
 $submit_icon   = isset( $submit_icon ) ? $submit_icon : '';
 $show_photo    = isset( $show_photo ) ? (bool) $show_photo : false;
 $ai_enhance    = isset( $ai_enhance ) ? (bool) $ai_enhance : false;
-$exchange_text = isset( $exchange_text ) && '' !== $exchange_text ? $exchange_text : ILD_Phrases::exchange_default();
-$consent_text  = isset( $consent_text ) && '' !== $consent_text ? $consent_text : ILD_Phrases::consent_default();
-$wrap_class    = 'ild-tool' . ( '' !== $extra_class ? ' ' . $extra_class : '' );
+$exchange_text  = isset( $exchange_text ) && '' !== $exchange_text ? $exchange_text : ILD_Phrases::exchange_default();
+$consent_text   = isset( $consent_text ) && '' !== $consent_text ? $consent_text : ILD_Phrases::consent_default();
+$from_skin_quiz = isset( $from_skin_quiz ) ? (bool) $from_skin_quiz : false;
+$wrap_class     = 'ild-tool' . ( '' !== $extra_class ? ' ' . $extra_class : '' );
 ?>
 <div class="<?php echo esc_attr( $wrap_class ); ?>" data-ild-tool>
+
+	<?php // Shown only when someone arrives from the Apotheca Skin Quiz. ?>
+	<?php if ( $from_skin_quiz ) : ?>
+		<p class="ild-from-note"><?php echo esc_html( ILD_Phrases::from_skin_quiz_note() ); ?></p>
+	<?php endif; ?>
 
 	<form class="ild-form" method="post" novalidate>
 		<?php wp_nonce_field( ILD_Shortcode::ACTION, 'ild_nonce' ); ?>
