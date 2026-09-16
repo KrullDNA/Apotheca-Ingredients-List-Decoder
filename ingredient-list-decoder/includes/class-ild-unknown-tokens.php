@@ -174,6 +174,75 @@ class ILD_Unknown_Tokens {
 	}
 
 	/**
+	 * Every open token, most frequent first, with no practical cap.
+	 *
+	 * Used by the admin screen's "export all" so nothing is left out of the file.
+	 *
+	 * @return array<int,array> Each row as an associative array.
+	 */
+	public static function get_all_open() {
+		return self::get_open( 100000 );
+	}
+
+	/**
+	 * Fetch several token rows by id, in the queue's usual order.
+	 *
+	 * Used by the admin screen's "export selected" so the exported rows keep the
+	 * same most-frequent-first order as the list they were chosen from.
+	 *
+	 * @param int[] $ids The row ids.
+	 * @return array<int,array> Each row as an associative array.
+	 */
+	public static function get_by_ids( $ids ) {
+		global $wpdb;
+
+		$ids = array_values( array_filter( array_map( 'absint', (array) $ids ) ) );
+		if ( empty( $ids ) ) {
+			return array();
+		}
+
+		$table        = self::table();
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $placeholders is a list of %d built from a counted array.
+		$sql = "SELECT * FROM $table WHERE id IN ($placeholders) ORDER BY appearances DESC, first_seen ASC";
+
+		return (array) $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared
+			$wpdb->prepare( $sql, $ids ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			ARRAY_A
+		);
+	}
+
+	/**
+	 * Permanently delete token rows by id.
+	 *
+	 * This differs from dismiss: a dismissed token is remembered, so it stays out
+	 * of the queue if it is ever pasted again; a deleted one is forgotten entirely
+	 * and will reappear as a fresh row if it is seen again.
+	 *
+	 * @param int[] $ids The row ids.
+	 * @return int How many rows were removed.
+	 */
+	public static function delete_ids( $ids ) {
+		global $wpdb;
+
+		$ids = array_values( array_filter( array_map( 'absint', (array) $ids ) ) );
+		if ( empty( $ids ) ) {
+			return 0;
+		}
+
+		$table        = self::table();
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $placeholders is a list of %d built from a counted array.
+		$sql = "DELETE FROM $table WHERE id IN ($placeholders)";
+
+		return (int) $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared
+			$wpdb->prepare( $sql, $ids ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		);
+	}
+
+	/**
 	 * Fetch one token row.
 	 *
 	 * @param int $id The row id.

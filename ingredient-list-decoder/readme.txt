@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.21
+Stable tag: 1.6.23
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,14 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.23 =
+* The Unknown ingredients screen now lets you tick rows (with a select-all box) and, in one bulk action, delete the selected tokens or export them to a CSV. There is also an "Export all to CSV" button.
+* The exported CSV uses the same columns as the ingredient importer, with each token already placed in the INCI name column and every other column left blank — so you can fill in the rest (by hand, or by handing the file to Claude) and import it straight back under Import / Export, where each row lands as a needs-review entry. No API key is involved.
+* Delete permanently forgets a token (it will reappear if pasted again), which is different from Dismiss, which remembers it so it stays out of the queue.
+
+= 1.6.22 =
+* When someone arrives from the Apotheca Skin Quiz (a `?from=skin-quiz` link), the decoder now shows one quiet line above the paste box — "You mentioned you weren't sure what's in your products. Paste a list here and we'll tell you." — acknowledging why they're here. The line lives in the decoder's own wording file. Arriving any other way, the tool looks and behaves exactly as before.
 
 = 1.6.21 =
 * Each ingredient's Detail now opens with its "Also known as" names, shown first, above the description. So when a label lists an ingredient by a synonym — Fragrance for Parfum, Aqua for Water — a reader can see the tool recognised that name rather than misread the ingredient. The names are cleaned for display the same way the reader indexes them (one per line, or run together with commas, semicolons or pipes), with a number pair like 1,2-Hexanediol kept whole and any repeat dropped. A Detail is shown for any entry that has an "also known as", a description, an evidence note or a founder take.

@@ -289,18 +289,26 @@ class ILD_Shortcode {
 			$preview_html = self::render_state_preview( $args['preview'] );
 		}
 
+		// The Apotheca Skin Quiz sends people here with from=skin-quiz. When it's
+		// present (and this isn't an editor preview), acknowledge it above the
+		// input. Hard-coded on both sides on purpose, so the handshake can't
+		// drift out of step through a setting. Absent otherwise, so the tool
+		// renders exactly as it always has.
+		$from_skin_quiz = ( '' === $args['preview'] && isset( $_GET['from'] ) && 'skin-quiz' === sanitize_key( wp_unslash( $_GET['from'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display hint, no state change.
+
 		return self::render_template(
 			'tool',
 			array(
-				'uid'           => $uid,
-				'extra_class'   => $args['class'],
-				'preview'       => $args['preview'],
-				'preview_html'  => $preview_html,
-				'submit_icon'   => $args['submit_icon'],
-				'show_photo'    => (bool) $args['show_photo'],
-				'ai_enhance'    => (bool) $args['ai_enhance'],
-				'exchange_text' => $args['exchange_text'],
-				'consent_text'  => $args['consent_text'],
+				'uid'            => $uid,
+				'extra_class'    => $args['class'],
+				'preview'        => $args['preview'],
+				'preview_html'   => $preview_html,
+				'submit_icon'    => $args['submit_icon'],
+				'show_photo'     => (bool) $args['show_photo'],
+				'ai_enhance'     => (bool) $args['ai_enhance'],
+				'exchange_text'  => $args['exchange_text'],
+				'consent_text'   => $args['consent_text'],
+				'from_skin_quiz' => $from_skin_quiz,
 			)
 		);
 	}

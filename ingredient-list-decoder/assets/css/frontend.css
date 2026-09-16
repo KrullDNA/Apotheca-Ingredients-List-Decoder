@@ -47,6 +47,17 @@
 	margin-bottom: 1.25rem;
 }
 
+/* The line shown when someone arrives from the Apotheca Skin Quiz. A quiet
+ * acknowledgement above the form, not a banner. */
+.ild-from-note {
+	margin: 0 0 1rem;
+	padding: 0.75rem 1rem;
+	border-left: 3px solid var( --ild-accent, #1f3d2b );
+	background: var( --ild-note-bg, rgba( 31, 61, 43, 0.05 ) );
+	font-size: 0.95em;
+	line-height: 1.5;
+}
+
 /* The reading drops in here. Centred, so a chosen max width sits in the middle
  * of the tool rather than off to the left. With no max width it fills the tool. */
 .ild-results {
