@@ -135,6 +135,31 @@ class ILD_Matcher {
 	}
 
 	/**
+	 * Whether a single token resolves to a library entry directly.
+	 *
+	 * A direct match is the same "matched" outcome the reader shows — an exact INCI
+	 * name, an alias, or a bracket/slash variant — never a "did you mean" fuzzy
+	 * guess. Used to keep the unknown-ingredients queue clean: once an entry that
+	 * covers a queued token exists, that token is in the database and can be cleared.
+	 *
+	 * @param string     $token The token (raw or normalised); it is normalised here.
+	 * @param array|null $index A prebuilt index from build_index(), or null to build one.
+	 * @return bool True when the token now matches a real entry.
+	 */
+	public static function is_in_library( $token, $index = null ) {
+		$norm = ILD_Parser::normalise( (string) $token );
+		if ( '' === $norm ) {
+			return false;
+		}
+
+		if ( null === $index ) {
+			$index = self::build_index();
+		}
+
+		return (bool) self::lookup( $norm, $index );
+	}
+
+	/**
 	 * Tidy a raw list against the library, ready to show for checking.
 	 *
 	 * Each token is looked up: an exact match becomes the library's stored INCI

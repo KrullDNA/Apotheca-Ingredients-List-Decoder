@@ -635,10 +635,19 @@ class ILD_CSV {
 		// The held upload has done its job; remove it.
 		delete_transient( 'ild_csv_import_' . $token );
 
+		// The library just changed, so clear any unknown-queue token that a new or
+		// updated entry now covers — by INCI name, alias, or a bracket/slash variant
+		// — keeping the Unknown ingredients list to names still missing.
+		$cleared = 0;
+		if ( ! empty( $created ) || ! empty( $updated ) ) {
+			$cleared = ILD_Unknown_Tokens::purge_matched();
+		}
+
 		return array(
 			'created'  => $created,
 			'updated'  => $updated,
 			'skipped'  => $skipped,
+			'cleared'  => $cleared,
 			'filename' => isset( $held['filename'] ) ? $held['filename'] : '',
 		);
 	}
@@ -783,6 +792,7 @@ class ILD_CSV {
 		$created = count( $summary['created'] );
 		$updated = count( $summary['updated'] );
 		$skipped = count( $summary['skipped'] );
+		$cleared = isset( $summary['cleared'] ) ? (int) $summary['cleared'] : 0;
 
 		echo '<h2>' . esc_html__( 'Import complete', 'ingredient-list-decoder' ) . '</h2>';
 
@@ -798,6 +808,25 @@ class ILD_CSV {
 				)
 			)
 		);
+
+		// If importing these entries cleared anything from the unknown queue, say so.
+		if ( $cleared > 0 ) {
+			printf(
+				'<div class="notice notice-info inline"><p>%s</p></div>',
+				esc_html(
+					sprintf(
+						/* translators: %d: how many unknown-queue tokens were cleared. */
+						_n(
+							'%d name was removed from the Unknown ingredients queue because the library now covers it.',
+							'%d names were removed from the Unknown ingredients queue because the library now covers them.',
+							$cleared,
+							'ingredient-list-decoder'
+						),
+						$cleared
+					)
+				)
+			);
+		}
 
 		// The detail of every skipped row, so nothing fails silently.
 		if ( $skipped > 0 ) {

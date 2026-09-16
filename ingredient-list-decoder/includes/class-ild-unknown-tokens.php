@@ -243,6 +243,36 @@ class ILD_Unknown_Tokens {
 	}
 
 	/**
+	 * Clear any open token that a library entry now covers.
+	 *
+	 * Run after the library changes (an import, say): every open token is checked
+	 * against the matcher, and any that now resolves to a real entry — by INCI
+	 * name, alias, or a bracket/slash variant — is deleted, so the queue only ever
+	 * holds names still missing from the database. A now-matchable token is never
+	 * re-recorded anyway (only unmatched tokens are queued), so deleting is safe.
+	 *
+	 * @return int How many tokens were cleared.
+	 */
+	public static function purge_matched() {
+		$open = self::get_all_open();
+		if ( empty( $open ) ) {
+			return 0;
+		}
+
+		// Build the lookup once and test every open token against it.
+		$index = ILD_Matcher::build_index();
+		$ids   = array();
+		foreach ( $open as $row ) {
+			$token = isset( $row['token'] ) ? (string) $row['token'] : '';
+			if ( '' !== $token && ILD_Matcher::is_in_library( $token, $index ) ) {
+				$ids[] = (int) $row['id'];
+			}
+		}
+
+		return self::delete_ids( $ids );
+	}
+
+	/**
 	 * Fetch one token row.
 	 *
 	 * @param int $id The row id.
