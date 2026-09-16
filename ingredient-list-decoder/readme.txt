@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.23
+Stable tag: 1.6.24
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.6.24 =
+* Importing ingredients now cleans the Unknown ingredients queue automatically. After an import, every open unknown token is checked against the library, and any that a new or updated entry now covers — by INCI name, by an "also known as" alias, or by a bracket/slash variant — is removed from the queue. The import summary says how many were cleared. So the Unknown list keeps only names that are still genuinely missing from the database.
 
 = 1.6.23 =
 * The Unknown ingredients screen now lets you tick rows (with a select-all box) and, in one bulk action, delete the selected tokens or export them to a CSV. There is also an "Export all to CSV" button.
