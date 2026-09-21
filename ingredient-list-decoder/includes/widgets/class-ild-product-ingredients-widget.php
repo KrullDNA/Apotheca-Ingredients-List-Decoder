@@ -693,10 +693,9 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 			)
 		);
 
-		// A line is drawn under every item, so the rhythm is even whatever the
-		// column count or how many items a group has. The very last item of the
-		// whole list never gets one (handled in CSS), and the toggle below can drop
-		// the line at the end of each group too.
+		// A line is drawn between the items of a group, never under the last item of
+		// a group, so each group ends cleanly and the last-of-type reset keeps the
+		// whole list tidy too.
 		$this->add_control(
 			'divider_style',
 			array(
@@ -710,7 +709,9 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 					'dotted' => __( 'Dotted', 'ingredient-list-decoder' ),
 				),
 				'selectors' => array(
-					'{{WRAPPER}} .ild-products__list .ild-product-ing' => 'border-bottom-style: {{VALUE}};',
+					'{{WRAPPER}} .ild-products__list .ild-product-ing'            => 'border-bottom-style: {{VALUE}};',
+					// Never under the last item of a group.
+					'{{WRAPPER}} .ild-products__list .ild-product-ing:last-child' => 'border-bottom-style: none;',
 				),
 			)
 		);
@@ -751,24 +752,11 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 				'range'       => array( 'px' => array( 'min' => 0, 'max' => 60 ) ),
 				'description' => __( 'Padding below each item, between its content and the line.', 'ingredient-list-decoder' ),
 				'selectors'   => array(
-					'{{WRAPPER}} .ild-products__list .ild-product-ing' => 'padding-bottom: {{SIZE}}{{UNIT}};',
+					'{{WRAPPER}} .ild-products__list .ild-product-ing'            => 'padding-bottom: {{SIZE}}{{UNIT}};',
+					// The last item of a group has no line, so it needs no space for one.
+					'{{WRAPPER}} .ild-products__list .ild-product-ing:last-child' => 'padding-bottom: 0;',
 				),
 				'condition'   => array( 'divider_style!' => 'none' ),
-			)
-		);
-
-		$this->add_control(
-			'divider_hide_group_end',
-			array(
-				'label'        => __( 'No line at the end of each group', 'ingredient-list-decoder' ),
-				'type'         => Controls_Manager::SWITCHER,
-				'default'      => '',
-				'return_value' => 'yes',
-				'description'  => __( 'When grouped by type or role, drop the line under the last item of each group.', 'ingredient-list-decoder' ),
-				'selectors'    => array(
-					'{{WRAPPER}} .ild-products__list .ild-product-ing:last-child' => 'border-bottom-width: 0;',
-				),
-				'condition'    => array( 'divider_style!' => 'none' ),
 			)
 		);
 
