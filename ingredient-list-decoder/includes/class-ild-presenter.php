@@ -419,61 +419,110 @@ class ILD_Presenter {
 	 * @return array { aka_text, roles_text, family_text, description, evidence, founder }.
 	 */
 	private static function entry_details( $id ) {
+		$view = self::ingredient_view( $id );
+
+		// The decoder rows only need the readable-text form of each field.
+		return array(
+			'aka_text'    => $view['aka_text'],
+			'roles_text'  => $view['roles_text'],
+			'family_text' => $view['family_text'],
+			'description' => $view['description'],
+			'evidence'    => $view['evidence'],
+			'founder'     => $view['founder'],
+		);
+	}
+
+	/**
+	 * Gather one library entry's displayable content as a structured view.
+	 *
+	 * The single source of truth for how an ingredient is presented, shared by the
+	 * decoder rows (via entry_details) and the Product Ingredients widget. It returns
+	 * both the readable text of each field and the underlying arrays the widget needs
+	 * to sort and group — the role slugs and labels, and the family names — so the two
+	 * surfaces can never drift in how they read an entry.
+	 *
+	 * @param int $id The ingredient's post ID.
+	 * @return array {
+	 *     id, name, aka_text,
+	 *     role_slugs[], role_labels[], roles_text,
+	 *     family_names[], family_text,
+	 *     description, evidence, founder
+	 * }
+	 */
+	public static function ingredient_view( $id ) {
 		$id = (int) $id;
 
+		$view = array(
+			'id'           => $id,
+			'name'         => '',
+			'aka_text'     => '',
+			'role_slugs'   => array(),
+			'role_labels'  => array(),
+			'roles_text'   => ILD_Phrases::row_none(),
+			'family_names' => array(),
+			'family_text'  => ILD_Phrases::row_none(),
+			'description'  => '',
+			'evidence'     => '',
+			'founder'      => '',
+		);
+
 		if ( $id <= 0 ) {
-			return array(
-				'aka_text'    => '',
-				'roles_text'  => ILD_Phrases::row_none(),
-				'family_text' => ILD_Phrases::row_none(),
-				'description' => '',
-				'evidence'    => '',
-				'founder'     => '',
-			);
+			return $view;
 		}
+
+		$post         = get_post( $id );
+		$view['name'] = ( $post && isset( $post->post_title ) ) ? $post->post_title : '';
 
 		// The "also known as" names, cleaned for display. The field may hold them
 		// one per line or run together with the same separators the matcher indexes
 		// on (comma, semicolon, pipe); a comma between two digits (1,2-Hexanediol)
 		// is part of a name, so it is protected from the split. We keep the entry's
 		// own casing — this is shown, not matched — and join them with commas.
-		$aka = get_post_meta( $id, '_ild_also_known_as', true );
-		$aka = self::aka_to_text( is_string( $aka ) ? $aka : '' );
+		$aka              = get_post_meta( $id, '_ild_also_known_as', true );
+		$view['aka_text'] = self::aka_to_text( is_string( $aka ) ? $aka : '' );
 
-		// Roles, as human labels. Blank slugs (a stray empty value on an entry
-		// still being built) are dropped so the row shows a dash, not "Role:".
-		$roles       = get_post_meta( $id, '_ild_role', true );
-		$roles       = is_array( $roles ) ? $roles : array();
-		$role_labels = array_map( array( 'ILD_Roles', 'get_label' ), $roles );
-		$role_labels = array_values( array_filter( array_map( 'trim', $role_labels ), 'strlen' ) );
+		// Roles, kept as parallel slugs and human labels. Blank slugs (a stray empty
+		// value on an entry still being built) are dropped so a row shows a dash, not
+		// "Role:". The slugs let the widget group by role with stable keys.
+		$roles = get_post_meta( $id, '_ild_role', true );
+		$roles = is_array( $roles ) ? $roles : array();
+		foreach ( $roles as $slug ) {
+			$slug = trim( (string) $slug );
+			if ( '' === $slug ) {
+				continue;
+			}
+			$label = trim( (string) ILD_Roles::get_label( $slug ) );
+			if ( '' === $label ) {
+				continue;
+			}
+			$view['role_slugs'][]  = $slug;
+			$view['role_labels'][] = $label;
+		}
+		if ( ! empty( $view['role_labels'] ) ) {
+			$view['roles_text'] = implode( ', ', $view['role_labels'] );
+		}
 
 		// Families, as term names, with any blank name dropped likewise.
 		$families = wp_get_object_terms( $id, ILD_Post_Types::TAX_FAMILY, array( 'fields' => 'names' ) );
 		if ( is_wp_error( $families ) ) {
 			$families = array();
 		}
-		$families = array_values( array_filter( array_map( 'trim', $families ), 'strlen' ) );
+		$view['family_names'] = array_values( array_filter( array_map( 'trim', $families ), 'strlen' ) );
+		if ( ! empty( $view['family_names'] ) ) {
+			$view['family_text'] = implode( ', ', $view['family_names'] );
+		}
 
-		// The description, if any.
-		$description = get_post_meta( $id, '_ild_description', true );
-		$description = is_string( $description ) ? $description : '';
+		// The description, and the optional evidence note and founder take.
+		$description         = get_post_meta( $id, '_ild_description', true );
+		$view['description'] = is_string( $description ) ? $description : '';
 
-		// The optional evidence note and founder take. These are shown inside the
-		// expanded panel beneath the description, only when they hold something.
-		$evidence = get_post_meta( $id, '_ild_evidence_note', true );
-		$evidence = is_string( $evidence ) ? $evidence : '';
+		$evidence         = get_post_meta( $id, '_ild_evidence_note', true );
+		$view['evidence'] = is_string( $evidence ) ? $evidence : '';
 
-		$founder = get_post_meta( $id, '_ild_founder_take', true );
-		$founder = is_string( $founder ) ? $founder : '';
+		$founder         = get_post_meta( $id, '_ild_founder_take', true );
+		$view['founder'] = is_string( $founder ) ? $founder : '';
 
-		return array(
-			'aka_text'    => $aka,
-			'roles_text'  => ! empty( $role_labels ) ? implode( ', ', $role_labels ) : ILD_Phrases::row_none(),
-			'family_text' => ! empty( $families ) ? implode( ', ', $families ) : ILD_Phrases::row_none(),
-			'description' => $description,
-			'evidence'    => $evidence,
-			'founder'     => $founder,
-		);
+		return $view;
 	}
 
 	/**

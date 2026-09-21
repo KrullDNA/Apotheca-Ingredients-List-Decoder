@@ -107,6 +107,39 @@ class ILD_Unknown_Tokens {
 	}
 
 	/**
+	 * Record a token once, without bumping an existing row's count.
+	 *
+	 * Used when flagging a name that a product lists but the library lacks: it must
+	 * reach the queue, but re-saving the product should not keep inflating its
+	 * appearance count the way a fresh public submission does. A brand-new token is
+	 * inserted at count 1; a token already present (open, dismissed or drafted) is
+	 * left exactly as it is.
+	 *
+	 * @param string $token The token (will be normalised for de-duplication).
+	 * @return void
+	 */
+	public static function record_once( $token ) {
+		global $wpdb;
+
+		$token = self::normalise( $token );
+		if ( '' === $token ) {
+			return;
+		}
+
+		$table = self::table();
+
+		// INSERT IGNORE: a new token is added; a duplicate key is skipped untouched.
+		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared
+			$wpdb->prepare(
+				"INSERT IGNORE INTO $table (token, appearances, first_seen, status) VALUES (%s, 1, %s, %s)",
+				$token,
+				current_time( 'mysql', true ),
+				self::STATUS_OPEN
+			)
+		);
+	}
+
+	/**
 	 * Normalise a token for storage and de-duplication.
 	 *
 	 * @param string $token The token.

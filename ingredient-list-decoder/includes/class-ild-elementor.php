@@ -70,5 +70,8 @@ class ILD_Elementor {
 	public function register_widgets( $widgets_manager ) {
 		require_once ILD_PLUGIN_DIR . 'includes/widgets/class-ild-elementor-widget.php';
 		$widgets_manager->register( new ILD_Elementor_Widget() );
+
+		require_once ILD_PLUGIN_DIR . 'includes/widgets/class-ild-product-ingredients-widget.php';
+		$widgets_manager->register( new ILD_Product_Ingredients_Widget() );
 	}
 }
