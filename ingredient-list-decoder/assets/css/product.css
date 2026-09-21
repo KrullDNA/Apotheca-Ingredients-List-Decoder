@@ -22,32 +22,58 @@
 	margin: 0 0 1rem;
 }
 
-/* Group headings (when grouped by type or role). */
+/* The flow container. The Columns control turns this into a multi-column
+ * (newspaper) flow: whole sections — or, when ungrouped, whole items — pack down
+ * one column then into the next, balancing the columns, both starting at the top.
+ * A single column is just normal flow. The column gap is driven by a control. */
+.ild-products__groups {
+	column-gap: 2rem;
+}
+
+/* A whole group: kept together so a section never splits across two columns. */
+.ild-products__section {
+	break-inside: avoid;
+	-webkit-column-break-inside: avoid;
+	page-break-inside: avoid;
+	margin: 0 0 1.5rem;
+}
+
+.ild-products__section:last-child {
+	margin-bottom: 0;
+}
+
+/* Group headings (when grouped by type or role). Stay with their list. */
 .ild-products__group-heading {
-	margin: 1.25rem 0 0.5rem;
+	margin: 0 0 0.5rem;
 	font-weight: 600;
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
 	font-size: 0.85em;
 }
 
-.ild-products__group-heading:first-child {
-	margin-top: 0;
-}
-
-/* The list of ingredients. The gap is also driven by a control. */
+/* The list of ingredients: a plain block so items can flow between columns. */
 .ild-products__list {
 	list-style: none;
 	margin: 0;
 	padding: 0;
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
 }
 
-/* One ingredient. */
+/* One ingredient. The margin sets the space between items; each item is kept
+ * whole so it never breaks across a column boundary. */
 .ild-product-ing {
-	margin: 0;
+	margin: 0 0 0.5rem;
+	break-inside: avoid;
+	-webkit-column-break-inside: avoid;
+	page-break-inside: avoid;
+}
+
+.ild-products__list .ild-product-ing:last-child {
+	margin-bottom: 0;
+}
+
+/* "All products" mode: space each product from the one before it. */
+.ild-products-all > .ild-products + .ild-products {
+	margin-top: 2.5rem;
 }
 
 .ild-product-ing__box {
@@ -100,8 +126,22 @@ details.ild-product-ing__box > summary.ild-product-ing__head::-webkit-details-ma
 	align-items: center;
 }
 
+/* The icon slot: a container for the default chevron or a chosen icon. */
 .ild-product-ing__toggle-icon {
-	display: inline-block;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
+}
+
+.ild-product-ing__toggle-icon svg {
+	display: block;
+	width: 1em;
+	height: 1em;
+}
+
+/* The default chevron, drawn with borders so it needs no icon library. */
+.ild-product-ing__toggle-icon--chevron {
 	width: 0.5em;
 	height: 0.5em;
 	border-right: 2px solid currentColor;
@@ -110,8 +150,30 @@ details.ild-product-ing__box > summary.ild-product-ing__head::-webkit-details-ma
 	transition: transform 0.15s ease;
 }
 
-details.ild-product-ing__box[open] .ild-product-ing__toggle-icon {
+details.ild-product-ing__box[open] .ild-product-ing__toggle-icon--chevron {
 	transform: rotate(-135deg);
+}
+
+/* A chosen icon with no separate "open" icon simply rotates when open. */
+.ild-product-ing__toggle-icon--rotates {
+	transition: transform 0.15s ease;
+}
+
+details.ild-product-ing__box[open] .ild-product-ing__toggle-icon--rotates {
+	transform: rotate(180deg);
+}
+
+/* A chosen icon plus a separate "open" icon: swap one for the other. */
+.ild-product-ing__toggle-icon--active {
+	display: none;
+}
+
+details.ild-product-ing__box[open] .ild-product-ing__toggle-icon--base:not(.ild-product-ing__toggle-icon--rotates) {
+	display: none;
+}
+
+details.ild-product-ing__box[open] .ild-product-ing__toggle-icon--active {
+	display: inline-flex;
 }
 
 /* The revealed / open detail. */
@@ -158,7 +220,8 @@ details.ild-product-ing__box[open] .ild-product-ing__toggle-icon {
 }
 
 @media ( prefers-reduced-motion: reduce ) {
-	.ild-product-ing__toggle-icon {
+	.ild-product-ing__toggle-icon--chevron,
+	.ild-product-ing__toggle-icon--rotates {
 		transition: none;
 	}
 }

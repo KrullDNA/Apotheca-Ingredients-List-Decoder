@@ -28,8 +28,16 @@ if ( empty( $groups ) ) {
 
 $fields         = isset( $opts['fields'] ) ? $opts['fields'] : array();
 $layout         = isset( $opts['layout'] ) ? $opts['layout'] : 'expandable';
-$group_headings = ! empty( $opts['group_headings'] ) && ! empty( $view['grouped'] );
+$grouped        = ! empty( $view['grouped'] );
+$group_headings = ! empty( $opts['group_headings'] ) && $grouped;
 $none           = ILD_Phrases::row_none();
+
+// The chosen expander icons (already rendered to safe markup by the widget). When
+// no base icon is chosen, the template falls back to the default CSS chevron.
+$toggle        = isset( $opts['toggle'] ) ? $opts['toggle'] : array();
+$toggle_icon   = isset( $toggle['icon'] ) ? $toggle['icon'] : '';
+$toggle_active = isset( $toggle['active'] ) ? $toggle['active'] : '';
+$toggle_custom = ( '' !== $toggle_icon );
 
 // Allowed heading tags, so a setting can never inject markup.
 $allowed_tags = array( 'h2', 'h3', 'h4', 'div', 'span' );
@@ -41,7 +49,12 @@ $heading_tag  = ( isset( $opts['heading_tag'] ) && in_array( $opts['heading_tag'
 		<<?php echo esc_attr( $heading_tag ); ?> class="ild-products__title"><?php echo esc_html( $opts['heading'] ); ?></<?php echo esc_attr( $heading_tag ); ?>>
 	<?php endif; ?>
 
+	<?php // The flow container. With more than one column it becomes a newspaper- ?>
+	<?php // style multi-column flow: whole sections (or, ungrouped, whole items) ?>
+	<?php // stay intact and pack to balance the columns, both starting at the top. ?>
+	<div class="ild-products__groups">
 	<?php foreach ( $groups as $group ) : ?>
+		<?php if ( $grouped ) : ?><div class="ild-products__section"><?php endif; ?>
 		<?php if ( $group_headings && ! empty( $group['heading'] ) ) : ?>
 			<div class="ild-products__group-heading"><?php echo esc_html( $group['heading'] ); ?></div>
 		<?php endif; ?>
@@ -95,7 +108,34 @@ $heading_tag  = ( isset( $opts['heading_tag'] ) && in_array( $opts['heading_tag'
 									<?php require ILD_PLUGIN_DIR . 'templates/partials/product-badges.php'; ?>
 								<?php endif; ?>
 								<span class="ild-product-ing__toggle">
-									<span class="ild-product-ing__toggle-icon" aria-hidden="true"></span>
+									<?php
+									$has_open = ( '' !== $toggle_active );
+
+									// The closed-state icon: the chosen icon, or the default chevron.
+									// In swap mode (an open icon is set) it carries --base so the CSS
+									// hides it when open; on its own it rotates when open.
+									if ( $toggle_custom ) {
+										$closed_class = 'ild-product-ing__toggle-icon ild-product-ing__toggle-icon--custom ild-product-ing__toggle-icon--base';
+										$closed_class .= $has_open ? '' : ' ild-product-ing__toggle-icon--rotates';
+										printf(
+											'<span class="%s" aria-hidden="true">%s</span>',
+											esc_attr( $closed_class ),
+											$toggle_icon // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icon markup from Elementor's Icons_Manager, already safe.
+										);
+									} else {
+										$closed_class = 'ild-product-ing__toggle-icon ild-product-ing__toggle-icon--chevron';
+										$closed_class .= $has_open ? ' ild-product-ing__toggle-icon--base' : '';
+										printf( '<span class="%s" aria-hidden="true"></span>', esc_attr( $closed_class ) );
+									}
+
+									// The open-state icon, shown only while open.
+									if ( $has_open ) {
+										printf(
+											'<span class="ild-product-ing__toggle-icon ild-product-ing__toggle-icon--custom ild-product-ing__toggle-icon--active" aria-hidden="true">%s</span>',
+											$toggle_active // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icon markup from Elementor's Icons_Manager, already safe.
+										);
+									}
+									?>
 								</span>
 							</summary>
 							<div class="ild-product-ing__detail">
@@ -121,6 +161,8 @@ $heading_tag  = ( isset( $opts['heading_tag'] ) && in_array( $opts['heading_tag'
 
 			<?php endforeach; ?>
 		</ol>
+		<?php if ( $grouped ) : ?></div><?php endif; ?>
 	<?php endforeach; ?>
+	</div>
 
 </div>

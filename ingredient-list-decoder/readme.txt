@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.7.0
+Stable tag: 1.9.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,25 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.9.1 =
+* Product Ingredients widget: the Columns control now flows as a balanced newspaper layout instead of a grid. Whole groups (or, ungrouped, whole items) pack down one column then into the next, so a group is never split across two columns, the columns balance each other, and both start at the top. This removes the empty top-right gap, the ragged mid-row gaps, and split sections. New "Space between groups" control, and "Space between items" (formerly "Row gap"); "Gap between columns" sets the space between the columns.
+
+= 1.9.0 =
+* Product Ingredients widget: new "All products" option in "Show ingredients for". It renders every product that has an ingredient list, each under its own name, using the order, fields, layout and styling set below. The whole page is built from a single library query, so it stays efficient even with a large catalogue.
+* Product Ingredients widget: the "Lines between items" divider now draws under every item for an even rhythm whatever the column count, and never under the very last item of a list or product. A new "No line at the end of each group" toggle drops the line under the last item of each group when grouped by type or role. This fixes the uneven look where some group endings had a line and some didn't.
+
+= 1.8.1 =
+* Product Ingredients widget: both expander-icon selectors — "closed" and "open" — are now always shown, so you can set them independently. Leave the open icon empty and the closed icon simply rotates when open; leave both empty for the default chevron.
+
+= 1.8.0 =
+* Product Ingredients widget: new "Columns" control, set per device (with separate row and column gap), so the list can lay out in one, two or more columns at each breakpoint.
+* Product Ingredients widget: the expander icon is now choosable. Pick any Elementor icon for the expander, optionally a second icon for the open state (otherwise the chosen icon rotates), plus an icon-size control. Leave it empty for the default chevron.
+* Product Ingredients widget: new spacing controls for the expander content (margin, padding, and the gap between detail fields), so the detail no longer sits against the ingredient name above it or the next item below.
+* Product Ingredients widget: new "Lines between items" controls — an optional divider (style, colour, thickness and space above the line) drawn between items but never after the last item of a group or of the whole list.
+
+= 1.7.1 =
+* The Product Ingredients widget's "choose a product" picker now lists the whole WooCommerce catalogue — every product across all editable statuses (published, draft, pending, private, scheduled), in title order, with no cap — using WooCommerce's own product query.
 
 = 1.7.0 =
 * New "Product Ingredients" Elementor widget (in the KDNA Tools category). It reads a product's back-of-bottle ingredient list from the product's `ingredients` field (the JetEngine field — the meta key is configurable, default `ingredients`), links each name to the ingredient library using the decoder's own matcher, and displays each ingredient with its explanation.
