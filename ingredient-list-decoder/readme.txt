@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.8.1
+Stable tag: 1.9.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,10 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.9.0 =
+* Product Ingredients widget: new "All products" option in "Show ingredients for". It renders every product that has an ingredient list, each under its own name, using the order, fields, layout and styling set below. The whole page is built from a single library query, so it stays efficient even with a large catalogue.
+* Product Ingredients widget: the "Lines between items" divider now draws under every item for an even rhythm whatever the column count, and never under the very last item of a list or product. A new "No line at the end of each group" toggle drops the line under the last item of each group when grouped by type or role. This fixes the uneven look where some group endings had a line and some didn't.
 
 = 1.8.1 =
 * Product Ingredients widget: both expander-icon selectors — "closed" and "open" — are now always shown, so you can set them independently. Leave the open icon empty and the closed icon simply rotates when open; leave both empty for the default chevron.

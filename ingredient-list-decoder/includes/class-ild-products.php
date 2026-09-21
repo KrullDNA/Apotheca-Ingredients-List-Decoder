@@ -142,11 +142,14 @@ class ILD_Products {
 	 * carries the full library view (name, roles, family, description, evidence,
 	 * founder, also-known-as) plus the primary family and role used for grouping.
 	 *
-	 * @param int    $product_id The product's post ID.
-	 * @param string $meta_key   The meta key, or '' for the default.
+	 * @param int        $product_id The product's post ID.
+	 * @param string     $meta_key   The meta key, or '' for the default.
+	 * @param array|null $index      A prebuilt library index, or null to build one.
+	 *                               Passing one lets "all products" reuse a single
+	 *                               index instead of rebuilding it per product.
 	 * @return array<int,array> The ordered rows.
 	 */
-	public static function rows( $product_id, $meta_key = '' ) {
+	public static function rows( $product_id, $meta_key = '', $index = null ) {
 		$raw = self::raw( $product_id, $meta_key );
 		if ( '' === $raw ) {
 			return array();
@@ -157,7 +160,9 @@ class ILD_Products {
 			return array();
 		}
 
-		$index    = ILD_Matcher::build_index();
+		if ( null === $index ) {
+			$index = ILD_Matcher::build_index();
+		}
 		$rows     = array();
 		$position = 0;
 
@@ -214,7 +219,7 @@ class ILD_Products {
 	 *     missing[] (names not in the library), total (visible count)
 	 * }
 	 */
-	public static function build( $product_id, $args = array() ) {
+	public static function build( $product_id, $args = array(), $index = null ) {
 		$args = wp_parse_args(
 			$args,
 			array(
@@ -225,7 +230,7 @@ class ILD_Products {
 		);
 
 		$product_id = (int) $product_id;
-		$all        = self::rows( $product_id, $args['meta_key'] );
+		$all        = self::rows( $product_id, $args['meta_key'], $index );
 
 		$missing = array();
 		$visible = array();
@@ -418,6 +423,17 @@ class ILD_Products {
 		}
 
 		return $options;
+	}
+
+	/**
+	 * Every WooCommerce product's ID, in title order.
+	 *
+	 * Used by the widget's "All products" mode to render each product in turn.
+	 *
+	 * @return int[]
+	 */
+	public static function product_ids() {
+		return array_map( 'intval', array_keys( self::product_options() ) );
 	}
 
 	/**

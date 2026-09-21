@@ -157,6 +157,7 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 				'options' => array(
 					'current' => __( 'The current product (this page)', 'ingredient-list-decoder' ),
 					'pick'    => __( 'A product I choose', 'ingredient-list-decoder' ),
+					'all'     => __( 'All products', 'ingredient-list-decoder' ),
 				),
 			)
 		);
@@ -169,6 +170,16 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 				'options'     => ILD_Products::product_options(),
 				'label_block' => true,
 				'condition'   => array( 'source' => 'pick' ),
+			)
+		);
+
+		$this->add_control(
+			'all_products_note',
+			array(
+				'type'            => Controls_Manager::RAW_HTML,
+				'raw'             => __( 'Every product with an ingredient list will be shown, each under its own name. Order, fields, layout and styling below apply to all of them.', 'ingredient-list-decoder' ),
+				'content_classes' => 'elementor-descriptor',
+				'condition'       => array( 'source' => 'all' ),
 			)
 		);
 
@@ -667,6 +678,10 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 			)
 		);
 
+		// A line is drawn under every item, so the rhythm is even whatever the
+		// column count or how many items a group has. The very last item of the
+		// whole list never gets one (handled in CSS), and the toggle below can drop
+		// the line at the end of each group too.
 		$this->add_control(
 			'divider_style',
 			array(
@@ -680,7 +695,7 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 					'dotted' => __( 'Dotted', 'ingredient-list-decoder' ),
 				),
 				'selectors' => array(
-					'{{WRAPPER}} .ild-products__list .ild-product-ing:not(:last-child)' => 'border-bottom-style: {{VALUE}};',
+					'{{WRAPPER}} .ild-products__list .ild-product-ing' => 'border-bottom-style: {{VALUE}};',
 				),
 			)
 		);
@@ -691,7 +706,7 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 				'label'     => __( 'Line colour', 'ingredient-list-decoder' ),
 				'type'      => Controls_Manager::COLOR,
 				'selectors' => array(
-					'{{WRAPPER}} .ild-products__list .ild-product-ing:not(:last-child)' => 'border-bottom-color: {{VALUE}};',
+					'{{WRAPPER}} .ild-products__list .ild-product-ing' => 'border-bottom-color: {{VALUE}};',
 				),
 				'condition' => array( 'divider_style!' => 'none' ),
 			)
@@ -706,7 +721,7 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 				'range'      => array( 'px' => array( 'min' => 0, 'max' => 10 ) ),
 				'default'    => array( 'size' => 1, 'unit' => 'px' ),
 				'selectors'  => array(
-					'{{WRAPPER}} .ild-products__list .ild-product-ing:not(:last-child)' => 'border-bottom-width: {{SIZE}}{{UNIT}};',
+					'{{WRAPPER}} .ild-products__list .ild-product-ing' => 'border-bottom-width: {{SIZE}}{{UNIT}};',
 				),
 				'condition'  => array( 'divider_style!' => 'none' ),
 			)
@@ -721,9 +736,24 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 				'range'       => array( 'px' => array( 'min' => 0, 'max' => 60 ) ),
 				'description' => __( 'Padding below each item, between its content and the line.', 'ingredient-list-decoder' ),
 				'selectors'   => array(
-					'{{WRAPPER}} .ild-products__list .ild-product-ing:not(:last-child)' => 'padding-bottom: {{SIZE}}{{UNIT}};',
+					'{{WRAPPER}} .ild-products__list .ild-product-ing' => 'padding-bottom: {{SIZE}}{{UNIT}};',
 				),
 				'condition'   => array( 'divider_style!' => 'none' ),
+			)
+		);
+
+		$this->add_control(
+			'divider_hide_group_end',
+			array(
+				'label'        => __( 'No line at the end of each group', 'ingredient-list-decoder' ),
+				'type'         => Controls_Manager::SWITCHER,
+				'default'      => '',
+				'return_value' => 'yes',
+				'description'  => __( 'When grouped by type or role, drop the line under the last item of each group.', 'ingredient-list-decoder' ),
+				'selectors'    => array(
+					'{{WRAPPER}} .ild-products__list .ild-product-ing:last-child' => 'border-bottom-width: 0;',
+				),
+				'condition'    => array( 'divider_style!' => 'none' ),
 			)
 		);
 
@@ -1016,55 +1046,25 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 	 */
 	protected function render() {
 		$settings = $this->get_settings_for_display();
+		$source   = isset( $settings['source'] ) ? $settings['source'] : 'current';
 
-		// Which product to read.
-		if ( isset( $settings['source'] ) && 'pick' === $settings['source'] ) {
-			$product_id = isset( $settings['product_id'] ) ? (int) $settings['product_id'] : 0;
-		} else {
-			$product_id = (int) get_queried_object_id();
-			if ( $product_id <= 0 ) {
-				$product_id = (int) get_the_ID();
-			}
-		}
-
-		// In the editor with no resolvable product, show a friendly placeholder so
-		// the widget can still be selected and styled.
-		if ( $product_id <= 0 ) {
-			if ( $this->is_edit_mode() ) {
-				echo '<div class="ild-products ild-products--placeholder"><p>' . esc_html__( 'Choose a product in the widget settings, or place this widget on a product page, to see its ingredients here.', 'ingredient-list-decoder' ) . '</p></div>';
-			}
-			return;
-		}
-
-		$view = ILD_Products::build(
-			$product_id,
-			array(
-				'meta_key'     => isset( $settings['meta_key'] ) ? $settings['meta_key'] : '',
-				'order'        => isset( $settings['order'] ) ? $settings['order'] : 'inci',
-				'show_missing' => ( 'yes' === ( isset( $settings['show_missing'] ) ? $settings['show_missing'] : 'yes' ) ),
-			)
+		// The build arguments and the display options are the same for every product,
+		// so work them out once.
+		$build_args = array(
+			'meta_key'     => isset( $settings['meta_key'] ) ? $settings['meta_key'] : '',
+			'order'        => isset( $settings['order'] ) ? $settings['order'] : 'inci',
+			'show_missing' => ( 'yes' === ( isset( $settings['show_missing'] ) ? $settings['show_missing'] : 'yes' ) ),
 		);
 
-		// The heading text, with {product} filled in.
-		$heading = '';
-		if ( 'yes' === ( isset( $settings['show_heading'] ) ? $settings['show_heading'] : '' ) ) {
-			$raw     = ! empty( $settings['heading_text'] ) ? $settings['heading_text'] : __( 'Ingredients', 'ingredient-list-decoder' );
-			$heading = str_replace( '{product}', $view['product_name'], $raw );
-		}
-
-		// The chosen expander icons, rendered here where the settings are available.
-		$toggle = array(
-			'icon'   => $this->icon_html( isset( $settings['toggle_icon'] ) ? $settings['toggle_icon'] : array() ),
-			'active' => $this->icon_html( isset( $settings['toggle_icon_active'] ) ? $settings['toggle_icon_active'] : array() ),
-		);
-
-		// The display options handed to the template.
 		$opts = array(
 			'layout'         => ( isset( $settings['layout'] ) && 'open' === $settings['layout'] ) ? 'open' : 'expandable',
 			'group_headings' => ( 'yes' === ( isset( $settings['show_group_headings'] ) ? $settings['show_group_headings'] : 'yes' ) ),
-			'heading'        => $heading,
+			'heading'        => '',
 			'heading_tag'    => isset( $settings['heading_tag'] ) ? $settings['heading_tag'] : 'h2',
-			'toggle'         => $toggle,
+			'toggle'         => array(
+				'icon'   => $this->icon_html( isset( $settings['toggle_icon'] ) ? $settings['toggle_icon'] : array() ),
+				'active' => $this->icon_html( isset( $settings['toggle_icon_active'] ) ? $settings['toggle_icon_active'] : array() ),
+			),
 			'fields'         => array(
 				'description' => ( 'yes' === ( isset( $settings['show_description'] ) ? $settings['show_description'] : 'yes' ) ),
 				'role'        => ( 'yes' === ( isset( $settings['show_role'] ) ? $settings['show_role'] : 'yes' ) ),
@@ -1075,6 +1075,38 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 			),
 		);
 
+		// All products: render each in turn under its own name, reusing one library
+		// index so the whole page is built from a single library query.
+		if ( 'all' === $source ) {
+			$this->render_all( $build_args, $opts );
+			return;
+		}
+
+		// A single product, chosen or from the current page.
+		if ( 'pick' === $source ) {
+			$product_id = isset( $settings['product_id'] ) ? (int) $settings['product_id'] : 0;
+		} else {
+			$product_id = (int) get_queried_object_id();
+			if ( $product_id <= 0 ) {
+				$product_id = (int) get_the_ID();
+			}
+		}
+
+		if ( $product_id <= 0 ) {
+			if ( $this->is_edit_mode() ) {
+				echo '<div class="ild-products ild-products--placeholder"><p>' . esc_html__( 'Choose a product in the widget settings, or place this widget on a product page, to see its ingredients here.', 'ingredient-list-decoder' ) . '</p></div>';
+			}
+			return;
+		}
+
+		$view = ILD_Products::build( $product_id, $build_args );
+
+		// The heading text, with {product} filled in.
+		if ( 'yes' === ( isset( $settings['show_heading'] ) ? $settings['show_heading'] : '' ) ) {
+			$raw            = ! empty( $settings['heading_text'] ) ? $settings['heading_text'] : __( 'Ingredients', 'ingredient-list-decoder' );
+			$opts['heading'] = str_replace( '{product}', $view['product_name'], $raw );
+		}
+
 		echo ILD_Shortcode::render_named_template( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-escaped template markup.
 			'product-ingredients',
 			array(
@@ -1082,6 +1114,50 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 				'opts' => $opts,
 			)
 		);
+	}
+
+	/**
+	 * Render every product with an ingredient list, each under its own name.
+	 *
+	 * Builds the library index once and reuses it for every product, so the whole
+	 * page costs one library query rather than one per product. Products with no
+	 * ingredient list are skipped.
+	 *
+	 * @param array $build_args The build arguments (meta_key, order, show_missing).
+	 * @param array $opts       The base display options (heading filled in per product).
+	 * @return void
+	 */
+	private function render_all( $build_args, $opts ) {
+		$ids   = ILD_Products::product_ids();
+		$index = ILD_Matcher::build_index();
+
+		$html = '';
+		foreach ( $ids as $product_id ) {
+			$view = ILD_Products::build( $product_id, $build_args, $index );
+			if ( empty( $view['total'] ) ) {
+				continue;
+			}
+
+			// Each product is headed by its own name.
+			$opts['heading'] = $view['product_name'];
+
+			$html .= ILD_Shortcode::render_named_template(
+				'product-ingredients',
+				array(
+					'view' => $view,
+					'opts' => $opts,
+				)
+			);
+		}
+
+		if ( '' === $html ) {
+			if ( $this->is_edit_mode() ) {
+				echo '<div class="ild-products ild-products--placeholder"><p>' . esc_html__( 'No products have an ingredient list yet. Add one to a product\'s "ingredients" field to see it here.', 'ingredient-list-decoder' ) . '</p></div>';
+			}
+			return;
+		}
+
+		echo '<div class="ild-products-all">' . $html . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-escaped template markup.
 	}
 
 	/**

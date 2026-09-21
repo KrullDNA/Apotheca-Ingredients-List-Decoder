@@ -51,6 +51,17 @@
 	margin: 0;
 }
 
+/* Dividers are drawn under every item for an even rhythm; the very last item of
+ * each product block never keeps one, so a list (or a product) ends cleanly. */
+.ild-products .ild-products__list:last-of-type > .ild-product-ing:last-child {
+	border-bottom-width: 0 !important;
+}
+
+/* "All products" mode: space each product from the one before it. */
+.ild-products-all > .ild-products + .ild-products {
+	margin-top: 2.5rem;
+}
+
 .ild-product-ing__box {
 	margin: 0;
 }
