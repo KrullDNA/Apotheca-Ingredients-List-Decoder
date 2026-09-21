@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.9.0
+Stable tag: 1.9.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.9.1 =
+* Product Ingredients widget: the Columns control now flows as a balanced newspaper layout instead of a grid. Whole groups (or, ungrouped, whole items) pack down one column then into the next, so a group is never split across two columns, the columns balance each other, and both start at the top. This removes the empty top-right gap, the ragged mid-row gaps, and split sections. New "Space between groups" control, and "Space between items" (formerly "Row gap"); "Gap between columns" sets the space between the columns.
 
 = 1.9.0 =
 * Product Ingredients widget: new "All products" option in "Show ingredients for". It renders every product that has an ingredient list, each under its own name, using the order, fields, layout and styling set below. The whole page is built from a single library query, so it stays efficient even with a large catalogue.

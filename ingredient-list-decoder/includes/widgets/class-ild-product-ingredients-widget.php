@@ -566,8 +566,9 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 			)
 		);
 
-		// Columns, per device. The list is a grid, so this lays the ingredients out
-		// in one, two or more columns at each breakpoint.
+		// Columns, per device. A newspaper-style flow: whole sections (grouped) or
+		// whole items (ungrouped) pack down one column then into the next, balancing
+		// the columns, both starting at the top. A section is never split.
 		$this->add_responsive_control(
 			'columns',
 			array(
@@ -585,20 +586,7 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 					'6' => '6',
 				),
 				'selectors'      => array(
-					'{{WRAPPER}} .ild-products__list' => 'grid-template-columns: repeat({{VALUE}}, minmax(0, 1fr));',
-				),
-			)
-		);
-
-		$this->add_responsive_control(
-			'row_gap',
-			array(
-				'label'      => __( 'Row gap', 'ingredient-list-decoder' ),
-				'type'       => Controls_Manager::SLIDER,
-				'size_units' => array( 'px', 'em', 'rem' ),
-				'range'      => array( 'px' => array( 'min' => 0, 'max' => 80 ) ),
-				'selectors'  => array(
-					'{{WRAPPER}} .ild-products__list' => 'row-gap: {{SIZE}}{{UNIT}};',
+					'{{WRAPPER}} .ild-products__groups' => 'column-count: {{VALUE}};',
 				),
 			)
 		);
@@ -606,13 +594,40 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 		$this->add_responsive_control(
 			'column_gap',
 			array(
-				'label'      => __( 'Column gap', 'ingredient-list-decoder' ),
+				'label'      => __( 'Gap between columns', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 100 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-products__groups' => 'column-gap: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'row_gap',
+			array(
+				'label'      => __( 'Space between items', 'ingredient-list-decoder' ),
 				'type'       => Controls_Manager::SLIDER,
 				'size_units' => array( 'px', 'em', 'rem' ),
 				'range'      => array( 'px' => array( 'min' => 0, 'max' => 80 ) ),
 				'selectors'  => array(
-					'{{WRAPPER}} .ild-products__list' => 'column-gap: {{SIZE}}{{UNIT}};',
+					'{{WRAPPER}} .ild-products__list .ild-product-ing' => 'margin-bottom: {{SIZE}}{{UNIT}};',
 				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'section_gap',
+			array(
+				'label'      => __( 'Space between groups', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 100 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-products__section' => 'margin-bottom: {{SIZE}}{{UNIT}};',
+				),
+				'condition'  => array( 'order' => array( 'family', 'role' ) ),
 			)
 		);
 

@@ -22,39 +22,53 @@
 	margin: 0 0 1rem;
 }
 
-/* Group headings (when grouped by type or role). */
+/* The flow container. The Columns control turns this into a multi-column
+ * (newspaper) flow: whole sections — or, when ungrouped, whole items — pack down
+ * one column then into the next, balancing the columns, both starting at the top.
+ * A single column is just normal flow. The column gap is driven by a control. */
+.ild-products__groups {
+	column-gap: 2rem;
+}
+
+/* A whole group: kept together so a section never splits across two columns. */
+.ild-products__section {
+	break-inside: avoid;
+	-webkit-column-break-inside: avoid;
+	page-break-inside: avoid;
+	margin: 0 0 1.5rem;
+}
+
+.ild-products__section:last-child {
+	margin-bottom: 0;
+}
+
+/* Group headings (when grouped by type or role). Stay with their list. */
 .ild-products__group-heading {
-	margin: 1.25rem 0 0.5rem;
+	margin: 0 0 0.5rem;
 	font-weight: 600;
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
 	font-size: 0.85em;
 }
 
-.ild-products__group-heading:first-child {
-	margin-top: 0;
-}
-
-/* The list of ingredients. A grid so the Columns control can lay it out in one
- * or more columns per device; the gaps are driven by controls too. */
+/* The list of ingredients: a plain block so items can flow between columns. */
 .ild-products__list {
 	list-style: none;
 	margin: 0;
 	padding: 0;
-	display: grid;
-	grid-template-columns: 1fr;
-	gap: 0.5rem;
 }
 
-/* One ingredient. */
+/* One ingredient. The margin sets the space between items; each item is kept
+ * whole so it never breaks across a column boundary. */
 .ild-product-ing {
-	margin: 0;
+	margin: 0 0 0.5rem;
+	break-inside: avoid;
+	-webkit-column-break-inside: avoid;
+	page-break-inside: avoid;
 }
 
-/* Dividers are drawn under every item for an even rhythm; the very last item of
- * each product block never keeps one, so a list (or a product) ends cleanly. */
-.ild-products .ild-products__list:last-of-type > .ild-product-ing:last-child {
-	border-bottom-width: 0 !important;
+.ild-products__list .ild-product-ing:last-child {
+	margin-bottom: 0;
 }
 
 /* "All products" mode: space each product from the one before it. */

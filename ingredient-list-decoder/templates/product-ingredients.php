@@ -28,7 +28,8 @@ if ( empty( $groups ) ) {
 
 $fields         = isset( $opts['fields'] ) ? $opts['fields'] : array();
 $layout         = isset( $opts['layout'] ) ? $opts['layout'] : 'expandable';
-$group_headings = ! empty( $opts['group_headings'] ) && ! empty( $view['grouped'] );
+$grouped        = ! empty( $view['grouped'] );
+$group_headings = ! empty( $opts['group_headings'] ) && $grouped;
 $none           = ILD_Phrases::row_none();
 
 // The chosen expander icons (already rendered to safe markup by the widget). When
@@ -48,7 +49,12 @@ $heading_tag  = ( isset( $opts['heading_tag'] ) && in_array( $opts['heading_tag'
 		<<?php echo esc_attr( $heading_tag ); ?> class="ild-products__title"><?php echo esc_html( $opts['heading'] ); ?></<?php echo esc_attr( $heading_tag ); ?>>
 	<?php endif; ?>
 
+	<?php // The flow container. With more than one column it becomes a newspaper- ?>
+	<?php // style multi-column flow: whole sections (or, ungrouped, whole items) ?>
+	<?php // stay intact and pack to balance the columns, both starting at the top. ?>
+	<div class="ild-products__groups">
 	<?php foreach ( $groups as $group ) : ?>
+		<?php if ( $grouped ) : ?><div class="ild-products__section"><?php endif; ?>
 		<?php if ( $group_headings && ! empty( $group['heading'] ) ) : ?>
 			<div class="ild-products__group-heading"><?php echo esc_html( $group['heading'] ); ?></div>
 		<?php endif; ?>
@@ -155,6 +161,8 @@ $heading_tag  = ( isset( $opts['heading_tag'] ) && in_array( $opts['heading_tag'
 
 			<?php endforeach; ?>
 		</ol>
+		<?php if ( $grouped ) : ?></div><?php endif; ?>
 	<?php endforeach; ?>
+	</div>
 
 </div>
