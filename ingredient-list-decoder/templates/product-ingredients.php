@@ -102,14 +102,34 @@ $heading_tag  = ( isset( $opts['heading_tag'] ) && in_array( $opts['heading_tag'
 									<?php require ILD_PLUGIN_DIR . 'templates/partials/product-badges.php'; ?>
 								<?php endif; ?>
 								<span class="ild-product-ing__toggle">
-									<?php if ( $toggle_custom ) : ?>
-										<span class="ild-product-ing__toggle-icon ild-product-ing__toggle-icon--custom ild-product-ing__toggle-icon--base<?php echo $toggle_active ? '' : ' ild-product-ing__toggle-icon--rotates'; ?>" aria-hidden="true"><?php echo $toggle_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icon markup from Elementor's Icons_Manager, already safe. ?></span>
-										<?php if ( $toggle_active ) : ?>
-											<span class="ild-product-ing__toggle-icon ild-product-ing__toggle-icon--custom ild-product-ing__toggle-icon--active" aria-hidden="true"><?php echo $toggle_active; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icon markup from Elementor's Icons_Manager, already safe. ?></span>
-										<?php endif; ?>
-									<?php else : ?>
-										<span class="ild-product-ing__toggle-icon ild-product-ing__toggle-icon--chevron" aria-hidden="true"></span>
-									<?php endif; ?>
+									<?php
+									$has_open = ( '' !== $toggle_active );
+
+									// The closed-state icon: the chosen icon, or the default chevron.
+									// In swap mode (an open icon is set) it carries --base so the CSS
+									// hides it when open; on its own it rotates when open.
+									if ( $toggle_custom ) {
+										$closed_class = 'ild-product-ing__toggle-icon ild-product-ing__toggle-icon--custom ild-product-ing__toggle-icon--base';
+										$closed_class .= $has_open ? '' : ' ild-product-ing__toggle-icon--rotates';
+										printf(
+											'<span class="%s" aria-hidden="true">%s</span>',
+											esc_attr( $closed_class ),
+											$toggle_icon // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icon markup from Elementor's Icons_Manager, already safe.
+										);
+									} else {
+										$closed_class = 'ild-product-ing__toggle-icon ild-product-ing__toggle-icon--chevron';
+										$closed_class .= $has_open ? ' ild-product-ing__toggle-icon--base' : '';
+										printf( '<span class="%s" aria-hidden="true"></span>', esc_attr( $closed_class ) );
+									}
+
+									// The open-state icon, shown only while open.
+									if ( $has_open ) {
+										printf(
+											'<span class="ild-product-ing__toggle-icon ild-product-ing__toggle-icon--custom ild-product-ing__toggle-icon--active" aria-hidden="true">%s</span>',
+											$toggle_active // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icon markup from Elementor's Icons_Manager, already safe.
+										);
+									}
+									?>
 								</span>
 							</summary>
 							<div class="ild-product-ing__detail">

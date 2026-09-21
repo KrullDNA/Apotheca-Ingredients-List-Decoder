@@ -950,9 +950,9 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 		$this->add_control(
 			'toggle_icon',
 			array(
-				'label'       => __( 'Expander icon', 'ingredient-list-decoder' ),
+				'label'       => __( 'Expander icon (closed)', 'ingredient-list-decoder' ),
 				'type'        => Controls_Manager::ICONS,
-				'description' => __( 'Choose the icon shown on each expander. Leave empty for the default chevron.', 'ingredient-list-decoder' ),
+				'description' => __( 'The icon shown while an ingredient is closed. Leave empty for the default chevron.', 'ingredient-list-decoder' ),
 				'skin'        => 'inline',
 			)
 		);
@@ -960,11 +960,10 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 		$this->add_control(
 			'toggle_icon_active',
 			array(
-				'label'       => __( 'Icon when open', 'ingredient-list-decoder' ),
+				'label'       => __( 'Expander icon (open)', 'ingredient-list-decoder' ),
 				'type'        => Controls_Manager::ICONS,
-				'description' => __( 'Optional. The icon shown while an ingredient is open (e.g. a minus). Leave empty and the icon above simply rotates.', 'ingredient-list-decoder' ),
+				'description' => __( 'The icon shown while an ingredient is open (e.g. a minus). Leave empty and the closed icon simply rotates when open.', 'ingredient-list-decoder' ),
 				'skin'        => 'inline',
-				'condition'   => array( 'toggle_icon[value]!' => '' ),
 			)
 		);
 

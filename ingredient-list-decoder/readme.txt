@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.8.0
+Stable tag: 1.8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.8.1 =
+* Product Ingredients widget: both expander-icon selectors — "closed" and "open" — are now always shown, so you can set them independently. Leave the open icon empty and the closed icon simply rotates when open; leave both empty for the default chevron.
 
 = 1.8.0 =
 * Product Ingredients widget: new "Columns" control, set per device (with separate row and column gap), so the list can lay out in one, two or more columns at each breakpoint.
