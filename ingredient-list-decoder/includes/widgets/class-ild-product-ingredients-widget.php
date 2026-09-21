@@ -87,6 +87,15 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 	}
 
 	/**
+	 * The script handles this widget depends on (the accordion animation).
+	 *
+	 * @return string[]
+	 */
+	public function get_script_depends() {
+		return array( ILD_Products::SCRIPT );
+	}
+
+	/**
 	 * Drop Elementor's extra inner wrapper when optimized markup is on.
 	 *
 	 * @return bool

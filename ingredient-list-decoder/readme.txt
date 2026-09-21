@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.9.3
+Stable tag: 1.10.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.10.0 =
+* Product Ingredients widget: the expander now animates open and closed like an accordion instead of appearing and disappearing instantly. It respects the reduced-motion preference (no animation for visitors who ask for less motion) and keeps the native keyboard behaviour.
 
 = 1.9.3 =
 * Product Ingredients widget: "All products" is now one combined, de-duplicated master list of every ingredient used across the whole catalogue — each ingredient shown once, with no product names or per-product headings. An ingredient used in many products (e.g. Glycerin) appears a single time. The optional heading now comes from the Heading section rather than product names.

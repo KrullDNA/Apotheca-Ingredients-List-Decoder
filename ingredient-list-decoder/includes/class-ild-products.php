@@ -41,6 +41,13 @@ class ILD_Products {
 	const STYLE = 'ild-product';
 
 	/**
+	 * The script handle for the Product Ingredients widget (accordion animation).
+	 *
+	 * @var string
+	 */
+	const SCRIPT = 'ild-product';
+
+	/**
 	 * The default meta key the product's ingredient list is read from.
 	 *
 	 * Apotheca's JetEngine field is named "ingredients", which JetEngine stores as
@@ -80,6 +87,16 @@ class ILD_Products {
 				ILD_PLUGIN_URL . 'assets/css/product.css',
 				array(),
 				ILD_VERSION
+			);
+		}
+
+		if ( ! wp_script_is( self::SCRIPT, 'registered' ) ) {
+			wp_register_script(
+				self::SCRIPT,
+				ILD_PLUGIN_URL . 'assets/js/product.js',
+				array(),
+				ILD_VERSION,
+				true
 			);
 		}
 	}
