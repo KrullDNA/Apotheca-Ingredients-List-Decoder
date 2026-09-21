@@ -367,29 +367,54 @@ class ILD_Products {
 	}
 
 	/**
-	 * A list of products for the widget's picker: id => title.
+	 * Every WooCommerce product, for the widget's picker: id => title.
 	 *
-	 * Reads the WooCommerce product post type directly (core meta/post functions),
-	 * so it works whether or not the WooCommerce classes are loaded. Capped so a
-	 * large catalogue never bloats the editor control.
+	 * Returns the whole catalogue, in title order, across every editable status
+	 * (published, draft, pending, private, scheduled), so the picker lists all
+	 * products — not just published ones and with no arbitrary cap. Uses
+	 * WooCommerce's own product query when available, falling back to a direct post
+	 * query so it still works if the WooCommerce helpers are not loaded yet.
 	 *
 	 * @return array<int,string>
 	 */
 	public static function product_options() {
-		$posts = get_posts(
-			array(
-				'post_type'        => 'product',
-				'post_status'      => array( 'publish', 'draft', 'pending', 'private' ),
-				'numberposts'      => 300,
-				'orderby'          => 'title',
-				'order'            => 'ASC',
-				'suppress_filters' => false,
-			)
-		);
+		$statuses = array( 'publish', 'draft', 'pending', 'private', 'future' );
+		$options  = array();
 
-		$options = array();
-		foreach ( (array) $posts as $post ) {
-			$options[ (int) $post->ID ] = $post->post_title;
+		// Prefer WooCommerce's own query, which knows every product type.
+		if ( function_exists( 'wc_get_products' ) ) {
+			$ids = wc_get_products(
+				array(
+					'status'  => $statuses,
+					'limit'   => -1,
+					'orderby' => 'title',
+					'order'   => 'ASC',
+					'return'  => 'ids',
+				)
+			);
+
+			foreach ( (array) $ids as $id ) {
+				$options[ (int) $id ] = get_the_title( (int) $id );
+			}
+		}
+
+		// Fall back to a direct query if WooCommerce helpers are unavailable, or if
+		// the WooCommerce query returned nothing.
+		if ( empty( $options ) ) {
+			$posts = get_posts(
+				array(
+					'post_type'        => 'product',
+					'post_status'      => $statuses,
+					'numberposts'      => -1,
+					'orderby'          => 'title',
+					'order'            => 'ASC',
+					'suppress_filters' => false,
+				)
+			);
+
+			foreach ( (array) $posts as $post ) {
+				$options[ (int) $post->ID ] = $post->post_title;
+			}
 		}
 
 		return $options;

@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.7.0
+Stable tag: 1.7.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,9 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.7.1 =
+* The Product Ingredients widget's "choose a product" picker now lists the whole WooCommerce catalogue — every product across all editable statuses (published, draft, pending, private, scheduled), in title order, with no cap — using WooCommerce's own product query.
 
 = 1.7.0 =
 * New "Product Ingredients" Elementor widget (in the KDNA Tools category). It reads a product's back-of-bottle ingredient list from the product's `ingredients` field (the JetEngine field — the meta key is configurable, default `ingredients`), links each name to the ingredient library using the decoder's own matcher, and displays each ingredient with its explanation.
