@@ -41,6 +41,13 @@ class ILD_Products {
 	const STYLE = 'ild-product';
 
 	/**
+	 * The script handle for the Product Ingredients widget (accordion animation).
+	 *
+	 * @var string
+	 */
+	const SCRIPT = 'ild-product';
+
+	/**
 	 * The default meta key the product's ingredient list is read from.
 	 *
 	 * Apotheca's JetEngine field is named "ingredients", which JetEngine stores as
@@ -80,6 +87,16 @@ class ILD_Products {
 				ILD_PLUGIN_URL . 'assets/css/product.css',
 				array(),
 				ILD_VERSION
+			);
+		}
+
+		if ( ! wp_script_is( self::SCRIPT, 'registered' ) ) {
+			wp_register_script(
+				self::SCRIPT,
+				ILD_PLUGIN_URL . 'assets/js/product.js',
+				array(),
+				ILD_VERSION,
+				true
 			);
 		}
 	}
@@ -230,11 +247,79 @@ class ILD_Products {
 		);
 
 		$product_id = (int) $product_id;
-		$all        = self::rows( $product_id, $args['meta_key'], $index );
+		$rows       = self::rows( $product_id, $args['meta_key'], $index );
 
+		return self::assemble( $rows, $args, $product_id );
+	}
+
+	/**
+	 * Build one combined view of every ingredient used across all products.
+	 *
+	 * A master directory: each library ingredient any product uses appears once,
+	 * de-duplicated, with no product names — "what we use and what it does". Missing
+	 * names are de-duplicated too. The chosen order and grouping apply to the pooled
+	 * set. Built from a single library index, whatever the size of the catalogue.
+	 *
+	 * @param array      $args  { meta_key, order, show_missing }.
+	 * @param array|null $index A prebuilt library index, or null to build one.
+	 * @return array The view model, with product_id 0 and no product name.
+	 */
+	public static function build_combined( $args = array(), $index = null ) {
+		$args = wp_parse_args(
+			$args,
+			array(
+				'meta_key'     => self::META_KEY_DEFAULT,
+				'order'        => 'inci',
+				'show_missing' => true,
+			)
+		);
+
+		if ( null === $index ) {
+			$index = ILD_Matcher::build_index();
+		}
+
+		$seen_ids     = array();
+		$seen_missing = array();
+		$rows         = array();
+		$position     = 0;
+
+		foreach ( self::product_ids() as $product_id ) {
+			foreach ( self::rows( $product_id, $args['meta_key'], $index ) as $row ) {
+				if ( 'matched' === $row['status'] ) {
+					$id = (int) $row['post_id'];
+					if ( isset( $seen_ids[ $id ] ) ) {
+						continue;
+					}
+					$seen_ids[ $id ] = true;
+				} else {
+					$key = strtolower( trim( (string) $row['name'] ) );
+					if ( '' === $key || isset( $seen_missing[ $key ] ) ) {
+						continue;
+					}
+					$seen_missing[ $key ] = true;
+				}
+
+				$position++;
+				$row['position'] = $position;
+				$rows[]          = $row;
+			}
+		}
+
+		return self::assemble( $rows, $args, 0 );
+	}
+
+	/**
+	 * Assemble a view model from a set of rows: split missing, order and group.
+	 *
+	 * @param array $rows       The rows (from rows() or the combined builder).
+	 * @param array $args       { order, show_missing }.
+	 * @param int   $product_id The product this view is for, or 0 for a combined view.
+	 * @return array The view model.
+	 */
+	private static function assemble( $rows, $args, $product_id = 0 ) {
 		$missing = array();
 		$visible = array();
-		foreach ( $all as $row ) {
+		foreach ( $rows as $row ) {
 			if ( 'missing' === $row['status'] ) {
 				$missing[] = $row['name'];
 				if ( empty( $args['show_missing'] ) ) {
@@ -247,7 +332,7 @@ class ILD_Products {
 		$order = in_array( $args['order'], array( 'inci', 'alpha', 'family', 'role' ), true ) ? $args['order'] : 'inci';
 
 		return array(
-			'product_id'   => $product_id,
+			'product_id'   => (int) $product_id,
 			'product_name' => $product_id > 0 ? get_the_title( $product_id ) : '',
 			'order'        => $order,
 			'grouped'      => in_array( $order, array( 'family', 'role' ), true ),
