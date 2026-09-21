@@ -177,7 +177,7 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 			'all_products_note',
 			array(
 				'type'            => Controls_Manager::RAW_HTML,
-				'raw'             => __( 'Every product with an ingredient list will be shown, each under its own name. Order, fields, layout and styling below apply to all of them.', 'ingredient-list-decoder' ),
+				'raw'             => __( 'One combined list of every ingredient used across all products, with each ingredient shown once (no product names). Order, fields, layout and styling below apply to it.', 'ingredient-list-decoder' ),
 				'content_classes' => 'elementor-descriptor',
 				'condition'       => array( 'source' => 'all' ),
 			)
@@ -1078,10 +1078,30 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 			),
 		);
 
-		// All products: render each in turn under its own name, reusing one library
-		// index so the whole page is built from a single library query.
+		// All products: one combined, de-duplicated list of every ingredient used
+		// across the whole catalogue — no product names, each ingredient once.
 		if ( 'all' === $source ) {
-			$this->render_all( $build_args, $opts );
+			$view = ILD_Products::build_combined( $build_args );
+
+			if ( empty( $view['total'] ) ) {
+				if ( $this->is_edit_mode() ) {
+					echo '<div class="ild-products ild-products--placeholder"><p>' . esc_html__( 'No products have an ingredient list yet. Add one to a product\'s "ingredients" field to see it here.', 'ingredient-list-decoder' ) . '</p></div>';
+				}
+				return;
+			}
+
+			// An optional overall heading from the Heading section (no product name).
+			if ( 'yes' === ( isset( $settings['show_heading'] ) ? $settings['show_heading'] : '' ) ) {
+				$opts['heading'] = ! empty( $settings['heading_text'] ) ? $settings['heading_text'] : __( 'Ingredients', 'ingredient-list-decoder' );
+			}
+
+			echo ILD_Shortcode::render_named_template( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-escaped template markup.
+				'product-ingredients',
+				array(
+					'view' => $view,
+					'opts' => $opts,
+				)
+			);
 			return;
 		}
 
@@ -1117,50 +1137,6 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 				'opts' => $opts,
 			)
 		);
-	}
-
-	/**
-	 * Render every product with an ingredient list, each under its own name.
-	 *
-	 * Builds the library index once and reuses it for every product, so the whole
-	 * page costs one library query rather than one per product. Products with no
-	 * ingredient list are skipped.
-	 *
-	 * @param array $build_args The build arguments (meta_key, order, show_missing).
-	 * @param array $opts       The base display options (heading filled in per product).
-	 * @return void
-	 */
-	private function render_all( $build_args, $opts ) {
-		$ids   = ILD_Products::product_ids();
-		$index = ILD_Matcher::build_index();
-
-		$html = '';
-		foreach ( $ids as $product_id ) {
-			$view = ILD_Products::build( $product_id, $build_args, $index );
-			if ( empty( $view['total'] ) ) {
-				continue;
-			}
-
-			// Each product is headed by its own name.
-			$opts['heading'] = $view['product_name'];
-
-			$html .= ILD_Shortcode::render_named_template(
-				'product-ingredients',
-				array(
-					'view' => $view,
-					'opts' => $opts,
-				)
-			);
-		}
-
-		if ( '' === $html ) {
-			if ( $this->is_edit_mode() ) {
-				echo '<div class="ild-products ild-products--placeholder"><p>' . esc_html__( 'No products have an ingredient list yet. Add one to a product\'s "ingredients" field to see it here.', 'ingredient-list-decoder' ) . '</p></div>';
-			}
-			return;
-		}
-
-		echo '<div class="ild-products-all">' . $html . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-escaped template markup.
 	}
 
 	/**
