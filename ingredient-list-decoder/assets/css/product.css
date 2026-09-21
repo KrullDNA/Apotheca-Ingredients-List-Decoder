@@ -35,13 +35,14 @@
 	margin-top: 0;
 }
 
-/* The list of ingredients. The gap is also driven by a control. */
+/* The list of ingredients. A grid so the Columns control can lay it out in one
+ * or more columns per device; the gaps are driven by controls too. */
 .ild-products__list {
 	list-style: none;
 	margin: 0;
 	padding: 0;
-	display: flex;
-	flex-direction: column;
+	display: grid;
+	grid-template-columns: 1fr;
 	gap: 0.5rem;
 }
 
@@ -100,8 +101,22 @@ details.ild-product-ing__box > summary.ild-product-ing__head::-webkit-details-ma
 	align-items: center;
 }
 
+/* The icon slot: a container for the default chevron or a chosen icon. */
 .ild-product-ing__toggle-icon {
-	display: inline-block;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
+}
+
+.ild-product-ing__toggle-icon svg {
+	display: block;
+	width: 1em;
+	height: 1em;
+}
+
+/* The default chevron, drawn with borders so it needs no icon library. */
+.ild-product-ing__toggle-icon--chevron {
 	width: 0.5em;
 	height: 0.5em;
 	border-right: 2px solid currentColor;
@@ -110,8 +125,30 @@ details.ild-product-ing__box > summary.ild-product-ing__head::-webkit-details-ma
 	transition: transform 0.15s ease;
 }
 
-details.ild-product-ing__box[open] .ild-product-ing__toggle-icon {
+details.ild-product-ing__box[open] .ild-product-ing__toggle-icon--chevron {
 	transform: rotate(-135deg);
+}
+
+/* A chosen icon with no separate "open" icon simply rotates when open. */
+.ild-product-ing__toggle-icon--rotates {
+	transition: transform 0.15s ease;
+}
+
+details.ild-product-ing__box[open] .ild-product-ing__toggle-icon--rotates {
+	transform: rotate(180deg);
+}
+
+/* A chosen icon plus a separate "open" icon: swap one for the other. */
+.ild-product-ing__toggle-icon--active {
+	display: none;
+}
+
+details.ild-product-ing__box[open] .ild-product-ing__toggle-icon--base:not(.ild-product-ing__toggle-icon--rotates) {
+	display: none;
+}
+
+details.ild-product-ing__box[open] .ild-product-ing__toggle-icon--active {
+	display: inline-flex;
 }
 
 /* The revealed / open detail. */
@@ -158,7 +195,8 @@ details.ild-product-ing__box[open] .ild-product-ing__toggle-icon {
 }
 
 @media ( prefers-reduced-motion: reduce ) {
-	.ild-product-ing__toggle-icon {
+	.ild-product-ing__toggle-icon--chevron,
+	.ild-product-ing__toggle-icon--rotates {
 		transition: none;
 	}
 }

@@ -31,6 +31,13 @@ $layout         = isset( $opts['layout'] ) ? $opts['layout'] : 'expandable';
 $group_headings = ! empty( $opts['group_headings'] ) && ! empty( $view['grouped'] );
 $none           = ILD_Phrases::row_none();
 
+// The chosen expander icons (already rendered to safe markup by the widget). When
+// no base icon is chosen, the template falls back to the default CSS chevron.
+$toggle        = isset( $opts['toggle'] ) ? $opts['toggle'] : array();
+$toggle_icon   = isset( $toggle['icon'] ) ? $toggle['icon'] : '';
+$toggle_active = isset( $toggle['active'] ) ? $toggle['active'] : '';
+$toggle_custom = ( '' !== $toggle_icon );
+
 // Allowed heading tags, so a setting can never inject markup.
 $allowed_tags = array( 'h2', 'h3', 'h4', 'div', 'span' );
 $heading_tag  = ( isset( $opts['heading_tag'] ) && in_array( $opts['heading_tag'], $allowed_tags, true ) ) ? $opts['heading_tag'] : 'h2';
@@ -95,7 +102,14 @@ $heading_tag  = ( isset( $opts['heading_tag'] ) && in_array( $opts['heading_tag'
 									<?php require ILD_PLUGIN_DIR . 'templates/partials/product-badges.php'; ?>
 								<?php endif; ?>
 								<span class="ild-product-ing__toggle">
-									<span class="ild-product-ing__toggle-icon" aria-hidden="true"></span>
+									<?php if ( $toggle_custom ) : ?>
+										<span class="ild-product-ing__toggle-icon ild-product-ing__toggle-icon--custom ild-product-ing__toggle-icon--base<?php echo $toggle_active ? '' : ' ild-product-ing__toggle-icon--rotates'; ?>" aria-hidden="true"><?php echo $toggle_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icon markup from Elementor's Icons_Manager, already safe. ?></span>
+										<?php if ( $toggle_active ) : ?>
+											<span class="ild-product-ing__toggle-icon ild-product-ing__toggle-icon--custom ild-product-ing__toggle-icon--active" aria-hidden="true"><?php echo $toggle_active; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icon markup from Elementor's Icons_Manager, already safe. ?></span>
+										<?php endif; ?>
+									<?php else : ?>
+										<span class="ild-product-ing__toggle-icon ild-product-ing__toggle-icon--chevron" aria-hidden="true"></span>
+									<?php endif; ?>
 								</span>
 							</summary>
 							<div class="ild-product-ing__detail">

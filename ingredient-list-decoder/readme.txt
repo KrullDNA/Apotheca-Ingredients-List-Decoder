@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.7.1
+Stable tag: 1.8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,12 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.8.0 =
+* Product Ingredients widget: new "Columns" control, set per device (with separate row and column gap), so the list can lay out in one, two or more columns at each breakpoint.
+* Product Ingredients widget: the expander icon is now choosable. Pick any Elementor icon for the expander, optionally a second icon for the open state (otherwise the chosen icon rotates), plus an icon-size control. Leave it empty for the default chevron.
+* Product Ingredients widget: new spacing controls for the expander content (margin, padding, and the gap between detail fields), so the detail no longer sits against the ingredient name above it or the next item below.
+* Product Ingredients widget: new "Lines between items" controls — an optional divider (style, colour, thickness and space above the line) drawn between items but never after the last item of a group or of the whole list.
 
 = 1.7.1 =
 * The Product Ingredients widget's "choose a product" picker now lists the whole WooCommerce catalogue — every product across all editable statuses (published, draft, pending, private, scheduled), in title order, with no cap — using WooCommerce's own product query.

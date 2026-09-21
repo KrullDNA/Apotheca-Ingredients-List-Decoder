@@ -123,6 +123,7 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 		$this->style_product_heading();
 		$this->style_group_heading();
 		$this->style_item();
+		$this->style_dividers();
 		$this->style_name();
 		$this->style_badges();
 		$this->style_description();
@@ -554,15 +555,52 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 			)
 		);
 
+		// Columns, per device. The list is a grid, so this lays the ingredients out
+		// in one, two or more columns at each breakpoint.
 		$this->add_responsive_control(
-			'item_gap',
+			'columns',
 			array(
-				'label'      => __( 'Gap between items', 'ingredient-list-decoder' ),
+				'label'          => __( 'Columns', 'ingredient-list-decoder' ),
+				'type'           => Controls_Manager::SELECT,
+				'default'        => '1',
+				'tablet_default' => '1',
+				'mobile_default' => '1',
+				'options'        => array(
+					'1' => '1',
+					'2' => '2',
+					'3' => '3',
+					'4' => '4',
+					'5' => '5',
+					'6' => '6',
+				),
+				'selectors'      => array(
+					'{{WRAPPER}} .ild-products__list' => 'grid-template-columns: repeat({{VALUE}}, minmax(0, 1fr));',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'row_gap',
+			array(
+				'label'      => __( 'Row gap', 'ingredient-list-decoder' ),
 				'type'       => Controls_Manager::SLIDER,
 				'size_units' => array( 'px', 'em', 'rem' ),
-				'range'      => array( 'px' => array( 'min' => 0, 'max' => 60 ) ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 80 ) ),
 				'selectors'  => array(
-					'{{WRAPPER}} .ild-products__list' => 'display:flex; flex-direction:column; gap: {{SIZE}}{{UNIT}};',
+					'{{WRAPPER}} .ild-products__list' => 'row-gap: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'column_gap',
+			array(
+				'label'      => __( 'Column gap', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 80 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-products__list' => 'column-gap: {{SIZE}}{{UNIT}};',
 				),
 			)
 		);
@@ -606,6 +644,86 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 				'name'      => 'item_border',
 				'selector'  => '{{WRAPPER}} .ild-product-ing',
 				'separator' => 'before',
+			)
+		);
+
+		$this->end_controls_section();
+	}
+
+	/**
+	 * Optional dividing lines between items.
+	 *
+	 * The line is a bottom border on every item except the last in each group, so
+	 * there is no line after the final item of a group or of the whole list.
+	 *
+	 * @return void
+	 */
+	private function style_dividers() {
+		$this->start_controls_section(
+			'style_dividers',
+			array(
+				'label' => __( 'Lines between items', 'ingredient-list-decoder' ),
+				'tab'   => Controls_Manager::TAB_STYLE,
+			)
+		);
+
+		$this->add_control(
+			'divider_style',
+			array(
+				'label'     => __( 'Line style', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::SELECT,
+				'default'   => 'none',
+				'options'   => array(
+					'none'   => __( 'None', 'ingredient-list-decoder' ),
+					'solid'  => __( 'Solid', 'ingredient-list-decoder' ),
+					'dashed' => __( 'Dashed', 'ingredient-list-decoder' ),
+					'dotted' => __( 'Dotted', 'ingredient-list-decoder' ),
+				),
+				'selectors' => array(
+					'{{WRAPPER}} .ild-products__list .ild-product-ing:not(:last-child)' => 'border-bottom-style: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'divider_colour',
+			array(
+				'label'     => __( 'Line colour', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .ild-products__list .ild-product-ing:not(:last-child)' => 'border-bottom-color: {{VALUE}};',
+				),
+				'condition' => array( 'divider_style!' => 'none' ),
+			)
+		);
+
+		$this->add_responsive_control(
+			'divider_width',
+			array(
+				'label'      => __( 'Line thickness', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 10 ) ),
+				'default'    => array( 'size' => 1, 'unit' => 'px' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-products__list .ild-product-ing:not(:last-child)' => 'border-bottom-width: {{SIZE}}{{UNIT}};',
+				),
+				'condition'  => array( 'divider_style!' => 'none' ),
+			)
+		);
+
+		$this->add_responsive_control(
+			'divider_spacing',
+			array(
+				'label'       => __( 'Space above the line', 'ingredient-list-decoder' ),
+				'type'        => Controls_Manager::SLIDER,
+				'size_units'  => array( 'px', 'em', 'rem' ),
+				'range'       => array( 'px' => array( 'min' => 0, 'max' => 60 ) ),
+				'description' => __( 'Padding below each item, between its content and the line.', 'ingredient-list-decoder' ),
+				'selectors'   => array(
+					'{{WRAPPER}} .ild-products__list .ild-product-ing:not(:last-child)' => 'padding-bottom: {{SIZE}}{{UNIT}};',
+				),
+				'condition'   => array( 'divider_style!' => 'none' ),
 			)
 		);
 
@@ -743,11 +861,60 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 			)
 		);
 
+		// Spacing around the whole detail block, so it does not sit against the name
+		// above it or the next ingredient below it.
+		$this->add_control(
+			'detail_spacing_heading',
+			array(
+				'label' => __( 'Spacing', 'ingredient-list-decoder' ),
+				'type'  => Controls_Manager::HEADING,
+			)
+		);
+
+		$this->add_responsive_control(
+			'detail_margin',
+			array(
+				'label'      => __( 'Margin', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-product-ing__detail' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'detail_padding',
+			array(
+				'label'      => __( 'Padding', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-product-ing__detail' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'detail_field_gap',
+			array(
+				'label'      => __( 'Gap between detail fields', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 48 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-product-ing__detail > .ild-product-ing__description' => 'margin-bottom: {{SIZE}}{{UNIT}};',
+					'{{WRAPPER}} .ild-product-ing__detail > .ild-product-ing__field'       => 'margin-bottom: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
 		$this->add_control(
 			'detail_label_heading',
 			array(
-				'label' => __( 'Labels', 'ingredient-list-decoder' ),
-				'type'  => Controls_Manager::HEADING,
+				'label'     => __( 'Labels', 'ingredient-list-decoder' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
 			)
 		);
 		$this->add_text_style( 'detail_label', '.ild-product-ing__detail-label' );
@@ -780,7 +947,43 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 			)
 		);
 
-		$this->add_text_style( 'toggle', '.ild-product-ing__toggle' );
+		$this->add_control(
+			'toggle_icon',
+			array(
+				'label'       => __( 'Expander icon', 'ingredient-list-decoder' ),
+				'type'        => Controls_Manager::ICONS,
+				'description' => __( 'Choose the icon shown on each expander. Leave empty for the default chevron.', 'ingredient-list-decoder' ),
+				'skin'        => 'inline',
+			)
+		);
+
+		$this->add_control(
+			'toggle_icon_active',
+			array(
+				'label'       => __( 'Icon when open', 'ingredient-list-decoder' ),
+				'type'        => Controls_Manager::ICONS,
+				'description' => __( 'Optional. The icon shown while an ingredient is open (e.g. a minus). Leave empty and the icon above simply rotates.', 'ingredient-list-decoder' ),
+				'skin'        => 'inline',
+				'condition'   => array( 'toggle_icon[value]!' => '' ),
+			)
+		);
+
+		$this->add_responsive_control(
+			'toggle_icon_size',
+			array(
+				'label'      => __( 'Icon size', 'ingredient-list-decoder' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em', 'rem' ),
+				'range'      => array( 'px' => array( 'min' => 6, 'max' => 60 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .ild-product-ing__toggle-icon'     => 'font-size: {{SIZE}}{{UNIT}};',
+					'{{WRAPPER}} .ild-product-ing__toggle-icon svg' => 'width: {{SIZE}}{{UNIT}}; height: {{SIZE}}{{UNIT}};',
+					'{{WRAPPER}} .ild-product-ing__toggle-icon--chevron' => 'width: {{SIZE}}{{UNIT}}; height: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_text_style( 'toggle', '.ild-product-ing__toggle', 'before' );
 
 		$this->add_control(
 			'toggle_icon_colour',
@@ -788,7 +991,11 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 				'label'     => __( 'Icon colour', 'ingredient-list-decoder' ),
 				'type'      => Controls_Manager::COLOR,
 				'selectors' => array(
-					'{{WRAPPER}} .ild-product-ing__toggle-icon' => 'border-color: {{VALUE}};',
+					// The default chevron is drawn with borders; a chosen icon uses
+					// colour (icon fonts) or fill (SVG).
+					'{{WRAPPER}} .ild-product-ing__toggle-icon--chevron' => 'border-color: {{VALUE}};',
+					'{{WRAPPER}} .ild-product-ing__toggle-icon'          => 'color: {{VALUE}};',
+					'{{WRAPPER}} .ild-product-ing__toggle-icon svg'      => 'fill: {{VALUE}};',
 				),
 				'separator' => 'before',
 			)
@@ -846,12 +1053,19 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 			$heading = str_replace( '{product}', $view['product_name'], $raw );
 		}
 
+		// The chosen expander icons, rendered here where the settings are available.
+		$toggle = array(
+			'icon'   => $this->icon_html( isset( $settings['toggle_icon'] ) ? $settings['toggle_icon'] : array() ),
+			'active' => $this->icon_html( isset( $settings['toggle_icon_active'] ) ? $settings['toggle_icon_active'] : array() ),
+		);
+
 		// The display options handed to the template.
 		$opts = array(
 			'layout'         => ( isset( $settings['layout'] ) && 'open' === $settings['layout'] ) ? 'open' : 'expandable',
 			'group_headings' => ( 'yes' === ( isset( $settings['show_group_headings'] ) ? $settings['show_group_headings'] : 'yes' ) ),
 			'heading'        => $heading,
 			'heading_tag'    => isset( $settings['heading_tag'] ) ? $settings['heading_tag'] : 'h2',
+			'toggle'         => $toggle,
 			'fields'         => array(
 				'description' => ( 'yes' === ( isset( $settings['show_description'] ) ? $settings['show_description'] : 'yes' ) ),
 				'role'        => ( 'yes' === ( isset( $settings['show_role'] ) ? $settings['show_role'] : 'yes' ) ),
@@ -869,6 +1083,22 @@ class ILD_Product_Ingredients_Widget extends \Elementor\Widget_Base {
 				'opts' => $opts,
 			)
 		);
+	}
+
+	/**
+	 * Render an Elementor icon control's value to HTML, or '' when none is set.
+	 *
+	 * @param array $icon The icon control value ({ value, library }).
+	 * @return string The icon markup, or ''.
+	 */
+	private function icon_html( $icon ) {
+		if ( empty( $icon ) || empty( $icon['value'] ) || ! class_exists( '\Elementor\Icons_Manager' ) ) {
+			return '';
+		}
+
+		ob_start();
+		\Elementor\Icons_Manager::render_icon( $icon, array( 'aria-hidden' => 'true' ) );
+		return (string) ob_get_clean();
 	}
 
 	/**
