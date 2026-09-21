@@ -168,6 +168,20 @@ class ILD_Plugin {
 	private $email;
 
 	/**
+	 * The product ingredient-list reader (JetEngine field → library).
+	 *
+	 * @var ILD_Products
+	 */
+	private $products;
+
+	/**
+	 * The product edit screen's ingredient-library status box.
+	 *
+	 * @var ILD_Product_Admin
+	 */
+	private $product_admin;
+
+	/**
 	 * The Elementor widget integration.
 	 *
 	 * @var ILD_Elementor
@@ -199,6 +213,8 @@ class ILD_Plugin {
 		$this->connectors    = new ILD_Connector_Manager();
 		$this->gate          = new ILD_Gate();
 		$this->email         = new ILD_Email();
+		$this->products      = new ILD_Products();
+		$this->product_admin = new ILD_Product_Admin();
 		$this->elementor     = new ILD_Elementor();
 	}
 
@@ -236,6 +252,8 @@ class ILD_Plugin {
 		$this->connectors->register_hooks();
 		$this->gate->register_hooks();
 		$this->email->register_hooks();
+		$this->products->register_hooks();
+		$this->product_admin->register_hooks();
 
 		// Keep the custom tables in step with the schema version.
 		add_action( 'admin_init', array( $this, 'maybe_upgrade_db' ) );

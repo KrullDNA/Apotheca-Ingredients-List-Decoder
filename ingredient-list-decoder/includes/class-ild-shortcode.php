@@ -708,4 +708,18 @@ class ILD_Shortcode {
 
 		return ob_get_clean();
 	}
+
+	/**
+	 * Render a plugin template by name, for other components (e.g. widgets).
+	 *
+	 * A thin public wrapper over the internal template loader, so a widget can reuse
+	 * the same escaped-template rendering the shortcode uses without duplicating it.
+	 *
+	 * @param string $name The template file name (without the .php extension).
+	 * @param array  $vars The variables to expose to the template.
+	 * @return string The rendered markup.
+	 */
+	public static function render_named_template( $name, $vars = array() ) {
+		return self::render_template( $name, $vars );
+	}
 }

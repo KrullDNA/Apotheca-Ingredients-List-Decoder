@@ -3,7 +3,7 @@ Contributors: kdna
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 1.6.24
+Stable tag: 1.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -375,6 +375,13 @@ The core captures every consented lead locally on its own. This stage lets those
 5. Enter a wrong list ID, complete the gate, and confirm the lead lands in **Leads → Failed sync** with the provider's reason — and that Retry syncs it once the list ID is corrected.
 
 == Changelog ==
+
+= 1.7.0 =
+* New "Product Ingredients" Elementor widget (in the KDNA Tools category). It reads a product's back-of-bottle ingredient list from the product's `ingredients` field (the JetEngine field — the meta key is configurable, default `ingredients`), links each name to the ingredient library using the decoder's own matcher, and displays each ingredient with its explanation.
+* Display controls: order by bottle (INCI) order, alphabetical, grouped by ingredient type (family), or grouped by role; show or hide each field independently (description, role, family, evidence note, founder's take, also known as); show each ingredient expandable (detail on tap) or fully open; an optional heading (with a {product} placeholder). Every visible element has its own Elementor style controls.
+* The widget shows for the current product on a product page, or a product you pick, switchable in the widget.
+* An ingredient a product lists but the library doesn't hold yet is shown by name (so the list still matches the bottle) and flagged two ways: a status box on the product edit screen lists the missing names, and they are added to the Unknown ingredients queue when the product is saved (without inflating appearance counts).
+* The widget only reads the `ingredients` field; it never writes to it, so the field stays available for other front-end uses.
 
 = 1.6.24 =
 * Importing ingredients now cleans the Unknown ingredients queue automatically. After an import, every open unknown token is checked against the library, and any that a new or updated entry now covers — by INCI name, by an "also known as" alias, or by a bracket/slash variant — is removed from the queue. The import summary says how many were cleared. So the Unknown list keeps only names that are still genuinely missing from the database.

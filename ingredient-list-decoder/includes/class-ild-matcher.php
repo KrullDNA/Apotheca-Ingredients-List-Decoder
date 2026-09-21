@@ -160,6 +160,33 @@ class ILD_Matcher {
 	}
 
 	/**
+	 * Resolve a token to a library post ID by direct match only.
+	 *
+	 * Returns the matched ingredient's post ID for an exact INCI name, an alias, or
+	 * a bracket/slash variant — the same "matched" outcome the reader shows — and 0
+	 * for anything that would only be a fuzzy "did you mean" guess. Curated product
+	 * lists are read this way so a near-miss is never silently swapped for a
+	 * different ingredient.
+	 *
+	 * @param string     $token The token (raw or normalised); it is normalised here.
+	 * @param array|null $index A prebuilt index from build_index(), or null to build one.
+	 * @return int The matched post ID, or 0.
+	 */
+	public static function resolve_id( $token, $index = null ) {
+		$norm = ILD_Parser::normalise( (string) $token );
+		if ( '' === $norm ) {
+			return 0;
+		}
+
+		if ( null === $index ) {
+			$index = self::build_index();
+		}
+
+		$hit = self::lookup( $norm, $index );
+		return $hit ? (int) $hit['id'] : 0;
+	}
+
+	/**
 	 * Tidy a raw list against the library, ready to show for checking.
 	 *
 	 * Each token is looked up: an exact match becomes the library's stored INCI

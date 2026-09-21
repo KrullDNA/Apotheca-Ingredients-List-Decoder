@@ -1,0 +1,164 @@
+/**
+ * Base styles for the Product Ingredients widget.
+ *
+ * Deliberately restrained: layout, the expandable behaviour, and sensible
+ * defaults only. The brand look (colour, type, spacing, borders) comes from the
+ * widget's Elementor style controls, which are scoped to the widget instance and
+ * therefore win over everything here. Written to work with a single-div wrapper,
+ * with no reliance on Elementor's container divs.
+ */
+
+.ild-products {
+	box-sizing: border-box;
+}
+
+.ild-products *,
+.ild-products *::before,
+.ild-products *::after {
+	box-sizing: border-box;
+}
+
+.ild-products__title {
+	margin: 0 0 1rem;
+}
+
+/* Group headings (when grouped by type or role). */
+.ild-products__group-heading {
+	margin: 1.25rem 0 0.5rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	font-size: 0.85em;
+}
+
+.ild-products__group-heading:first-child {
+	margin-top: 0;
+}
+
+/* The list of ingredients. The gap is also driven by a control. */
+.ild-products__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+/* One ingredient. */
+.ild-product-ing {
+	margin: 0;
+}
+
+.ild-product-ing__box {
+	margin: 0;
+}
+
+/* The always-visible row: name, badges, and (when expandable) the toggle. */
+.ild-product-ing__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.4rem 0.75rem;
+	cursor: default;
+}
+
+/* When it is a <summary>, make the whole row the toggle and drop the marker. */
+details.ild-product-ing__box > summary.ild-product-ing__head {
+	cursor: pointer;
+	list-style: none;
+}
+
+details.ild-product-ing__box > summary.ild-product-ing__head::-webkit-details-marker {
+	display: none;
+}
+
+.ild-product-ing__name {
+	font-weight: 600;
+}
+
+/* Role and family badges. */
+.ild-product-ing__meta {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+}
+
+.ild-product-ing__badge {
+	display: inline-block;
+	font-size: 0.85em;
+}
+
+.ild-product-ing__meta-label {
+	opacity: 0.7;
+}
+
+/* The expander chevron, pushed to the end of the row. */
+.ild-product-ing__toggle {
+	margin-left: auto;
+	display: inline-flex;
+	align-items: center;
+}
+
+.ild-product-ing__toggle-icon {
+	display: inline-block;
+	width: 0.5em;
+	height: 0.5em;
+	border-right: 2px solid currentColor;
+	border-bottom: 2px solid currentColor;
+	transform: rotate(45deg);
+	transition: transform 0.15s ease;
+}
+
+details.ild-product-ing__box[open] .ild-product-ing__toggle-icon {
+	transform: rotate(-135deg);
+}
+
+/* The revealed / open detail. */
+.ild-product-ing__detail {
+	margin-top: 0.5rem;
+}
+
+.ild-product-ing__description {
+	margin: 0 0 0.5rem;
+}
+
+.ild-product-ing__field {
+	margin: 0 0 0.5rem;
+}
+
+.ild-product-ing__field:last-child {
+	margin-bottom: 0;
+}
+
+.ild-product-ing__detail-label {
+	display: block;
+	font-size: 0.8em;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	opacity: 0.7;
+}
+
+.ild-product-ing__detail-body {
+	margin: 0.1rem 0 0;
+}
+
+/* An ingredient not yet in the library: name only, quietly muted. */
+.ild-product-ing--missing .ild-product-ing__name {
+	font-weight: 400;
+	opacity: 0.7;
+}
+
+/* Editor placeholder when no product is resolved. */
+.ild-products--placeholder {
+	padding: 1rem;
+	border: 1px dashed currentColor;
+	opacity: 0.7;
+	text-align: center;
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.ild-product-ing__toggle-icon {
+		transition: none;
+	}
+}
